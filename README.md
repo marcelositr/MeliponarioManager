@@ -42,6 +42,8 @@ O sistema deve permitir, entre outras operações:
 
 A colônia é tratada como uma entidade histórica. Uma troca de caixa, divisão, transferência ou baixa não apaga o que aconteceu anteriormente.
 
+A entrada no plantel é derivada do próprio cadastro e da origem da colônia, sem criar um segundo registro redundante. Perdas, inativações e reativações são transições explícitas, preservando status anterior, novo status, data, motivo e o contexto da caixa quando aplicável.
+
 A caixa física e a colônia são entidades distintas: uma mesma colônia pode ocupar caixas diferentes ao longo do tempo.
 
 Manutenções pertencem à caixa física e preservam o contexto da colônia que a ocupava na data registrada, quando houver. Assim, reparar ou limpar uma caixa não é tratado como troca de caixa nem como evento genérico da colônia.
