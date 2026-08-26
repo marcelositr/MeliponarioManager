@@ -8,4 +8,5 @@ O projeto utiliza Versionamento Semântico no formato `vMAJOR.MINOR.PATCH` e per
 
 ### Added
 
+- Ciclo de vida de colônias com entrada derivada do cadastro, baixas por perda, inativação e reativação rastreáveis.
 - Fundação inicial do repositório e fluxo de desenvolvimento.
