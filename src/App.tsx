@@ -1,11 +1,48 @@
-const stats = [
-  ["Colônias", "0"],
-  ["Fortes", "0"],
-  ["Em atenção", "0"],
-  ["Produzindo", "0"],
-];
+import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
+
+type CoreSummary = {
+  meliponaries: number;
+  species: number;
+  colonies: number;
+  boxes: number;
+};
+
+const emptySummary: CoreSummary = {
+  meliponaries: 0,
+  species: 0,
+  colonies: 0,
+  boxes: 0,
+};
 
 function App() {
+  const [summary, setSummary] = useState<CoreSummary>(emptySummary);
+  const [status, setStatus] = useState("Carregando dados locais...");
+
+  useEffect(() => {
+    invoke<CoreSummary>("get_core_summary")
+      .then((data) => {
+        setSummary(data);
+        setStatus("Banco local conectado.");
+      })
+      .catch(() => {
+        setStatus("Abra pelo Tauri para acessar o banco local.");
+      });
+  }, []);
+
+  const stats = [
+    ["Meliponários", summary.meliponaries],
+    ["Espécies", summary.species],
+    ["Colônias", summary.colonies],
+    ["Caixas", summary.boxes],
+  ] as const;
+
+  const isEmpty =
+    summary.meliponaries === 0 &&
+    summary.species === 0 &&
+    summary.colonies === 0 &&
+    summary.boxes === 0;
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -21,10 +58,11 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Acompanhe colônias, caixas, inspeções, manejo e movimentações sem perder a origem de cada registro.
+            Colônias e caixas têm identidades separadas. Quando uma colônia muda de caixa,
+            o sistema preserva onde ela esteve e quando a mudança aconteceu.
           </p>
         </div>
-        <button type="button">Adicionar colônia</button>
+        <span className="connection-status">{status}</span>
       </section>
 
       <section className="stats-grid" aria-label="Resumo do meliponário">
@@ -37,9 +75,10 @@ function App() {
       </section>
 
       <section className="empty-state">
-        <h3>Comece pelo cadastro do seu meliponário</h3>
+        <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          Esta é a base inicial da aplicação. Os módulos de colônias, caixas e inspeções entram nas próximas etapas da série 0.x.
+          O núcleo já reconhece meliponários, espécies, colônias e caixas. Os formulários de
+          cadastro entram nas próximas etapas, sem misturar a identidade da colônia com a caixa física.
         </p>
       </section>
     </main>
