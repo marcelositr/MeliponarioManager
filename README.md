@@ -44,6 +44,8 @@ A colônia é tratada como uma entidade histórica. Uma troca de caixa, divisão
 
 A caixa física e a colônia são entidades distintas: uma mesma colônia pode ocupar caixas diferentes ao longo do tempo.
 
+Os alertas de manejo são derivados dos registros mais recentes de inspeção, alimentação e condição da colônia. Eles não são persistidos como um segundo estado independente, evitando alertas desatualizados quando um novo manejo substitui uma pendência anterior.
+
 A modelagem de movimentações e rastreabilidade considera como referência conceitual os fluxos utilizados por GEFAU, GEDAVE e GTA no Estado de São Paulo, sem transformar o MeliponarioManager em uma cópia desses sistemas ou impor burocracia oficial ao uso cotidiano.
 
 ## Desenvolvimento

@@ -1,3 +1,4 @@
+mod alerts;
 mod commands;
 mod database;
 mod divisions;
@@ -32,6 +33,8 @@ pub fn run() {
             commands::get_feeding_count,
             commands::get_production_count,
             commands::get_movement_count,
+            commands::get_alert_count,
+            commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,
             commands::create_species,

@@ -1,4 +1,5 @@
 use crate::{
+    alerts::{self, Alert},
     divisions::{self, ColonyDivision, CreateDivision, GenealogyNode},
     domain::{
         Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
@@ -51,6 +52,16 @@ pub async fn get_production_count(pool: State<'_, SqlitePool>) -> Result<i64, St
 #[tauri::command]
 pub async fn get_movement_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     movements::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_alert_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    alerts::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_alerts(pool: State<'_, SqlitePool>) -> Result<Vec<Alert>, String> {
+    alerts::list(&pool).await.map_err(message)
 }
 
 #[tauri::command]
