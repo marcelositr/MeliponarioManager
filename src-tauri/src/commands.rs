@@ -11,12 +11,13 @@ use crate::{
     inspections::{self, CreateInspection, Inspection},
     lifecycle::{self, ChangeColonyLifecycle, ColonyLifecycleRecord},
     maintenance::{self, BoxMaintenance, CreateBoxMaintenance},
+    media::{self, ImportInspectionPhoto, InspectionPhoto},
     movements::{self, ColonyMovement, CreateMovement},
     production::{self, CreateProductionRecord, ProductionRecord},
     repository, timeline,
 };
 use sqlx::SqlitePool;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 
 fn message(error: repository::AppError) -> String {
     error.to_string()
@@ -30,6 +31,11 @@ pub async fn get_core_summary(pool: State<'_, SqlitePool>) -> Result<CoreSummary
 #[tauri::command]
 pub async fn get_inspection_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     inspections::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_inspection_photo_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    media::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -194,6 +200,50 @@ pub async fn list_colony_inspections(
     colony_id: String,
 ) -> Result<Vec<Inspection>, String> {
     inspections::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn import_inspection_photo(
+    app: AppHandle,
+    pool: State<'_, SqlitePool>,
+    input: ImportInspectionPhoto,
+) -> Result<InspectionPhoto, String> {
+    let data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    media::import_photo(&pool, &data_dir, input)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_inspection_photos(
+    pool: State<'_, SqlitePool>,
+    inspection_id: String,
+) -> Result<Vec<InspectionPhoto>, String> {
+    media::list_by_inspection(&pool, &inspection_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_photos(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<InspectionPhoto>, String> {
+    media::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn delete_inspection_photo(
+    app: AppHandle,
+    pool: State<'_, SqlitePool>,
+    photo_id: String,
+) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    media::delete_photo(&pool, &data_dir, &photo_id)
         .await
         .map_err(message)
 }
