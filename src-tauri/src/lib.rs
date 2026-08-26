@@ -9,6 +9,7 @@ mod history;
 mod inspections;
 mod lifecycle;
 mod maintenance;
+mod media;
 mod movements;
 mod production;
 mod repository;
@@ -22,6 +23,7 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
+            std::fs::create_dir_all(data_dir.join("media").join("inspections"))?;
 
             let database_path = data_dir.join("meliponario.db");
             let pool: SqlitePool = tauri::async_runtime::block_on(database::initialize(&database_path))?;
@@ -32,6 +34,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::get_core_summary,
             commands::get_inspection_count,
+            commands::get_inspection_photo_count,
             commands::get_event_count,
             commands::get_division_count,
             commands::get_feeding_count,
@@ -57,6 +60,10 @@ pub fn run() {
             commands::list_colony_lifecycle,
             commands::create_inspection,
             commands::list_colony_inspections,
+            commands::import_inspection_photo,
+            commands::list_inspection_photos,
+            commands::list_colony_photos,
+            commands::delete_inspection_photo,
             commands::create_colony_event,
             commands::list_colony_events,
             commands::get_colony_timeline,

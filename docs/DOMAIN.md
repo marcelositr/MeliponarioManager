@@ -44,9 +44,31 @@ Regras iniciais:
 
 ### Inspeção
 
-Registro de uma avaliação da colônia em determinada data, incluindo força, postura, alimento, crias, rainha, pragas, observações e fotos.
+Registro de uma avaliação da colônia em determinada data, incluindo força, postura, alimento, crias, rainha, pragas, observações, ações e próxima inspeção.
 
-> Ainda não implementada no núcleo atual.
+### Foto de inspeção
+
+Arquivo visual associado a uma inspeção já existente. A inspeção fornece o vínculo com a colônia e o contexto temporal, portanto a foto não armazena uma segunda referência independente à colônia.
+
+Metadados iniciais:
+
+- inspeção;
+- caminho relativo do arquivo;
+- nome original;
+- tipo MIME;
+- tamanho em bytes;
+- data da captura;
+- observações.
+
+Regras iniciais:
+
+- a foto precisa pertencer a uma inspeção existente;
+- arquivos são copiados para `media/inspections/<inspection-id>/` no diretório de dados da aplicação;
+- o SQLite guarda apenas metadados e o caminho relativo, nunca o conteúdo binário;
+- o nome interno usa UUID para evitar colisões;
+- a primeira versão aceita JPG, PNG e WebP;
+- quando a data de captura não é informada, é usada a data da inspeção;
+- a exclusão remove o vínculo do banco e o arquivo gerenciado, protegendo o caminho para que apenas a área de mídia de inspeções possa ser afetada.
 
 ### Evento
 

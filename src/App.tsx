@@ -18,6 +18,7 @@ const emptySummary: CoreSummary = {
 function App() {
   const [summary, setSummary] = useState<CoreSummary>(emptySummary);
   const [inspectionCount, setInspectionCount] = useState(0);
+  const [photoCount, setPhotoCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
   const [divisionCount, setDivisionCount] = useState(0);
   const [feedingCount, setFeedingCount] = useState(0);
@@ -33,6 +34,7 @@ function App() {
     Promise.all([
       invoke<CoreSummary>("get_core_summary"),
       invoke<number>("get_inspection_count"),
+      invoke<number>("get_inspection_photo_count"),
       invoke<number>("get_event_count"),
       invoke<number>("get_division_count"),
       invoke<number>("get_feeding_count"),
@@ -43,9 +45,10 @@ function App() {
       invoke<number>("get_box_maintenance_count"),
       invoke<number>("get_lifecycle_count"),
     ])
-      .then(([data, inspections, events, divisions, feedings, production, movements, movementDocuments, alerts, maintenance, lifecycle]) => {
+      .then(([data, inspections, photos, events, divisions, feedings, production, movements, movementDocuments, alerts, maintenance, lifecycle]) => {
         setSummary(data);
         setInspectionCount(inspections);
+        setPhotoCount(photos);
         setEventCount(events);
         setDivisionCount(divisions);
         setFeedingCount(feedings);
@@ -68,6 +71,7 @@ function App() {
     ["Colônias", summary.colonies],
     ["Caixas", summary.boxes],
     ["Inspeções", inspectionCount],
+    ["Fotos", photoCount],
     ["Eventos", eventCount],
     ["Divisões", divisionCount],
     ["Alimentações", feedingCount],
@@ -85,6 +89,7 @@ function App() {
     summary.colonies === 0 &&
     summary.boxes === 0 &&
     inspectionCount === 0 &&
+    photoCount === 0 &&
     eventCount === 0 &&
     divisionCount === 0 &&
     feedingCount === 0 &&
@@ -110,7 +115,7 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Inspeções, eventos, mudanças de caixa, divisões, alimentações, produção, movimentações, documentos, manutenções e ciclo de vida preservam o contexto de cada momento.
+            Inspeções e suas fotos, eventos, mudanças de caixa, divisões, alimentações, produção, movimentações, documentos, manutenções e ciclo de vida preservam o contexto de cada momento.
             Alertas são derivados das pendências reais do manejo, sem duplicar estado no banco.
           </p>
         </div>
@@ -129,7 +134,7 @@ function App() {
       <section className="empty-state">
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos, divisões, alimentações, produção,
+          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, fotos de inspeção, eventos, divisões, alimentações, produção,
           movimentações, documentos de rastreabilidade, manutenção de caixas, ciclo de vida e alertas derivados do manejo.
         </p>
       </section>

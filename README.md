@@ -49,6 +49,8 @@ A caixa física e a colônia são entidades distintas: uma mesma colônia pode o
 
 Manutenções pertencem à caixa física e preservam o contexto da colônia que a ocupava na data registrada, quando houver. Assim, reparar ou limpar uma caixa não é tratado como troca de caixa nem como evento genérico da colônia.
 
+Fotos de inspeção pertencem à inspeção que lhes dá contexto. O SQLite armazena apenas metadados e um caminho relativo; o arquivo é copiado para o diretório de dados da aplicação em `media/inspections/`. A colônia da foto é sempre derivada da inspeção, evitando um segundo vínculo independente. A primeira versão aceita JPG, PNG e WebP.
+
 Documentos de movimentação pertencem ao registro de movimentação e funcionam como evidência de rastreabilidade. Uma movimentação pode possuir vários documentos ou referências, com tipo, número, sistema de origem, emissor, emissão, validade, caminho de arquivo e observações. O sistema registra esses dados, mas não presume nem certifica validade jurídica.
 
 Referências simples gravadas pelo campo legado `document_reference` são normalizadas automaticamente para a estrutura documental, evitando duas fontes permanentes de verdade.
@@ -83,7 +85,7 @@ Execute a aplicação desktop:
 npm run tauri dev
 ```
 
-O banco SQLite é criado automaticamente no diretório de dados da aplicação e recebe as migrations durante a inicialização.
+O banco SQLite é criado automaticamente no diretório de dados da aplicação e recebe as migrations durante a inicialização. Fotos importadas pelo backend são mantidas no subdiretório `media/inspections/` do mesmo diretório de dados.
 
 ## Fluxo de desenvolvimento
 
