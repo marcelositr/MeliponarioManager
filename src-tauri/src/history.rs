@@ -14,7 +14,6 @@ const EVENT_TYPES: &[&str] = &[
     "observation",
     "other",
 ];
-
 const SEVERITIES: &[&str] = &["info", "attention", "critical"];
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -72,26 +71,6 @@ fn optional(value: &Option<String>) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
-fn event_type(value: &str) -> Result<String, AppError> {
-    let value = required(value, "Tipo do evento")?;
-    if EVENT_TYPES.contains(&value.as_str()) {
-        Ok(value)
-    } else {
-        Err(AppError::Validation("Tipo de evento inválido.".to_owned()))
-    }
-}
-
-fn severity(value: &Option<String>) -> Result<String, AppError> {
-    let value = optional(value).unwrap_or_else(|| "info".to_owned());
-    if SEVERITIES.contains(&value.as_str()) {
-        Ok(value)
-    } else {
-        Err(AppError::Validation(
-            "Nível do evento inválido. Use info, attention ou critical.".to_owned(),
-        ))
-    }
-}
-
 async fn colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<bool, AppError> {
     Ok(sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
@@ -141,8 +120,17 @@ pub async fn create(
     input: CreateColonyEvent,
 ) -> Result<ColonyEvent, AppError> {
     let colony_id = required(&input.colony_id, "Colônia")?;
-    let event_type = event_type(&input.event_type)?;
-    let severity = severity(&input.severity)?;
+    let event_type = required(&input.event_type, "Tipo do evento")?;
+    if !EVENT_TYPES.contains(&event_type.as_str()) {
+        return Err(AppError::Validation("Tipo de evento inválido.".to_owned()));
+    }
+
+    let severity = optional(&input.severity).unwrap_or_else(|| "info".to_owned());
+    if !SEVERITIES.contains(&severity.as_str()) {
+        return Err(AppError::Validation(
+            "Nível do evento inválido. Use info, attention ou critical.".to_owned(),
+        ));
+    }
 
     if !colony_exists(pool, &colony_id).await? {
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
@@ -154,7 +142,6 @@ pub async fn create(
             .fetch_one(pool)
             .await?,
     };
-
     let box_id = box_at(pool, &colony_id, &occurred_at).await?;
     let id = Uuid::new_v4().to_string();
 
@@ -182,7 +169,6 @@ pub async fn list_events_by_colony(
     colony_id: &str,
 ) -> Result<Vec<ColonyEvent>, AppError> {
     let colony_id = required(colony_id, "Colônia")?;
-
     if !colony_exists(pool, &colony_id).await? {
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
     }
@@ -206,7 +192,6 @@ pub async fn timeline_by_colony(
     colony_id: &str,
 ) -> Result<Vec<TimelineEntry>, AppError> {
     let colony_id = required(colony_id, "Colônia")?;
-
     if !colony_exists(pool, &colony_id).await? {
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
     }
@@ -217,7 +202,7 @@ pub async fn timeline_by_colony(
             SELECT
                 'event' AS source_type,
                 e.id AS source_id,
-                e.occurred_at AS occurred_at,
+                e.occurred_at,
                 COALESCE(
                     e.title,
                     CASE e.event_type
@@ -232,9 +217,9 @@ pub async fn timeline_by_colony(
                         ELSE 'Outro evento'
                     END
                 ) AS title,
-                e.details AS details,
+                e.details,
                 b.code AS box_code,
-                e.severity AS severity
+                e.severity
             FROM colony_events e
             LEFT JOIN boxes b ON b.id = e.box_id
             WHERE e.colony_id = ?
@@ -242,13 +227,13 @@ pub async fn timeline_by_colony(
             UNION ALL
 
             SELECT
-                'inspection' AS source_type,
-                i.id AS source_id,
-                i.inspected_at AS occurred_at,
-                'Inspeção' AS title,
-                COALESCE(i.observations, i.actions_taken) AS details,
-                b.code AS box_code,
-                CASE WHEN i.strength = 'weak' THEN 'attention' ELSE 'info' END AS severity
+                'inspection',
+                i.id,
+                i.inspected_at,
+                'Inspeção',
+                COALESCE(i.observations, i.actions_taken),
+                b.code,
+                CASE WHEN i.strength = 'weak' THEN 'attention' ELSE 'info' END
             FROM inspections i
             LEFT JOIN boxes b ON b.id = i.box_id
             WHERE i.colony_id = ?
@@ -256,13 +241,13 @@ pub async fn timeline_by_colony(
             UNION ALL
 
             SELECT
-                'feeding' AS source_type,
-                f.id AS source_id,
-                f.fed_at AS occurred_at,
-                'Alimentação: ' || f.food_type AS title,
-                COALESCE(f.response_notes, f.notes) AS details,
-                b.code AS box_code,
-                'info' AS severity
+                'feeding',
+                f.id,
+                f.fed_at,
+                'Alimentação: ' || f.food_type,
+                COALESCE(f.response_notes, f.notes),
+                b.code,
+                'info'
             FROM feedings f
             LEFT JOIN boxes b ON b.id = f.box_id
             WHERE f.colony_id = ?
@@ -270,9 +255,9 @@ pub async fn timeline_by_colony(
             UNION ALL
 
             SELECT
-                'production' AS source_type,
-                p.id AS source_id,
-                p.harvested_at AS occurred_at,
+                'production',
+                p.id,
+                p.harvested_at,
                 printf(
                     'Produção: %s · %g %s',
                     CASE p.product_type
@@ -285,10 +270,10 @@ pub async fn timeline_by_colony(
                     END,
                     p.quantity,
                     p.unit
-                ) AS title,
-                COALESCE(p.notes, p.purpose) AS details,
-                b.code AS box_code,
-                'info' AS severity
+                ),
+                COALESCE(p.notes, p.purpose),
+                b.code,
+                'info'
             FROM production_records p
             LEFT JOIN boxes b ON b.id = p.box_id
             WHERE p.colony_id = ?
@@ -296,22 +281,42 @@ pub async fn timeline_by_colony(
             UNION ALL
 
             SELECT
-                'box_occupancy' AS source_type,
-                o.id AS source_id,
-                o.started_at AS occurred_at,
+                'movement',
+                m.id,
+                m.moved_at,
+                CASE m.movement_type
+                    WHEN 'internal_transfer' THEN 'Transferência entre meliponários'
+                    WHEN 'external_transfer' THEN 'Transferência para fora do plantel'
+                    ELSE 'Transporte'
+                END,
+                COALESCE(tm.name, m.destination, m.notes),
+                fb.code,
+                'info'
+            FROM colony_movements m
+            LEFT JOIN meliponaries tm ON tm.id = m.to_meliponary_id
+            LEFT JOIN boxes fb ON fb.id = m.from_box_id
+            WHERE m.colony_id = ?
+
+            UNION ALL
+
+            SELECT
+                'box_occupancy',
+                o.id,
+                o.started_at,
                 CASE
                     WHEN o.reason IS NOT NULL AND TRIM(o.reason) <> '' THEN o.reason
                     ELSE 'Colônia colocada em caixa'
-                END AS title,
-                o.notes AS details,
-                b.code AS box_code,
-                'info' AS severity
+                END,
+                o.notes,
+                b.code,
+                'info'
             FROM colony_box_occupancies o
             JOIN boxes b ON b.id = o.box_id
             WHERE o.colony_id = ?
          ) timeline
          ORDER BY occurred_at DESC, source_id DESC",
     )
+    .bind(&colony_id)
     .bind(&colony_id)
     .bind(&colony_id)
     .bind(&colony_id)
@@ -359,7 +364,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         let species = repository::create_species(
             pool,
             CreateSpecies {
@@ -371,7 +375,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         let box_one = repository::create_box(
             pool,
             CreateHiveBox {
@@ -385,7 +388,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         let box_two = repository::create_box(
             pool,
             CreateHiveBox {
@@ -399,7 +401,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         let colony = repository::create_colony(
             pool,
             CreateColony {
@@ -428,7 +429,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         repository::place_colony(
             pool,
             PlaceColony {
@@ -449,7 +449,6 @@ mod tests {
     async fn retrospective_event_keeps_box_from_event_date() {
         let pool = test_pool().await;
         let (colony_id, box_one_id, _) = seed(&pool).await;
-
         let event = create(
             &pool,
             CreateColonyEvent {
@@ -463,7 +462,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         assert_eq!(event.box_id.as_deref(), Some(box_one_id.as_str()));
         assert_eq!(event.box_code.as_deref(), Some("CX-001"));
     }
@@ -472,7 +470,6 @@ mod tests {
     async fn timeline_combines_occupancy_inspection_and_event() {
         let pool = test_pool().await;
         let (colony_id, _, _) = seed(&pool).await;
-
         inspections::create(
             &pool,
             CreateInspection {
@@ -491,7 +488,6 @@ mod tests {
         )
         .await
         .unwrap();
-
         create(
             &pool,
             CreateColonyEvent {
@@ -507,7 +503,6 @@ mod tests {
         .unwrap();
 
         let timeline = timeline_by_colony(&pool, &colony_id).await.unwrap();
-
         assert_eq!(timeline[0].source_type, "event");
         assert!(timeline.iter().any(|entry| entry.source_type == "inspection"));
         assert!(timeline.iter().any(|entry| entry.source_type == "box_occupancy"));
@@ -517,7 +512,6 @@ mod tests {
     async fn event_rejects_unknown_type() {
         let pool = test_pool().await;
         let (colony_id, _, _) = seed(&pool).await;
-
         let result = create(
             &pool,
             CreateColonyEvent {
@@ -530,7 +524,6 @@ mod tests {
             },
         )
         .await;
-
         assert!(matches!(result, Err(AppError::Validation(_))));
     }
 }
