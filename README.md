@@ -21,6 +21,21 @@ A base inicial utiliza:
 
 A aplicação é desktop e local-first. O frontend não acessa o banco diretamente: persistência e regras de domínio ficam no backend Rust.
 
+## Interface operacional atual
+
+A primeira interface de operação já permite trabalhar com a base do plantel sem acessar o banco manualmente:
+
+- navegar entre visão geral, meliponários, espécies, colônias e caixas;
+- cadastrar e listar meliponários;
+- cadastrar e listar espécies;
+- cadastrar e listar caixas físicas;
+- cadastrar e listar colônias;
+- relacionar colônia-mãe quando aplicável;
+- colocar ou mover uma colônia para uma caixa livre usando o histórico de ocupação já existente;
+- acompanhar na tela a caixa atual, o meliponário, a espécie e a situação de cada colônia.
+
+A interface usa componentes próprios e chamadas Tauri diretas, sem adicionar um framework de UI pesado.
+
 ## Objetivos
 
 O sistema deve permitir, entre outras operações:
