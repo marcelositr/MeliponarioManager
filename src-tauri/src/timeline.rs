@@ -1,6 +1,6 @@
 use crate::{
     history::{self, TimelineEntry},
-    maintenance,
+    lifecycle, maintenance,
     repository::AppError,
 };
 use sqlx::SqlitePool;
@@ -11,6 +11,7 @@ pub async fn by_colony(
 ) -> Result<Vec<TimelineEntry>, AppError> {
     let mut entries = history::timeline_by_colony(pool, colony_id).await?;
     entries.extend(maintenance::timeline_entries_by_colony(pool, colony_id).await?);
+    entries.extend(lifecycle::timeline_entries(pool, colony_id).await?);
 
     entries.sort_by(|left, right| {
         right

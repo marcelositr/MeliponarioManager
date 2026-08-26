@@ -8,6 +8,7 @@ use crate::{
     feeding::{self, CreateFeeding, Feeding},
     history::{self, ColonyEvent, CreateColonyEvent, TimelineEntry},
     inspections::{self, CreateInspection, Inspection},
+    lifecycle::{self, ChangeColonyLifecycle, ColonyLifecycleRecord},
     maintenance::{self, BoxMaintenance, CreateBoxMaintenance},
     movements::{self, ColonyMovement, CreateMovement},
     production::{self, CreateProductionRecord, ProductionRecord},
@@ -63,6 +64,11 @@ pub async fn get_alert_count(pool: State<'_, SqlitePool>) -> Result<i64, String>
 #[tauri::command]
 pub async fn get_box_maintenance_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     maintenance::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_lifecycle_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    lifecycle::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -148,6 +154,24 @@ pub async fn place_colony(
     input: PlaceColony,
 ) -> Result<ColonyBoxOccupancy, String> {
     repository::place_colony(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn change_colony_lifecycle(
+    pool: State<'_, SqlitePool>,
+    input: ChangeColonyLifecycle,
+) -> Result<ColonyLifecycleRecord, String> {
+    lifecycle::change(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_lifecycle(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<ColonyLifecycleRecord>, String> {
+    lifecycle::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]

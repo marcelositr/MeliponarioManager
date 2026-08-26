@@ -6,6 +6,7 @@ mod domain;
 mod feeding;
 mod history;
 mod inspections;
+mod lifecycle;
 mod maintenance;
 mod movements;
 mod production;
@@ -37,6 +38,7 @@ pub fn run() {
             commands::get_movement_count,
             commands::get_alert_count,
             commands::get_box_maintenance_count,
+            commands::get_lifecycle_count,
             commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,
@@ -49,6 +51,8 @@ pub fn run() {
             commands::create_colony,
             commands::list_colonies,
             commands::place_colony,
+            commands::change_colony_lifecycle,
+            commands::list_colony_lifecycle,
             commands::create_inspection,
             commands::list_colony_inspections,
             commands::create_colony_event,
