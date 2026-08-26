@@ -24,6 +24,7 @@ function App() {
   const [productionCount, setProductionCount] = useState(0);
   const [movementCount, setMovementCount] = useState(0);
   const [alertCount, setAlertCount] = useState(0);
+  const [maintenanceCount, setMaintenanceCount] = useState(0);
   const [status, setStatus] = useState("Carregando dados locais...");
 
   useEffect(() => {
@@ -36,8 +37,9 @@ function App() {
       invoke<number>("get_production_count"),
       invoke<number>("get_movement_count"),
       invoke<number>("get_alert_count"),
+      invoke<number>("get_box_maintenance_count"),
     ])
-      .then(([data, inspections, events, divisions, feedings, production, movements, alerts]) => {
+      .then(([data, inspections, events, divisions, feedings, production, movements, alerts, maintenance]) => {
         setSummary(data);
         setInspectionCount(inspections);
         setEventCount(events);
@@ -46,6 +48,7 @@ function App() {
         setProductionCount(production);
         setMovementCount(movements);
         setAlertCount(alerts);
+        setMaintenanceCount(maintenance);
         setStatus("Banco local conectado.");
       })
       .catch(() => {
@@ -64,6 +67,7 @@ function App() {
     ["Alimentações", feedingCount],
     ["Produção", productionCount],
     ["Movimentações", movementCount],
+    ["Manutenções", maintenanceCount],
     ["Alertas", alertCount],
   ] as const;
 
@@ -78,6 +82,7 @@ function App() {
     feedingCount === 0 &&
     productionCount === 0 &&
     movementCount === 0 &&
+    maintenanceCount === 0 &&
     alertCount === 0;
 
   return (
@@ -95,7 +100,7 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Inspeções, eventos, mudanças de caixa, divisões, alimentações, produção e movimentações preservam o contexto de cada momento.
+            Inspeções, eventos, mudanças de caixa, divisões, alimentações, produção, movimentações e manutenções preservam o contexto de cada momento.
             Alertas são derivados das pendências reais do manejo, sem duplicar estado no banco.
           </p>
         </div>
@@ -115,7 +120,7 @@ function App() {
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
           O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos, divisões, alimentações, produção,
-          movimentações e alertas derivados do manejo.
+          movimentações, manutenção de caixas e alertas derivados do manejo.
         </p>
       </section>
     </main>
