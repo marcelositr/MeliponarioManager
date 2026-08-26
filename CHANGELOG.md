@@ -9,3 +9,4 @@ O projeto utiliza Versionamento Semântico no formato `vMAJOR.MINOR.PATCH` e per
 ### Added
 
 - Fundação inicial do repositório e fluxo de desenvolvimento.
+- Documentos e referências estruturadas para movimentações, com rastreabilidade por colônia e compatibilidade com o campo legado `document_reference`.
