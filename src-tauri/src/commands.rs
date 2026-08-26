@@ -1,6 +1,7 @@
 use crate::{
     alerts::{self, Alert},
     divisions::{self, ColonyDivision, CreateDivision, GenealogyNode},
+    documents::{self, CreateMovementDocument, MovementDocument, MovementTraceability},
     domain::{
         Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
         CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
@@ -54,6 +55,11 @@ pub async fn get_production_count(pool: State<'_, SqlitePool>) -> Result<i64, St
 #[tauri::command]
 pub async fn get_movement_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     movements::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_movement_document_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    documents::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -298,6 +304,44 @@ pub async fn list_colony_movements(
     colony_id: String,
 ) -> Result<Vec<ColonyMovement>, String> {
     movements::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_movement_document(
+    pool: State<'_, SqlitePool>,
+    input: CreateMovementDocument,
+) -> Result<MovementDocument, String> {
+    documents::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_movement_documents(
+    pool: State<'_, SqlitePool>,
+    movement_id: String,
+) -> Result<Vec<MovementDocument>, String> {
+    documents::list_by_movement(&pool, &movement_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_documents(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<MovementDocument>, String> {
+    documents::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_movement_traceability(
+    pool: State<'_, SqlitePool>,
+    movement_id: String,
+) -> Result<MovementTraceability, String> {
+    documents::traceability(&pool, &movement_id)
         .await
         .map_err(message)
 }

@@ -23,6 +23,7 @@ function App() {
   const [feedingCount, setFeedingCount] = useState(0);
   const [productionCount, setProductionCount] = useState(0);
   const [movementCount, setMovementCount] = useState(0);
+  const [movementDocumentCount, setMovementDocumentCount] = useState(0);
   const [alertCount, setAlertCount] = useState(0);
   const [maintenanceCount, setMaintenanceCount] = useState(0);
   const [lifecycleCount, setLifecycleCount] = useState(0);
@@ -37,11 +38,12 @@ function App() {
       invoke<number>("get_feeding_count"),
       invoke<number>("get_production_count"),
       invoke<number>("get_movement_count"),
+      invoke<number>("get_movement_document_count"),
       invoke<number>("get_alert_count"),
       invoke<number>("get_box_maintenance_count"),
       invoke<number>("get_lifecycle_count"),
     ])
-      .then(([data, inspections, events, divisions, feedings, production, movements, alerts, maintenance, lifecycle]) => {
+      .then(([data, inspections, events, divisions, feedings, production, movements, movementDocuments, alerts, maintenance, lifecycle]) => {
         setSummary(data);
         setInspectionCount(inspections);
         setEventCount(events);
@@ -49,6 +51,7 @@ function App() {
         setFeedingCount(feedings);
         setProductionCount(production);
         setMovementCount(movements);
+        setMovementDocumentCount(movementDocuments);
         setAlertCount(alerts);
         setMaintenanceCount(maintenance);
         setLifecycleCount(lifecycle);
@@ -70,6 +73,7 @@ function App() {
     ["Alimentações", feedingCount],
     ["Produção", productionCount],
     ["Movimentações", movementCount],
+    ["Documentos", movementDocumentCount],
     ["Manutenções", maintenanceCount],
     ["Ciclo de vida", lifecycleCount],
     ["Alertas", alertCount],
@@ -86,6 +90,7 @@ function App() {
     feedingCount === 0 &&
     productionCount === 0 &&
     movementCount === 0 &&
+    movementDocumentCount === 0 &&
     maintenanceCount === 0 &&
     lifecycleCount === 0 &&
     alertCount === 0;
@@ -105,7 +110,7 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Inspeções, eventos, mudanças de caixa, divisões, alimentações, produção, movimentações, manutenções e ciclo de vida preservam o contexto de cada momento.
+            Inspeções, eventos, mudanças de caixa, divisões, alimentações, produção, movimentações, documentos, manutenções e ciclo de vida preservam o contexto de cada momento.
             Alertas são derivados das pendências reais do manejo, sem duplicar estado no banco.
           </p>
         </div>
@@ -125,7 +130,7 @@ function App() {
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
           O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos, divisões, alimentações, produção,
-          movimentações, manutenção de caixas, ciclo de vida e alertas derivados do manejo.
+          movimentações, documentos de rastreabilidade, manutenção de caixas, ciclo de vida e alertas derivados do manejo.
         </p>
       </section>
     </main>

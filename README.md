@@ -32,6 +32,7 @@ O sistema deve permitir, entre outras operações:
 - registrar divisões, multiplicações e genealogia;
 - registrar produção de mel, pólen, própolis, cera e outros produtos;
 - registrar eventos como enxameação, abandono, perda de rainha, ataques e transferências;
+- registrar movimentações com documentos e referências de rastreabilidade quando aplicável;
 - registrar manutenção e troca de caixas;
 - armazenar fotos associadas às inspeções;
 - gerar alertas de manejo e acompanhamento;
@@ -47,6 +48,10 @@ A entrada no plantel é derivada do próprio cadastro e da origem da colônia, s
 A caixa física e a colônia são entidades distintas: uma mesma colônia pode ocupar caixas diferentes ao longo do tempo.
 
 Manutenções pertencem à caixa física e preservam o contexto da colônia que a ocupava na data registrada, quando houver. Assim, reparar ou limpar uma caixa não é tratado como troca de caixa nem como evento genérico da colônia.
+
+Documentos de movimentação pertencem ao registro de movimentação e funcionam como evidência de rastreabilidade. Uma movimentação pode possuir vários documentos ou referências, com tipo, número, sistema de origem, emissor, emissão, validade, caminho de arquivo e observações. O sistema registra esses dados, mas não presume nem certifica validade jurídica.
+
+Referências simples gravadas pelo campo legado `document_reference` são normalizadas automaticamente para a estrutura documental, evitando duas fontes permanentes de verdade.
 
 Os alertas de manejo são derivados dos registros mais recentes de inspeção, alimentação e condição da colônia. Eles não são persistidos como um segundo estado independente, evitando alertas desatualizados quando um novo manejo substitui uma pendência anterior.
 
