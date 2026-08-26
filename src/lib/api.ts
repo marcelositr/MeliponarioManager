@@ -5,10 +5,12 @@ import type {
   CoreSummary,
   CreateBoxInput,
   CreateColonyInput,
+  CreateInspectionInput,
   CreateMeliponaryInput,
   CreateSpeciesInput,
   DashboardStats,
   HiveBox,
+  Inspection,
   Meliponary,
   PlaceColonyInput,
   Species,
@@ -88,4 +90,12 @@ export function createColony(input: CreateColonyInput) {
 
 export function placeColony(input: PlaceColonyInput) {
   return invoke("place_colony", { input });
+}
+
+export function createInspection(input: CreateInspectionInput) {
+  return invoke<Inspection>("create_inspection", { input });
+}
+
+export function listColonyInspections(colonyId: string) {
+  return invoke<Inspection[]>("list_colony_inspections", { colonyId });
 }

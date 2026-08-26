@@ -1,4 +1,4 @@
-export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes";
+export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections";
 
 export type CoreSummary = {
   meliponaries: number;
@@ -50,6 +50,25 @@ export type Colony = {
   motherColonyId?: string | null;
   notes?: string | null;
   currentBoxCode?: string | null;
+  createdAt: string;
+};
+
+export type Inspection = {
+  id: string;
+  colonyId: string;
+  colonyCode: string;
+  boxId?: string | null;
+  boxCode?: string | null;
+  inspectedAt: string;
+  strength: string;
+  queenPresent?: boolean | null;
+  layingStatus?: string | null;
+  foodReserves?: string | null;
+  broodStatus?: string | null;
+  pestsNotes?: string | null;
+  observations?: string | null;
+  actionsTaken?: string | null;
+  nextInspectionAt?: string | null;
   createdAt: string;
 };
 
@@ -114,4 +133,18 @@ export type PlaceColonyInput = {
   startedAt?: string;
   reason?: string;
   notes?: string;
+};
+
+export type CreateInspectionInput = {
+  colonyId: string;
+  inspectedAt?: string;
+  strength?: string;
+  queenPresent?: boolean | null;
+  layingStatus?: string;
+  foodReserves?: string;
+  broodStatus?: string;
+  pestsNotes?: string;
+  observations?: string;
+  actionsTaken?: string;
+  nextInspectionAt?: string;
 };
