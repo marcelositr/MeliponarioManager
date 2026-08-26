@@ -8,6 +8,17 @@ Sistema experimental para gerenciamento de meliponários, com foco em colônias,
 
 O MeliponarioManager utiliza Versionamento Semântico (`vMAJOR.MINOR.PATCH`), mas permanecerá na série `0.x`. Não há previsão de uma versão `1.0.0`, pois o projeto é tratado como um laboratório permanente de evolução e testes.
 
+## Stack
+
+- Rust no núcleo da aplicação;
+- Tauri 2 no desktop;
+- React + TypeScript na interface;
+- Vite no frontend;
+- SQLite como banco local;
+- SQLx para acesso ao banco e migrations.
+
+A aplicação é local-first e não depende de servidor externo para funcionar.
+
 ## Objetivos
 
 O sistema deve permitir, entre outras operações:
@@ -32,6 +43,37 @@ A colônia é tratada como uma entidade histórica. Uma troca de caixa, divisão
 A caixa física e a colônia são entidades distintas: uma mesma colônia pode ocupar caixas diferentes ao longo do tempo.
 
 A modelagem de movimentações e rastreabilidade considera como referência conceitual os fluxos utilizados por GEFAU, GEDAVE e GTA no Estado de São Paulo, sem transformar o MeliponarioManager em uma cópia desses sistemas ou impor burocracia oficial ao uso cotidiano.
+
+## Desenvolvimento
+
+Pré-requisitos principais:
+
+- Node.js 22 ou compatível;
+- Rust stable;
+- dependências de sistema exigidas pelo Tauri 2 para a plataforma usada.
+
+Instale as dependências do frontend:
+
+```bash
+npm install
+```
+
+Execute no modo desktop:
+
+```bash
+npm run tauri dev
+```
+
+Validações principais:
+
+```bash
+npm run build
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+cargo check --manifest-path src-tauri/Cargo.toml
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+O banco SQLite é criado automaticamente no diretório de dados da aplicação e recebe as migrations do projeto durante a inicialização.
 
 ## Fluxo de desenvolvimento
 
