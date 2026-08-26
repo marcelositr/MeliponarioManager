@@ -39,16 +39,13 @@ pub fn run() {
                 .create_if_missing(true)
                 .foreign_keys(true);
 
-            let pool = tauri::async_runtime::block_on(async {
-                let pool = SqlitePoolOptions::new()
+            let pool = tauri::async_runtime::block_on(
+                SqlitePoolOptions::new()
                     .max_connections(5)
-                    .connect_with(options)
-                    .await?;
+                    .connect_with(options),
+            )?;
 
-                sqlx::migrate!("./migrations").run(&pool).await?;
-
-                Ok::<_, sqlx::Error>(pool)
-            })?;
+            tauri::async_runtime::block_on(sqlx::migrate!("./migrations").run(&pool))?;
 
             app.manage(pool);
             Ok(())
