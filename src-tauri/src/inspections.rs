@@ -97,23 +97,27 @@ pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspec
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
     }
 
-    let box_id: Option<String> = sqlx::query_scalar(
-        "SELECT box_id
-         FROM colony_box_occupancies
-         WHERE colony_id = ? AND ended_at IS NULL
-         LIMIT 1",
-    )
-    .bind(&colony_id)
-    .fetch_optional(pool)
-    .await?
-    .flatten();
-
     let inspected_at = match optional(&input.inspected_at) {
         Some(value) => value,
         None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
             .fetch_one(pool)
             .await?,
     };
+
+    let box_id: Option<String> = sqlx::query_scalar::<_, String>(
+        "SELECT box_id
+         FROM colony_box_occupancies
+         WHERE colony_id = ?
+           AND started_at <= ?
+           AND (ended_at IS NULL OR ended_at >= ?)
+         ORDER BY started_at DESC
+         LIMIT 1",
+    )
+    .bind(&colony_id)
+    .bind(&inspected_at)
+    .bind(&inspected_at)
+    .fetch_optional(pool)
+    .await?;
 
     let id = Uuid::new_v4().to_string();
     sqlx::query(
@@ -173,7 +177,10 @@ pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony}, repository};
+    use crate::{
+        domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
+        repository,
+    };
     use sqlx::sqlite::SqlitePoolOptions;
 
     async fn test_pool() -> SqlitePool {
@@ -284,6 +291,69 @@ mod tests {
         assert_eq!(inspection.box_id.as_deref(), Some(box_id.as_str()));
         assert_eq!(inspection.box_code.as_deref(), Some("CX-001"));
         assert_eq!(inspection.strength, "strong");
+    }
+
+    #[tokio::test]
+    async fn retrospective_inspection_uses_box_from_inspection_date() {
+        let pool = test_pool().await;
+        let (colony_id, first_box_id) = seeded_colony(&pool).await;
+
+        let meliponary_id: String = sqlx::query_scalar(
+            "SELECT meliponary_id FROM colonies WHERE id = ?",
+        )
+        .bind(&colony_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        let second_box = repository::create_box(
+            &pool,
+            CreateHiveBox {
+                meliponary_id,
+                code: "CX-002".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        repository::place_colony(
+            &pool,
+            PlaceColony {
+                colony_id: colony_id.clone(),
+                box_id: second_box.id,
+                started_at: Some("2026-02-01 09:00:00".into()),
+                reason: Some("Troca de caixa".into()),
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let inspection = create(
+            &pool,
+            CreateInspection {
+                colony_id,
+                inspected_at: Some("2026-01-15 10:00:00".into()),
+                strength: Some("medium".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(inspection.box_id.as_deref(), Some(first_box_id.as_str()));
+        assert_eq!(inspection.box_code.as_deref(), Some("CX-001"));
     }
 
     #[tokio::test]
