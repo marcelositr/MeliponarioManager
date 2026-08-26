@@ -51,7 +51,7 @@ A modelagem de movimentações e rastreabilidade considera como referência conc
 Pré-requisitos principais:
 
 - Node.js 22 ou compatível com Vite 8;
-- Rust 1.90 ou superior;
+- Rust 1.94 ou superior;
 - dependências de sistema exigidas pelo Tauri para a plataforma utilizada.
 
 Instale as dependências do frontend:
