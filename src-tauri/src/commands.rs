@@ -3,6 +3,7 @@ use crate::{
         Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
         CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
     },
+    history::{self, ColonyEvent, CreateColonyEvent, TimelineEntry},
     inspections::{self, CreateInspection, Inspection},
     repository,
 };
@@ -21,6 +22,11 @@ pub async fn get_core_summary(pool: State<'_, SqlitePool>) -> Result<CoreSummary
 #[tauri::command]
 pub async fn get_inspection_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     inspections::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_event_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    history::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -99,6 +105,34 @@ pub async fn list_colony_inspections(
     colony_id: String,
 ) -> Result<Vec<Inspection>, String> {
     inspections::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_colony_event(
+    pool: State<'_, SqlitePool>,
+    input: CreateColonyEvent,
+) -> Result<ColonyEvent, String> {
+    history::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_events(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<ColonyEvent>, String> {
+    history::list_events_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_colony_timeline(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<TimelineEntry>, String> {
+    history::timeline_by_colony(&pool, &colony_id)
         .await
         .map_err(message)
 }

@@ -18,16 +18,19 @@ const emptySummary: CoreSummary = {
 function App() {
   const [summary, setSummary] = useState<CoreSummary>(emptySummary);
   const [inspectionCount, setInspectionCount] = useState(0);
+  const [eventCount, setEventCount] = useState(0);
   const [status, setStatus] = useState("Carregando dados locais...");
 
   useEffect(() => {
     Promise.all([
       invoke<CoreSummary>("get_core_summary"),
       invoke<number>("get_inspection_count"),
+      invoke<number>("get_event_count"),
     ])
-      .then(([data, inspections]) => {
+      .then(([data, inspections, events]) => {
         setSummary(data);
         setInspectionCount(inspections);
+        setEventCount(events);
         setStatus("Banco local conectado.");
       })
       .catch(() => {
@@ -41,6 +44,7 @@ function App() {
     ["Colônias", summary.colonies],
     ["Caixas", summary.boxes],
     ["Inspeções", inspectionCount],
+    ["Eventos", eventCount],
   ] as const;
 
   const isEmpty =
@@ -48,7 +52,8 @@ function App() {
     summary.species === 0 &&
     summary.colonies === 0 &&
     summary.boxes === 0 &&
-    inspectionCount === 0;
+    inspectionCount === 0 &&
+    eventCount === 0;
 
   return (
     <main className="app-shell">
@@ -65,8 +70,8 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Colônias e caixas têm identidades separadas. As inspeções também preservam
-            qual caixa a colônia ocupava no momento do manejo.
+            Inspeções, eventos e mudanças de caixa preservam o contexto de cada momento.
+            O histórico da colônia é montado a partir desses fatos, sem apagar o passado.
           </p>
         </div>
         <span className="connection-status">{status}</span>
@@ -84,8 +89,8 @@ function App() {
       <section className="empty-state">
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          O núcleo já reconhece meliponários, espécies, colônias, caixas e inspeções.
-          Os formulários entram de forma incremental, mantendo o histórico como fonte de verdade.
+          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções e eventos.
+          A linha do tempo reúne esses registros sem duplicar a fonte de verdade.
         </p>
       </section>
     </main>
