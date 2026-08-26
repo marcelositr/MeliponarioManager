@@ -8,9 +8,10 @@ use crate::{
     feeding::{self, CreateFeeding, Feeding},
     history::{self, ColonyEvent, CreateColonyEvent, TimelineEntry},
     inspections::{self, CreateInspection, Inspection},
+    maintenance::{self, BoxMaintenance, CreateBoxMaintenance},
     movements::{self, ColonyMovement, CreateMovement},
     production::{self, CreateProductionRecord, ProductionRecord},
-    repository,
+    repository, timeline,
 };
 use sqlx::SqlitePool;
 use tauri::State;
@@ -60,6 +61,11 @@ pub async fn get_alert_count(pool: State<'_, SqlitePool>) -> Result<i64, String>
 }
 
 #[tauri::command]
+pub async fn get_box_maintenance_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    maintenance::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
 pub async fn list_alerts(pool: State<'_, SqlitePool>) -> Result<Vec<Alert>, String> {
     alerts::list(&pool).await.map_err(message)
 }
@@ -103,6 +109,24 @@ pub async fn create_box(
 #[tauri::command]
 pub async fn list_boxes(pool: State<'_, SqlitePool>) -> Result<Vec<HiveBox>, String> {
     repository::list_boxes(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_box_maintenance(
+    pool: State<'_, SqlitePool>,
+    input: CreateBoxMaintenance,
+) -> Result<BoxMaintenance, String> {
+    maintenance::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_box_maintenance(
+    pool: State<'_, SqlitePool>,
+    box_id: String,
+) -> Result<Vec<BoxMaintenance>, String> {
+    maintenance::list_by_box(&pool, &box_id)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -167,7 +191,7 @@ pub async fn get_colony_timeline(
     pool: State<'_, SqlitePool>,
     colony_id: String,
 ) -> Result<Vec<TimelineEntry>, String> {
-    history::timeline_by_colony(&pool, &colony_id)
+    timeline::by_colony(&pool, &colony_id)
         .await
         .map_err(message)
 }

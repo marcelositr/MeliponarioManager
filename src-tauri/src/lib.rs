@@ -6,9 +6,11 @@ mod domain;
 mod feeding;
 mod history;
 mod inspections;
+mod maintenance;
 mod movements;
 mod production;
 mod repository;
+mod timeline;
 
 use sqlx::SqlitePool;
 use tauri::Manager;
@@ -34,6 +36,7 @@ pub fn run() {
             commands::get_production_count,
             commands::get_movement_count,
             commands::get_alert_count,
+            commands::get_box_maintenance_count,
             commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,
@@ -41,6 +44,8 @@ pub fn run() {
             commands::list_species,
             commands::create_box,
             commands::list_boxes,
+            commands::create_box_maintenance,
+            commands::list_box_maintenance,
             commands::create_colony,
             commands::list_colonies,
             commands::place_colony,
