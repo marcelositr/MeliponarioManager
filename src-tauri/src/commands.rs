@@ -7,6 +7,7 @@ use crate::{
     feeding::{self, CreateFeeding, Feeding},
     history::{self, ColonyEvent, CreateColonyEvent, TimelineEntry},
     inspections::{self, CreateInspection, Inspection},
+    movements::{self, ColonyMovement, CreateMovement},
     production::{self, CreateProductionRecord, ProductionRecord},
     repository,
 };
@@ -45,6 +46,11 @@ pub async fn get_feeding_count(pool: State<'_, SqlitePool>) -> Result<i64, Strin
 #[tauri::command]
 pub async fn get_production_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     production::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_movement_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    movements::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -215,6 +221,24 @@ pub async fn list_colony_production(
     colony_id: String,
 ) -> Result<Vec<ProductionRecord>, String> {
     production::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_colony_movement(
+    pool: State<'_, SqlitePool>,
+    input: CreateMovement,
+) -> Result<ColonyMovement, String> {
+    movements::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_movements(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<ColonyMovement>, String> {
+    movements::list_by_colony(&pool, &colony_id)
         .await
         .map_err(message)
 }

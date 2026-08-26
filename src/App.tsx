@@ -22,6 +22,7 @@ function App() {
   const [divisionCount, setDivisionCount] = useState(0);
   const [feedingCount, setFeedingCount] = useState(0);
   const [productionCount, setProductionCount] = useState(0);
+  const [movementCount, setMovementCount] = useState(0);
   const [status, setStatus] = useState("Carregando dados locais...");
 
   useEffect(() => {
@@ -32,14 +33,16 @@ function App() {
       invoke<number>("get_division_count"),
       invoke<number>("get_feeding_count"),
       invoke<number>("get_production_count"),
+      invoke<number>("get_movement_count"),
     ])
-      .then(([data, inspections, events, divisions, feedings, production]) => {
+      .then(([data, inspections, events, divisions, feedings, production, movements]) => {
         setSummary(data);
         setInspectionCount(inspections);
         setEventCount(events);
         setDivisionCount(divisions);
         setFeedingCount(feedings);
         setProductionCount(production);
+        setMovementCount(movements);
         setStatus("Banco local conectado.");
       })
       .catch(() => {
@@ -57,6 +60,7 @@ function App() {
     ["Divisões", divisionCount],
     ["Alimentações", feedingCount],
     ["Produção", productionCount],
+    ["Movimentações", movementCount],
   ] as const;
 
   const isEmpty =
@@ -68,7 +72,8 @@ function App() {
     eventCount === 0 &&
     divisionCount === 0 &&
     feedingCount === 0 &&
-    productionCount === 0;
+    productionCount === 0 &&
+    movementCount === 0;
 
   return (
     <main className="app-shell">
@@ -85,7 +90,7 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Inspeções, eventos, mudanças de caixa, divisões, alimentações e produção preservam o contexto de cada momento.
+            Inspeções, eventos, mudanças de caixa, divisões, alimentações, produção e movimentações preservam o contexto de cada momento.
             A genealogia e a linha do tempo nascem dos registros reais do manejo.
           </p>
         </div>
@@ -104,7 +109,7 @@ function App() {
       <section className="empty-state">
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos, divisões, alimentações e produção.
+          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos, divisões, alimentações, produção e movimentações.
           Cada manejo permanece rastreável ao longo do tempo.
         </p>
       </section>
