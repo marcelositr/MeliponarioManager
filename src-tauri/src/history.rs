@@ -77,9 +77,7 @@ fn event_type(value: &str) -> Result<String, AppError> {
     if EVENT_TYPES.contains(&value.as_str()) {
         Ok(value)
     } else {
-        Err(AppError::Validation(
-            "Tipo de evento inválido.".to_owned(),
-        ))
+        Err(AppError::Validation("Tipo de evento inválido.".to_owned()))
     }
 }
 
@@ -258,6 +256,20 @@ pub async fn timeline_by_colony(
             UNION ALL
 
             SELECT
+                'feeding' AS source_type,
+                f.id AS source_id,
+                f.fed_at AS occurred_at,
+                'Alimentação: ' || f.food_type AS title,
+                COALESCE(f.response_notes, f.notes) AS details,
+                b.code AS box_code,
+                'info' AS severity
+            FROM feedings f
+            LEFT JOIN boxes b ON b.id = f.box_id
+            WHERE f.colony_id = ?
+
+            UNION ALL
+
+            SELECT
                 'box_occupancy' AS source_type,
                 o.id AS source_id,
                 o.started_at AS occurred_at,
@@ -274,6 +286,7 @@ pub async fn timeline_by_colony(
          ) timeline
          ORDER BY occurred_at DESC, source_id DESC",
     )
+    .bind(&colony_id)
     .bind(&colony_id)
     .bind(&colony_id)
     .bind(&colony_id)
