@@ -1,5 +1,6 @@
 mod commands;
 mod database;
+mod divisions;
 mod domain;
 mod history;
 mod inspections;
@@ -24,6 +25,7 @@ pub fn run() {
             commands::get_core_summary,
             commands::get_inspection_count,
             commands::get_event_count,
+            commands::get_division_count,
             commands::create_meliponary,
             commands::list_meliponaries,
             commands::create_species,
@@ -38,6 +40,9 @@ pub fn run() {
             commands::create_colony_event,
             commands::list_colony_events,
             commands::get_colony_timeline,
+            commands::create_colony_division,
+            commands::list_colony_divisions,
+            commands::get_colony_genealogy,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MeliponarioManager");

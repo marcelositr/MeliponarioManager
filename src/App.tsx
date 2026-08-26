@@ -19,6 +19,7 @@ function App() {
   const [summary, setSummary] = useState<CoreSummary>(emptySummary);
   const [inspectionCount, setInspectionCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
+  const [divisionCount, setDivisionCount] = useState(0);
   const [status, setStatus] = useState("Carregando dados locais...");
 
   useEffect(() => {
@@ -26,11 +27,13 @@ function App() {
       invoke<CoreSummary>("get_core_summary"),
       invoke<number>("get_inspection_count"),
       invoke<number>("get_event_count"),
+      invoke<number>("get_division_count"),
     ])
-      .then(([data, inspections, events]) => {
+      .then(([data, inspections, events, divisions]) => {
         setSummary(data);
         setInspectionCount(inspections);
         setEventCount(events);
+        setDivisionCount(divisions);
         setStatus("Banco local conectado.");
       })
       .catch(() => {
@@ -45,6 +48,7 @@ function App() {
     ["Caixas", summary.boxes],
     ["Inspeções", inspectionCount],
     ["Eventos", eventCount],
+    ["Divisões", divisionCount],
   ] as const;
 
   const isEmpty =
@@ -53,7 +57,8 @@ function App() {
     summary.colonies === 0 &&
     summary.boxes === 0 &&
     inspectionCount === 0 &&
-    eventCount === 0;
+    eventCount === 0 &&
+    divisionCount === 0;
 
   return (
     <main className="app-shell">
@@ -70,8 +75,8 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Inspeções, eventos e mudanças de caixa preservam o contexto de cada momento.
-            O histórico da colônia é montado a partir desses fatos, sem apagar o passado.
+            Inspeções, eventos, mudanças de caixa e divisões preservam o contexto de cada momento.
+            A genealogia nasce dos vínculos reais entre colônias, sem apagar o passado.
           </p>
         </div>
         <span className="connection-status">{status}</span>
@@ -89,8 +94,8 @@ function App() {
       <section className="empty-state">
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções e eventos.
-          A linha do tempo reúne esses registros sem duplicar a fonte de verdade.
+          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos e divisões.
+          A genealogia é derivada da relação entre colônias mãe e filhas.
         </p>
       </section>
     </main>
