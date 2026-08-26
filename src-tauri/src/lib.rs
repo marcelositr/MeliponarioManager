@@ -5,6 +5,7 @@ mod domain;
 mod feeding;
 mod history;
 mod inspections;
+mod production;
 mod repository;
 
 use sqlx::SqlitePool;
@@ -28,6 +29,7 @@ pub fn run() {
             commands::get_event_count,
             commands::get_division_count,
             commands::get_feeding_count,
+            commands::get_production_count,
             commands::create_meliponary,
             commands::list_meliponaries,
             commands::create_species,
@@ -47,6 +49,8 @@ pub fn run() {
             commands::get_colony_genealogy,
             commands::create_feeding,
             commands::list_colony_feedings,
+            commands::create_production_record,
+            commands::list_colony_production,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MeliponarioManager");

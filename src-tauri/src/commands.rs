@@ -7,6 +7,7 @@ use crate::{
     feeding::{self, CreateFeeding, Feeding},
     history::{self, ColonyEvent, CreateColonyEvent, TimelineEntry},
     inspections::{self, CreateInspection, Inspection},
+    production::{self, CreateProductionRecord, ProductionRecord},
     repository,
 };
 use sqlx::SqlitePool;
@@ -39,6 +40,11 @@ pub async fn get_division_count(pool: State<'_, SqlitePool>) -> Result<i64, Stri
 #[tauri::command]
 pub async fn get_feeding_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     feeding::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_production_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    production::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -191,6 +197,24 @@ pub async fn list_colony_feedings(
     colony_id: String,
 ) -> Result<Vec<Feeding>, String> {
     feeding::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_production_record(
+    pool: State<'_, SqlitePool>,
+    input: CreateProductionRecord,
+) -> Result<ProductionRecord, String> {
+    production::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_production(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<ProductionRecord>, String> {
+    production::list_by_colony(&pool, &colony_id)
         .await
         .map_err(message)
 }
