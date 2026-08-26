@@ -2,6 +2,7 @@ mod alerts;
 mod commands;
 mod database;
 mod divisions;
+mod documents;
 mod domain;
 mod feeding;
 mod history;
@@ -36,6 +37,7 @@ pub fn run() {
             commands::get_feeding_count,
             commands::get_production_count,
             commands::get_movement_count,
+            commands::get_movement_document_count,
             commands::get_alert_count,
             commands::get_box_maintenance_count,
             commands::get_lifecycle_count,
@@ -67,6 +69,10 @@ pub fn run() {
             commands::list_colony_production,
             commands::create_colony_movement,
             commands::list_colony_movements,
+            commands::create_movement_document,
+            commands::list_movement_documents,
+            commands::list_colony_documents,
+            commands::get_movement_traceability,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MeliponarioManager");

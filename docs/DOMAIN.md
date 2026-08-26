@@ -58,7 +58,37 @@ Registro de retirada ou produção de mel, pólen, própolis, cera/cerume e outr
 
 ### Movimentação
 
-Entrada, saída ou transferência de colônias. Pode conter dados documentais relacionados a GTA, GEFAU, GEDAVE ou outros registros quando aplicável.
+Entrada, saída, transferência ou transporte de colônias. A movimentação preserva origem, destino e contexto das caixas quando aplicável.
+
+Dados documentais relacionados a GTA, GEFAU, GEDAVE ou outros registros são associados à movimentação, mas não fazem parte da identidade da colônia nem alteram por si mesmos o estado do plantel.
+
+### Documento de movimentação
+
+Evidência ou referência associada a uma movimentação já registrada. Uma movimentação pode possuir zero, um ou vários documentos.
+
+Dados iniciais:
+
+- tipo do documento;
+- número ou referência;
+- sistema de origem opcional, como GEDAVE ou GEFAU;
+- emissor opcional;
+- data de emissão;
+- validade opcional;
+- caminho de arquivo opcional;
+- observações.
+
+Tipos iniciais: GTA, autorização, nota fiscal, recibo, declaração, protocolo, certificado e outros.
+
+Regras iniciais:
+
+- o documento sempre pertence a uma movimentação existente;
+- a colônia do documento é derivada da movimentação e não é informada separadamente;
+- a mesma combinação de movimentação, tipo e referência não é duplicada;
+- quando emissão e validade estiverem presentes, a validade não pode anteceder a emissão;
+- o sistema registra a referência, mas não afirma validade jurídica do documento;
+- arquivos são referenciados por caminho e não armazenados como BLOB no SQLite.
+
+O campo antigo `document_reference` de movimentação existe apenas por compatibilidade. A migration documental normaliza referências antigas e um trigger converte automaticamente novas gravações legadas para a entidade de documento.
 
 ## Princípios
 
@@ -92,4 +122,4 @@ A interface usa termos familiares ao meliponicultor, enquanto o modelo interno p
 
 Os fluxos de plantel, origem, saldo, movimentação, transferência, baixa e transporte podem considerar como referência conceitual GEFAU, GEDAVE e GTA do Estado de São Paulo.
 
-Essas referências ajudam a estruturar os dados, mas o MeliponarioManager não pretende reproduzir a burocracia ou substituir sistemas oficiais.
+Essas referências ajudam a estruturar os dados, mas o MeliponarioManager não pretende reproduzir a burocracia, substituir sistemas oficiais ou decidir sozinho se um documento atende exigências legais vigentes.
