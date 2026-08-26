@@ -270,6 +270,32 @@ pub async fn timeline_by_colony(
             UNION ALL
 
             SELECT
+                'production' AS source_type,
+                p.id AS source_id,
+                p.harvested_at AS occurred_at,
+                printf(
+                    'Produção: %s · %g %s',
+                    CASE p.product_type
+                        WHEN 'honey' THEN 'Mel'
+                        WHEN 'pollen' THEN 'Pólen'
+                        WHEN 'propolis' THEN 'Própolis'
+                        WHEN 'wax' THEN 'Cera'
+                        WHEN 'cerumen' THEN 'Cerume'
+                        ELSE 'Outro produto'
+                    END,
+                    p.quantity,
+                    p.unit
+                ) AS title,
+                COALESCE(p.notes, p.purpose) AS details,
+                b.code AS box_code,
+                'info' AS severity
+            FROM production_records p
+            LEFT JOIN boxes b ON b.id = p.box_id
+            WHERE p.colony_id = ?
+
+            UNION ALL
+
+            SELECT
                 'box_occupancy' AS source_type,
                 o.id AS source_id,
                 o.started_at AS occurred_at,
@@ -286,6 +312,7 @@ pub async fn timeline_by_colony(
          ) timeline
          ORDER BY occurred_at DESC, source_id DESC",
     )
+    .bind(&colony_id)
     .bind(&colony_id)
     .bind(&colony_id)
     .bind(&colony_id)
