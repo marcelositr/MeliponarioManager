@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Desktop application for meliponary management"
 authors = ["Marcelo Trindade"]
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.90"
 
 [lib]
 name = "meliponariomanager_lib"
@@ -21,3 +21,10 @@ sqlx = { version = "0.9.0", features = ["runtime-tokio", "sqlite", "migrate"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
 thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
