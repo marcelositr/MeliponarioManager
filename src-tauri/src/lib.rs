@@ -1,6 +1,7 @@
 mod commands;
 mod database;
 mod domain;
+mod inspections;
 mod repository;
 
 use sqlx::SqlitePool;
@@ -20,6 +21,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_core_summary,
+            commands::get_inspection_count,
             commands::create_meliponary,
             commands::list_meliponaries,
             commands::create_species,
@@ -29,6 +31,8 @@ pub fn run() {
             commands::create_colony,
             commands::list_colonies,
             commands::place_colony,
+            commands::create_inspection,
+            commands::list_colony_inspections,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MeliponarioManager");
