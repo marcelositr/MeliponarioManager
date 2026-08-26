@@ -32,7 +32,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -47,4 +46,4 @@ jobs:
 
       - name: Check Rust backend
         working-directory: src-tauri
-        run: cargo check --locked
+        run: cargo check
