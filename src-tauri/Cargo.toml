@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Desktop application for meliponary management"
 authors = ["Marcelo Trindade"]
 edition = "2021"
-rust-version = "1.90"
+rust-version = "1.94"
 
 [lib]
 name = "meliponariomanager_lib"
