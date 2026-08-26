@@ -20,6 +20,7 @@ function App() {
   const [inspectionCount, setInspectionCount] = useState(0);
   const [eventCount, setEventCount] = useState(0);
   const [divisionCount, setDivisionCount] = useState(0);
+  const [feedingCount, setFeedingCount] = useState(0);
   const [status, setStatus] = useState("Carregando dados locais...");
 
   useEffect(() => {
@@ -28,12 +29,14 @@ function App() {
       invoke<number>("get_inspection_count"),
       invoke<number>("get_event_count"),
       invoke<number>("get_division_count"),
+      invoke<number>("get_feeding_count"),
     ])
-      .then(([data, inspections, events, divisions]) => {
+      .then(([data, inspections, events, divisions, feedings]) => {
         setSummary(data);
         setInspectionCount(inspections);
         setEventCount(events);
         setDivisionCount(divisions);
+        setFeedingCount(feedings);
         setStatus("Banco local conectado.");
       })
       .catch(() => {
@@ -49,6 +52,7 @@ function App() {
     ["Inspeções", inspectionCount],
     ["Eventos", eventCount],
     ["Divisões", divisionCount],
+    ["Alimentações", feedingCount],
   ] as const;
 
   const isEmpty =
@@ -58,7 +62,8 @@ function App() {
     summary.boxes === 0 &&
     inspectionCount === 0 &&
     eventCount === 0 &&
-    divisionCount === 0;
+    divisionCount === 0 &&
+    feedingCount === 0;
 
   return (
     <main className="app-shell">
@@ -75,8 +80,8 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Inspeções, eventos, mudanças de caixa e divisões preservam o contexto de cada momento.
-            A genealogia nasce dos vínculos reais entre colônias, sem apagar o passado.
+            Inspeções, eventos, mudanças de caixa, divisões e alimentações preservam o contexto de cada momento.
+            A genealogia e a linha do tempo nascem dos registros reais do manejo.
           </p>
         </div>
         <span className="connection-status">{status}</span>
@@ -94,8 +99,8 @@ function App() {
       <section className="empty-state">
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos e divisões.
-          A genealogia é derivada da relação entre colônias mãe e filhas.
+          O núcleo já reconhece meliponários, espécies, colônias, caixas, inspeções, eventos, divisões e alimentações.
+          Cada manejo permanece rastreável ao longo do tempo.
         </p>
       </section>
     </main>

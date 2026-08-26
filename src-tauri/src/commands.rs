@@ -4,6 +4,7 @@ use crate::{
         Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
         CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
     },
+    feeding::{self, CreateFeeding, Feeding},
     history::{self, ColonyEvent, CreateColonyEvent, TimelineEntry},
     inspections::{self, CreateInspection, Inspection},
     repository,
@@ -33,6 +34,11 @@ pub async fn get_event_count(pool: State<'_, SqlitePool>) -> Result<i64, String>
 #[tauri::command]
 pub async fn get_division_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
     divisions::count(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_feeding_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    feeding::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -167,6 +173,24 @@ pub async fn get_colony_genealogy(
     colony_id: String,
 ) -> Result<Vec<GenealogyNode>, String> {
     divisions::genealogy(&pool, &colony_id)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_feeding(
+    pool: State<'_, SqlitePool>,
+    input: CreateFeeding,
+) -> Result<Feeding, String> {
+    feeding::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_feedings(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<Feeding>, String> {
+    feeding::list_by_colony(&pool, &colony_id)
         .await
         .map_err(message)
 }
