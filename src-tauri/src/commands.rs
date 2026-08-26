@@ -3,6 +3,7 @@ use crate::{
         Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
         CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
     },
+    inspections::{self, CreateInspection, Inspection},
     repository,
 };
 use sqlx::SqlitePool;
@@ -15,6 +16,11 @@ fn message(error: repository::AppError) -> String {
 #[tauri::command]
 pub async fn get_core_summary(pool: State<'_, SqlitePool>) -> Result<CoreSummary, String> {
     repository::core_summary(&pool).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn get_inspection_count(pool: State<'_, SqlitePool>) -> Result<i64, String> {
+    inspections::count(&pool).await.map_err(message)
 }
 
 #[tauri::command]
@@ -77,4 +83,22 @@ pub async fn place_colony(
     input: PlaceColony,
 ) -> Result<ColonyBoxOccupancy, String> {
     repository::place_colony(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn create_inspection(
+    pool: State<'_, SqlitePool>,
+    input: CreateInspection,
+) -> Result<Inspection, String> {
+    inspections::create(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_colony_inspections(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<Inspection>, String> {
+    inspections::list_by_colony(&pool, &colony_id)
+        .await
+        .map_err(message)
 }

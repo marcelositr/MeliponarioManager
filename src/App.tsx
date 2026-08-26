@@ -17,12 +17,17 @@ const emptySummary: CoreSummary = {
 
 function App() {
   const [summary, setSummary] = useState<CoreSummary>(emptySummary);
+  const [inspectionCount, setInspectionCount] = useState(0);
   const [status, setStatus] = useState("Carregando dados locais...");
 
   useEffect(() => {
-    invoke<CoreSummary>("get_core_summary")
-      .then((data) => {
+    Promise.all([
+      invoke<CoreSummary>("get_core_summary"),
+      invoke<number>("get_inspection_count"),
+    ])
+      .then(([data, inspections]) => {
         setSummary(data);
+        setInspectionCount(inspections);
         setStatus("Banco local conectado.");
       })
       .catch(() => {
@@ -35,13 +40,15 @@ function App() {
     ["Espécies", summary.species],
     ["Colônias", summary.colonies],
     ["Caixas", summary.boxes],
+    ["Inspeções", inspectionCount],
   ] as const;
 
   const isEmpty =
     summary.meliponaries === 0 &&
     summary.species === 0 &&
     summary.colonies === 0 &&
-    summary.boxes === 0;
+    summary.boxes === 0 &&
+    inspectionCount === 0;
 
   return (
     <main className="app-shell">
@@ -58,8 +65,8 @@ function App() {
           <p className="eyebrow">Visão geral</p>
           <h2>Seu plantel, com histórico de verdade.</h2>
           <p>
-            Colônias e caixas têm identidades separadas. Quando uma colônia muda de caixa,
-            o sistema preserva onde ela esteve e quando a mudança aconteceu.
+            Colônias e caixas têm identidades separadas. As inspeções também preservam
+            qual caixa a colônia ocupava no momento do manejo.
           </p>
         </div>
         <span className="connection-status">{status}</span>
@@ -77,8 +84,8 @@ function App() {
       <section className="empty-state">
         <h3>{isEmpty ? "A base do plantel está pronta" : "Dados locais carregados"}</h3>
         <p>
-          O núcleo já reconhece meliponários, espécies, colônias e caixas. Os formulários de
-          cadastro entram nas próximas etapas, sem misturar a identidade da colônia com a caixa física.
+          O núcleo já reconhece meliponários, espécies, colônias, caixas e inspeções.
+          Os formulários entram de forma incremental, mantendo o histórico como fonte de verdade.
         </p>
       </section>
     </main>
