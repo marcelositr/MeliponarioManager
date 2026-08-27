@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
-import { createBox, createColony, createColonyDivision, createColonyEvent, createColonyMovement, createFeeding, createInspection, createMeliponary, createMovementDocument, createProductionRecord, createSpecies, loadCoreData, loadDashboardStats, placeColony } from "./lib/api";
+import { createBox, createBoxMaintenance, createColony, createColonyDivision, createColonyEvent, createColonyMovement, createFeeding, createInspection, createMeliponary, createMovementDocument, createProductionRecord, createSpecies, deleteInspectionPhoto, importInspectionPhoto, loadCoreData, loadDashboardStats, placeColony } from "./lib/api";
 import { AlertsPage } from "./pages/AlertsPage";
+import { AssetsPage } from "./pages/AssetsPage";
 import { BoxesPage } from "./pages/BoxesPage";
 import { ColoniesPage } from "./pages/ColoniesPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -13,7 +14,7 @@ import { MeliponariesPage } from "./pages/MeliponariesPage";
 import { MovementsPage } from "./pages/MovementsPage";
 import { ProductionPage } from "./pages/ProductionPage";
 import { SpeciesPage } from "./pages/SpeciesPage";
-import type { CoreData, CreateBoxInput, CreateColonyEventInput, CreateColonyInput, CreateDivisionInput, CreateFeedingInput, CreateInspectionInput, CreateMeliponaryInput, CreateMovementDocumentInput, CreateMovementInput, CreateProductionInput, CreateSpeciesInput, DashboardStats, PlaceColonyInput, View } from "./types";
+import type { CoreData, CreateBoxInput, CreateBoxMaintenanceInput, CreateColonyEventInput, CreateColonyInput, CreateDivisionInput, CreateFeedingInput, CreateInspectionInput, CreateMeliponaryInput, CreateMovementDocumentInput, CreateMovementInput, CreateProductionInput, CreateSpeciesInput, DashboardStats, ImportInspectionPhotoInput, PlaceColonyInput, View } from "./types";
 
 const emptyData: CoreData = { meliponaries: [], species: [], colonies: [], boxes: [] };
 const emptyStats: DashboardStats = { meliponaries: 0, species: 0, colonies: 0, boxes: 0, inspections: 0, photos: 0, events: 0, divisions: 0, feedings: 0, production: 0, movements: 0, documents: 0, maintenance: 0, lifecycle: 0, alerts: 0 };
@@ -30,6 +31,7 @@ const viewTitles: Record<View, string> = {
   alerts: "Alertas",
   genealogy: "Divisões e genealogia",
   movements: "Movimentações e documentos",
+  assets: "Fotos e manutenção",
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -84,15 +86,15 @@ function App() {
   const createDivisionFromUi = (input: CreateDivisionInput) => runMutation(() => createColonyDivision(input), "Divisão registrada e genealogia atualizada.");
   const createMovementFromUi = (input: CreateMovementInput) => runMutation(() => createColonyMovement(input), "Movimentação registrada e rastreabilidade atualizada.");
   const createMovementDocumentFromUi = (input: CreateMovementDocumentInput) => runMutation(() => createMovementDocument(input), "Documento vinculado à movimentação.");
+  const importInspectionPhotoFromUi = (input: ImportInspectionPhotoInput) => runMutation(() => importInspectionPhoto(input), "Foto importada para o armazenamento gerenciado.");
+  const deleteInspectionPhotoFromUi = (photoId: string) => runMutation(() => deleteInspectionPhoto(photoId), "Foto removida com segurança.");
+  const createBoxMaintenanceFromUi = (input: CreateBoxMaintenanceInput) => runMutation(() => createBoxMaintenance(input), "Manutenção da caixa registrada.");
 
   return (
     <div className="application-frame">
       <Sidebar activeView={activeView} onNavigate={setActiveView} connectionStatus={connectionStatus} />
       <main className="workspace">
-        <header className="workspace-topbar">
-          <div><span className="topbar-context">MeliponarioManager</span><strong>{viewTitles[activeView]}</strong></div>
-          <span className="version">v0.1.0</span>
-        </header>
+        <header className="workspace-topbar"><div><span className="topbar-context">MeliponarioManager</span><strong>{viewTitles[activeView]}</strong></div><span className="version">v0.1.0</span></header>
         {feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso">×</button></div>}
         <div className="workspace-content">
           {activeView === "dashboard" && <DashboardPage stats={stats} onNavigate={setActiveView} />}
@@ -107,16 +109,12 @@ function App() {
           {activeView === "alerts" && <AlertsPage />}
           {activeView === "genealogy" && <DivisionsPage colonies={data.colonies} busy={busy} onCreate={createDivisionFromUi} />}
           {activeView === "movements" && <MovementsPage colonies={data.colonies} meliponaries={data.meliponaries} boxes={data.boxes} busy={busy} onCreateMovement={createMovementFromUi} onCreateDocument={createMovementDocumentFromUi} />}
+          {activeView === "assets" && <AssetsPage colonies={data.colonies} boxes={data.boxes} busy={busy} onImportPhoto={importInspectionPhotoFromUi} onDeletePhoto={deleteInspectionPhotoFromUi} onCreateMaintenance={createBoxMaintenanceFromUi} />}
         </div>
       </main>
     </div>
   );
 }
 
-function readableError(error: unknown) {
-  if (typeof error === "string" && error.trim()) return error;
-  if (error instanceof Error && error.message) return error.message;
-  return "Não foi possível concluir a operação.";
-}
-
+function readableError(error: unknown) { if (typeof error === "string" && error.trim()) return error; if (error instanceof Error && error.message) return error.message; return "Não foi possível concluir a operação."; }
 export default App;
