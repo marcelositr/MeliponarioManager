@@ -30,12 +30,12 @@ export function DashboardPage({ stats, onNavigate }: DashboardPageProps) {
         <div>
           <span className="eyebrow">Visão geral</span>
           <h1>Seu plantel, com histórico de verdade.</h1>
-          <p>Cadastre a estrutura básica e avance para o manejo sem sair da aplicação.</p>
+          <p>Cadastre a estrutura básica e avance para inspeções, alimentação e produção sem sair da aplicação.</p>
         </div>
         <div className="quick-actions" aria-label="Ações rápidas">
           <button type="button" onClick={() => onNavigate("inspections")}>Nova inspeção</button>
-          <button type="button" className="button-secondary" onClick={() => onNavigate("colonies")}>Nova colônia</button>
-          <button type="button" className="button-secondary" onClick={() => onNavigate("boxes")}>Nova caixa</button>
+          <button type="button" className="button-secondary" onClick={() => onNavigate("feeding")}>Alimentar</button>
+          <button type="button" className="button-secondary" onClick={() => onNavigate("production")}>Produção</button>
         </div>
       </section>
 
@@ -50,9 +50,9 @@ export function DashboardPage({ stats, onNavigate }: DashboardPageProps) {
 
       <section className="panel getting-started">
         <div>
-          <span className="eyebrow">Primeiros passos</span>
-          <h2>Da estrutura ao primeiro manejo</h2>
-          <p>Cadastre o meliponário, as espécies, as caixas e as colônias. Depois de vincular cada colônia à caixa atual, registre as inspeções diretamente pela interface.</p>
+          <span className="eyebrow">Fluxo operacional</span>
+          <h2>Da estrutura ao manejo cotidiano</h2>
+          <p>Depois de montar o plantel, use as telas de manejo para registrar fatos datados. O backend preserva a caixa correta de cada momento.</p>
         </div>
         <div className="step-list">
           <button type="button" onClick={() => onNavigate("meliponaries")}><span>1</span> Meliponários</button>
@@ -60,6 +60,8 @@ export function DashboardPage({ stats, onNavigate }: DashboardPageProps) {
           <button type="button" onClick={() => onNavigate("boxes")}><span>3</span> Caixas</button>
           <button type="button" onClick={() => onNavigate("colonies")}><span>4</span> Colônias</button>
           <button type="button" onClick={() => onNavigate("inspections")}><span>5</span> Inspeções</button>
+          <button type="button" onClick={() => onNavigate("feeding")}><span>6</span> Alimentação</button>
+          <button type="button" onClick={() => onNavigate("production")}><span>7</span> Produção</button>
         </div>
       </section>
     </div>

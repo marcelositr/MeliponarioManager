@@ -3,8 +3,10 @@ import { Sidebar } from "./components/Sidebar";
 import {
   createBox,
   createColony,
+  createFeeding,
   createInspection,
   createMeliponary,
+  createProductionRecord,
   createSpecies,
   loadCoreData,
   loadDashboardStats,
@@ -13,15 +15,19 @@ import {
 import { BoxesPage } from "./pages/BoxesPage";
 import { ColoniesPage } from "./pages/ColoniesPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { FeedingPage } from "./pages/FeedingPage";
 import { InspectionsPage } from "./pages/InspectionsPage";
 import { MeliponariesPage } from "./pages/MeliponariesPage";
+import { ProductionPage } from "./pages/ProductionPage";
 import { SpeciesPage } from "./pages/SpeciesPage";
 import type {
   CoreData,
   CreateBoxInput,
   CreateColonyInput,
+  CreateFeedingInput,
   CreateInspectionInput,
   CreateMeliponaryInput,
+  CreateProductionInput,
   CreateSpeciesInput,
   DashboardStats,
   PlaceColonyInput,
@@ -54,6 +60,8 @@ const viewTitles: Record<View, string> = {
   colonies: "Colônias",
   boxes: "Caixas",
   inspections: "Inspeções",
+  feeding: "Alimentação",
+  production: "Produção",
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -114,6 +122,12 @@ function App() {
   const createInspectionFromUi = (input: CreateInspectionInput) =>
     runMutation(() => createInspection(input), "Inspeção registrada com sucesso.");
 
+  const createFeedingFromUi = (input: CreateFeedingInput) =>
+    runMutation(() => createFeeding(input), "Alimentação registrada com sucesso.");
+
+  const createProductionFromUi = (input: CreateProductionInput) =>
+    runMutation(() => createProductionRecord(input), "Produção registrada com sucesso.");
+
   return (
     <div className="application-frame">
       <Sidebar activeView={activeView} onNavigate={setActiveView} connectionStatus={connectionStatus} />
@@ -158,6 +172,12 @@ function App() {
           )}
           {activeView === "inspections" && (
             <InspectionsPage colonies={data.colonies} busy={busy} onCreate={createInspectionFromUi} />
+          )}
+          {activeView === "feeding" && (
+            <FeedingPage colonies={data.colonies} busy={busy} onCreate={createFeedingFromUi} />
+          )}
+          {activeView === "production" && (
+            <ProductionPage colonies={data.colonies} busy={busy} onCreate={createProductionFromUi} />
           )}
         </div>
       </main>
