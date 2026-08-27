@@ -13,6 +13,8 @@ mod inspections;
 mod lifecycle;
 mod maintenance;
 mod media;
+#[cfg(test)]
+mod migration_tests;
 mod movements;
 mod operational;
 mod production;
