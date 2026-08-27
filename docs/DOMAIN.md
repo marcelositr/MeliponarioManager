@@ -30,11 +30,32 @@ Dados principais incluem código, espécie, meliponário, origem, data de instal
 
 A entrada no plantel é derivada do próprio cadastro e da origem registrada. Não existe um segundo lançamento de entrada independente apenas para duplicar o mesmo fato.
 
+#### Situação administrativa e condição observada
+
+O campo histórico `colonies.status` admite `active`, `weak`, `recovering`, `inactive`, `lost` e `transferred`. Para compatibilidade com bancos anteriores, `weak` e `recovering` continuam aceitos, mas são tratados como **administrativamente ativos** quando o sistema precisa decidir se a colônia pode ser manejada.
+
+A condição de manejo, especialmente a condição de colônia fraca, deve ser derivada da inspeção mais recente. Código novo não deve gravar `weak` ou `recovering` como novos caminhos de situação administrativa nem depender desses valores para determinar a força atual da colônia.
+
+Assim, a projeção administrativa considera:
+
+- `active`, `weak` e `recovering`: colônia operacionalmente manejável, respeitando o histórico da data do fato;
+- `inactive`: indisponível durante o intervalo de inativação;
+- `lost`: indisponível a partir da baixa por perda;
+- `transferred`: indisponível a partir da transferência externa.
+
 ### Caixa
 
 Objeto físico que abriga uma colônia. Caixa e colônia são entidades distintas.
 
 Dados principais incluem código, meliponário, modelo, material, posição ou localização, situação física e observações.
+
+Estados físicos operacionais:
+
+- `active`: pode receber nova ocupação;
+- `maintenance`: não pode receber nova ocupação;
+- `retired`: não pode receber nova ocupação e é terminal no fluxo operacional normal desta fase.
+
+Mudanças de estado relevantes geram registros em histórico próprio com data, estado anterior, novo estado, motivo e observações. Uma caixa ocupada não pode entrar em manutenção nem ser aposentada; a ocupação deve ser encerrada pelo fluxo adequado antes da mudança.
 
 ### Ocupação de caixa
 
@@ -47,6 +68,8 @@ Regras principais:
 - uma colônia só pode ocupar uma caixa por vez;
 - uma caixa só pode abrigar uma colônia por vez;
 - colônia e caixa precisam pertencer ao mesmo meliponário para uma ocupação local;
+- somente uma caixa em estado `active` pode receber nova ocupação;
+- essa restrição existe tanto no backend quanto no SQLite;
 - uma troca de caixa preserva todos os registros anteriores;
 - a data de encerramento não pode invalidar a sequência histórica da ocupação.
 
@@ -182,6 +205,24 @@ Cada transição preserva situação anterior, nova situação, data, motivo, ob
 
 Perda e inativação encerram uma ocupação ativa quando necessário. Reativação não reabre automaticamente a caixa antiga.
 
+## Política temporal da série 0.x
+
+Timestamps operacionais são tratados como horário local da máquina e persistidos no formato canônico `YYYY-MM-DD HH:MM:SS`.
+
+A fronteira backend normaliza valores recebidos de controles `datetime-local`, aceita o formato já persistido e rejeita timestamps claramente inválidos. Quando um timestamp operacional é omitido, o backend obtém o horário local pela mesma referência SQLite usada nas comparações de vencimento.
+
+Registros históricos existentes não são reescritos em massa. `created_at` técnico pode permanecer com a semântica histórica do schema; a política central se aplica principalmente aos timestamps de domínio usados para ordenação, contexto histórico e alertas.
+
+Campos sugeridos `next_inspection_at`, `next_feeding_at` e `next_maintenance_at` permanecem nesta fase e não podem anteceder o fato que os originou.
+
+## Manejo retroativo e disponibilidade histórica
+
+A disponibilidade para inspeção, alimentação e produção é avaliada **na data do fato**, não apenas pelo estado atual da linha em `colonies`.
+
+A avaliação considera entrada da colônia, inativação, reativação, baixa por perda e transferência externa. Isso permite, por exemplo, lançar hoje uma inspeção antiga ocorrida antes de uma baixa já registrada, mas rejeita um manejo datado depois da baixa ou durante um período de inativação.
+
+A regra principal vive no backend Rust e não depende da interface para proteger a integridade.
+
 ## Visões derivadas
 
 ### Timeline unificada
@@ -211,7 +252,9 @@ A implementação atual considera, entre outros casos:
 
 - inspeção pendente;
 - alimentação pendente;
-- colônia fraca.
+- colônia fraca derivada da inspeção mais recente.
+
+Colônias inativas, perdidas ou transferidas não geram alertas operacionais atuais. Valores legados `weak` e `recovering` não são fonte de verdade para a condição de fraqueza.
 
 Registros mais novos substituem pendências anteriores quando representam o mesmo acompanhamento.
 
@@ -219,7 +262,7 @@ Registros mais novos substituem pendências anteriores quando representam o mesm
 
 O dashboard é uma visão operacional derivada pelo backend.
 
-Ele combina informações como situação das colônias, força da inspeção mais recente, distribuição por espécie, ocupação de caixas, alertas, produção recente e movimentações recentes.
+Ele combina informações como situação administrativa das colônias, força da inspeção mais recente, distribuição por espécie, ocupação de caixas, alertas, produção recente e movimentações recentes. Valores legados `weak` e `recovering` são consolidados na projeção administrativa ativa, enquanto a força permanece derivada das inspeções.
 
 ## Serviços de dados
 
@@ -258,9 +301,3 @@ A interface pode usar termos familiares ao meliponicultor. O modelo interno pres
 ### Estado derivado não deve virar estado paralelo
 
 Timeline, alertas e dashboard devem ser calculados a partir dos registros reais sempre que possível, evitando duplicação e inconsistência.
-
-## Referências conceituais
-
-Fluxos de plantel, origem, movimentação, transferência, baixa e transporte podem considerar como referência conceitual GEFAU, GEDAVE e GTA do Estado de São Paulo.
-
-Essas referências ajudam a estruturar os dados, mas o MeliponarioManager não pretende reproduzir a burocracia desses sistemas, substituí-los ou decidir sozinho se um documento atende exigências legais vigentes.
