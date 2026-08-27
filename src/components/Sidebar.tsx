@@ -15,6 +15,7 @@ const items: Array<{ view: View; label: string; short: string }> = [
   { view: "inspections", label: "Inspeções", short: "IN" },
   { view: "feeding", label: "Alimentação", short: "AL" },
   { view: "production", label: "Produção", short: "PR" },
+  { view: "history", label: "Histórico", short: "HI" },
 ];
 
 export function Sidebar({ activeView, onNavigate, connectionStatus }: SidebarProps) {
@@ -22,34 +23,16 @@ export function Sidebar({ activeView, onNavigate, connectionStatus }: SidebarPro
     <aside className="sidebar">
       <div className="brand-block">
         <div className="brand-mark">M</div>
-        <div>
-          <strong>MeliponarioManager</strong>
-          <span>Gestão local do plantel</span>
-        </div>
+        <div><strong>MeliponarioManager</strong><span>Gestão local do plantel</span></div>
       </div>
-
       <nav className="side-nav" aria-label="Navegação principal">
         {items.map((item) => (
-          <button
-            className={activeView === item.view ? "nav-item active" : "nav-item"}
-            key={item.view}
-            onClick={() => onNavigate(item.view)}
-            aria-current={activeView === item.view ? "page" : undefined}
-            type="button"
-          >
-            <span className="nav-short">{item.short}</span>
-            <span>{item.label}</span>
+          <button className={activeView === item.view ? "nav-item active" : "nav-item"} key={item.view} onClick={() => onNavigate(item.view)} aria-current={activeView === item.view ? "page" : undefined} type="button">
+            <span className="nav-short">{item.short}</span><span>{item.label}</span>
           </button>
         ))}
       </nav>
-
-      <div className="sidebar-footer">
-        <span className="status-dot" aria-hidden="true" />
-        <div>
-          <strong>Banco local</strong>
-          <span>{connectionStatus}</span>
-        </div>
-      </div>
+      <div className="sidebar-footer"><span className="status-dot" aria-hidden="true" /><div><strong>Banco local</strong><span>{connectionStatus}</span></div></div>
     </aside>
   );
 }
