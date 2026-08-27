@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install system dependencies
         run: |
@@ -29,7 +29,7 @@ jobs:
             librsvg2-dev
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -37,9 +37,13 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.94.1
+          components: clippy,rustfmt
 
       - name: Install frontend dependencies
         run: npm install
+
+      - name: Validate and generate bundle icons
+        run: npm run tauri icon src-tauri/icons/icon.png
 
       - name: Build frontend
         run: npm run build
@@ -48,6 +52,13 @@ jobs:
         working-directory: src-tauri
         run: cargo check
 
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets
+
       - name: Test Rust backend
         working-directory: src-tauri
         run: cargo test
+
+      - name: Build Tauri desktop binary
+        run: npm run tauri -- build --no-bundle
