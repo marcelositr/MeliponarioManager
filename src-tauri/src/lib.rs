@@ -1,5 +1,6 @@
 mod alerts;
 mod commands;
+mod dashboard;
 mod database;
 mod divisions;
 mod documents;
@@ -44,6 +45,7 @@ pub fn run() {
             commands::get_alert_count,
             commands::get_box_maintenance_count,
             commands::get_lifecycle_count,
+            dashboard::get_dashboard_overview,
             commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,
