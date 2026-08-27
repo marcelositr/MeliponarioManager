@@ -48,6 +48,9 @@ jobs:
       - name: Generate desktop icons
         run: npm run icons
 
+      - name: Validate bundle icons
+        run: npm run bundle:check
+
       - name: Build frontend
         run: npm run build
 
