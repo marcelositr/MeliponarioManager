@@ -1,4 +1,4 @@
-export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production";
+export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production" | "history";
 
 export type CoreSummary = {
   meliponaries: number;
@@ -103,6 +103,30 @@ export type ProductionRecord = {
   createdAt: string;
 };
 
+export type ColonyEvent = {
+  id: string;
+  colonyId: string;
+  colonyCode: string;
+  boxId?: string | null;
+  boxCode?: string | null;
+  eventType: string;
+  occurredAt: string;
+  title?: string | null;
+  details?: string | null;
+  severity: string;
+  createdAt: string;
+};
+
+export type TimelineEntry = {
+  sourceType: string;
+  sourceId: string;
+  occurredAt: string;
+  title: string;
+  details?: string | null;
+  boxCode?: string | null;
+  severity: string;
+};
+
 export type DashboardStats = CoreSummary & {
   inspections: number;
   photos: number;
@@ -199,4 +223,13 @@ export type CreateProductionInput = {
   unit: string;
   purpose?: string;
   notes?: string;
+};
+
+export type CreateColonyEventInput = {
+  colonyId: string;
+  eventType: string;
+  occurredAt?: string;
+  title?: string;
+  details?: string;
+  severity?: string;
 };
