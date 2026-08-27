@@ -146,7 +146,9 @@ pub async fn list_box_state_history(
     pool: State<'_, SqlitePool>,
     box_id: String,
 ) -> Result<Vec<BoxStateRecord>, String> {
-    box_states::list_by_box(&pool, &box_id).await.map_err(message)
+    box_states::list_by_box(&pool, &box_id)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]

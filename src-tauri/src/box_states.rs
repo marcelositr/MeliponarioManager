@@ -66,10 +66,7 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<BoxStateRecord, AppError> {
     .await?)
 }
 
-pub async fn change(
-    pool: &SqlitePool,
-    input: ChangeBoxState,
-) -> Result<BoxStateRecord, AppError> {
+pub async fn change(pool: &SqlitePool, input: ChangeBoxState) -> Result<BoxStateRecord, AppError> {
     let box_id = required(&input.box_id, "Caixa")?;
     let new_status = required(&input.new_status, "Novo estado da caixa")?;
     if !matches!(new_status.as_str(), "active" | "maintenance" | "retired") {
@@ -101,12 +98,11 @@ pub async fn change(
         ));
     }
 
-    let last_at: Option<String> = sqlx::query_scalar(
-        "SELECT MAX(occurred_at) FROM box_state_records WHERE box_id = ?",
-    )
-    .bind(&box_id)
-    .fetch_one(&mut *tx)
-    .await?;
+    let last_at: Option<String> =
+        sqlx::query_scalar("SELECT MAX(occurred_at) FROM box_state_records WHERE box_id = ?")
+            .bind(&box_id)
+            .fetch_one(&mut *tx)
+            .await?;
     if last_at
         .as_deref()
         .is_some_and(|last| occurred_at.as_str() < last)
@@ -160,10 +156,7 @@ pub async fn change(
     get(pool, &id).await
 }
 
-pub async fn list_by_box(
-    pool: &SqlitePool,
-    box_id: &str,
-) -> Result<Vec<BoxStateRecord>, AppError> {
+pub async fn list_by_box(pool: &SqlitePool, box_id: &str) -> Result<Vec<BoxStateRecord>, AppError> {
     let box_id = required(box_id, "Caixa")?;
     let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM boxes WHERE id = ?)")
         .bind(&box_id)

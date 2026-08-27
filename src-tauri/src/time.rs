@@ -101,9 +101,11 @@ pub fn normalize_optional(
 }
 
 pub async fn local_now(pool: &SqlitePool) -> Result<String, AppError> {
-    Ok(sqlx::query_scalar::<_, String>("SELECT datetime('now', 'localtime')")
-        .fetch_one(pool)
-        .await?)
+    Ok(
+        sqlx::query_scalar::<_, String>("SELECT datetime('now', 'localtime')")
+            .fetch_one(pool)
+            .await?,
+    )
 }
 
 pub async fn normalize_or_now(

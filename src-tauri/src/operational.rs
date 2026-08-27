@@ -157,9 +157,11 @@ mod tests {
         ensure_colony_available_at(&pool, &colony_id, "2026-02-20 10:00:00")
             .await
             .unwrap();
-        assert!(ensure_colony_available_at(&pool, &colony_id, "2026-03-11 10:00:00")
-            .await
-            .is_err());
+        assert!(
+            ensure_colony_available_at(&pool, &colony_id, "2026-03-11 10:00:00")
+                .await
+                .is_err()
+        );
     }
 
     #[tokio::test]
@@ -179,9 +181,11 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(ensure_colony_available_at(&pool, &colony_id, "2026-03-15 10:00:00")
-            .await
-            .is_err());
+        assert!(
+            ensure_colony_available_at(&pool, &colony_id, "2026-03-15 10:00:00")
+                .await
+                .is_err()
+        );
         ensure_colony_available_at(&pool, &colony_id, "2026-04-02 10:00:00")
             .await
             .unwrap();
@@ -204,8 +208,10 @@ mod tests {
         ensure_colony_available_at(&pool, &colony_id, "2026-04-30 10:00:00")
             .await
             .unwrap();
-        assert!(ensure_colony_available_at(&pool, &colony_id, "2026-05-02 10:00:00")
-            .await
-            .is_err());
+        assert!(
+            ensure_colony_available_at(&pool, &colony_id, "2026-05-02 10:00:00")
+                .await
+                .is_err()
+        );
     }
 }

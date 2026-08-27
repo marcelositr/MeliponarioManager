@@ -222,9 +222,7 @@ mod tests {
         assert!(alerts
             .iter()
             .any(|alert| alert.alert_type == "inspection_due"));
-        assert!(alerts
-            .iter()
-            .any(|alert| alert.alert_type == "feeding_due"));
+        assert!(alerts.iter().any(|alert| alert.alert_type == "feeding_due"));
     }
 
     #[tokio::test]
@@ -280,23 +278,13 @@ mod tests {
 
         inspections::create(
             &pool,
-            inspection(
-                colony_id.clone(),
-                "2026-01-10 10:00:00",
-                "weak",
-                None,
-            ),
+            inspection(colony_id.clone(), "2026-01-10 10:00:00", "weak", None),
         )
         .await
         .unwrap();
         inspections::create(
             &pool,
-            inspection(
-                colony_id.clone(),
-                "2026-02-10 10:00:00",
-                "strong",
-                None,
-            ),
+            inspection(colony_id.clone(), "2026-02-10 10:00:00", "strong", None),
         )
         .await
         .unwrap();
