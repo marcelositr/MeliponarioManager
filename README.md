@@ -136,7 +136,9 @@ npm run desktop:build
 
 Pull Requests para `main` passam pelo workflow de CI, que valida:
 
+- consistência da versão entre os metadados do projeto;
 - geração dos ícones desktop;
+- configuração e existência dos ícones exigidos pelos bundles;
 - build React/TypeScript;
 - formatação Rust com `cargo fmt --check`;
 - `cargo check`;
