@@ -6,11 +6,29 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
-Nenhuma mudança preparada após a primeira pré-release pública.
+Nenhuma mudança preparada após a pré-release `v0.7.1`.
+
+## [0.7.1] - 2026-08-27
+
+Correção de distribuição preparada após a primeira tentativa de empacotamento da tag `v0.7.0`.
+
+### Fixed
+
+- Declara explicitamente os ícones de bundle no `src-tauri/tauri.conf.json`, incluindo PNGs quadrados para Linux, `icon.ico` para Windows e `icon.icns` para compatibilidade de plataforma.
+- Corrige a falha do AppImage que interrompia o bundler por não encontrar um ícone quadrado configurado.
+- Corrige a falha do MSI/WiX que não encontrava um arquivo `.ico` configurado para o instalador Windows.
+
+### Changed
+
+- Sincroniza `package.json`, `src-tauri/Cargo.toml` e `src-tauri/tauri.conf.json` em `0.7.1`.
+- Adiciona validação automática da configuração e existência dos ícones gerados antes do build desktop e dos bundles de distribuição.
+- Mantém a tag `v0.7.0` imutável e utiliza um incremento `PATCH` em vez de reescrever a tentativa anterior.
 
 ## [0.7.0] - 2026-08-27
 
-Primeira versão preparada para distribuição pública como **GitHub Pre-release**. Esta versão consolida o desenvolvimento realizado antes da criação das primeiras tags públicas; os marcos `0.1` a `0.6` existiram como planejamento de evolução e não como releases publicadas.
+Primeira tag pública do projeto e primeira tentativa de distribuição. Esta versão consolida o desenvolvimento realizado antes da criação das primeiras tags públicas; os marcos `0.1` a `0.6` existiram como planejamento de evolução e não como releases publicadas.
+
+O pipeline chegou a gerar o `.deb` no Linux e o instalador NSIS no Windows, mas a etapa completa de distribuição falhou antes da criação da GitHub Release: o AppImage exigia um ícone quadrado explicitamente configurado e o MSI/WiX exigia um `.ico` declarado no bundle. A tag foi preservada e a correção seguiu como `v0.7.1`.
 
 ### Added
 
@@ -45,5 +63,6 @@ Primeira versão preparada para distribuição pública como **GitHub Pre-releas
 - Content Security Policy configurada para restringir a aplicação ao conteúdo local e aos protocolos necessários ao IPC e aos assets do Tauri.
 - Cabeçalho `X-Content-Type-Options: nosniff` habilitado na configuração da aplicação.
 
-[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.7.0...HEAD
-[0.7.0]: https://github.com/marcelositr/MeliponarioManager/releases/tag/v0.7.0
+[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/marcelositr/MeliponarioManager/releases/tag/v0.7.1
+[0.7.0]: https://github.com/marcelositr/MeliponarioManager/tree/v0.7.0

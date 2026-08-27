@@ -1,12 +1,13 @@
 {
   "name": "meliponariomanager",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.7.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "icons": "tauri icon assets/app-icon.svg",
+    "bundle:check": "node scripts/check-bundle-icons.mjs",
     "version:check": "node scripts/check-version.mjs",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",

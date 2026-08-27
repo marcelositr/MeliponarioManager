@@ -62,6 +62,9 @@ jobs:
       - name: Generate platform icons
         run: npm run icons
 
+      - name: Validate bundle icons
+        run: npm run bundle:check
+
       - name: Load release notes
         id: release_notes
         if: startsWith(github.ref, 'refs/tags/v0.')
