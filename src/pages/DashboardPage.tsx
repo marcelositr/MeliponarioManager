@@ -30,10 +30,11 @@ export function DashboardPage({ stats, onNavigate }: DashboardPageProps) {
         <div>
           <span className="eyebrow">Visão geral</span>
           <h1>Seu plantel, com histórico de verdade.</h1>
-          <p>Cadastre a estrutura básica aqui e depois avance para manejo, inspeções e rastreabilidade.</p>
+          <p>Cadastre a estrutura básica e avance para o manejo sem sair da aplicação.</p>
         </div>
         <div className="quick-actions" aria-label="Ações rápidas">
-          <button type="button" onClick={() => onNavigate("colonies")}>Nova colônia</button>
+          <button type="button" onClick={() => onNavigate("inspections")}>Nova inspeção</button>
+          <button type="button" className="button-secondary" onClick={() => onNavigate("colonies")}>Nova colônia</button>
           <button type="button" className="button-secondary" onClick={() => onNavigate("boxes")}>Nova caixa</button>
         </div>
       </section>
@@ -50,14 +51,15 @@ export function DashboardPage({ stats, onNavigate }: DashboardPageProps) {
       <section className="panel getting-started">
         <div>
           <span className="eyebrow">Primeiros passos</span>
-          <h2>Monte a base em uma sequência simples</h2>
-          <p>Cadastre o meliponário, as espécies que você trabalha, as caixas físicas e então as colônias. Depois, vincule cada colônia à sua caixa atual.</p>
+          <h2>Da estrutura ao primeiro manejo</h2>
+          <p>Cadastre o meliponário, as espécies, as caixas e as colônias. Depois de vincular cada colônia à caixa atual, registre as inspeções diretamente pela interface.</p>
         </div>
         <div className="step-list">
           <button type="button" onClick={() => onNavigate("meliponaries")}><span>1</span> Meliponários</button>
           <button type="button" onClick={() => onNavigate("species")}><span>2</span> Espécies</button>
           <button type="button" onClick={() => onNavigate("boxes")}><span>3</span> Caixas</button>
           <button type="button" onClick={() => onNavigate("colonies")}><span>4</span> Colônias</button>
+          <button type="button" onClick={() => onNavigate("inspections")}><span>5</span> Inspeções</button>
         </div>
       </section>
     </div>

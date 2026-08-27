@@ -3,6 +3,7 @@ import { Sidebar } from "./components/Sidebar";
 import {
   createBox,
   createColony,
+  createInspection,
   createMeliponary,
   createSpecies,
   loadCoreData,
@@ -12,12 +13,14 @@ import {
 import { BoxesPage } from "./pages/BoxesPage";
 import { ColoniesPage } from "./pages/ColoniesPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { InspectionsPage } from "./pages/InspectionsPage";
 import { MeliponariesPage } from "./pages/MeliponariesPage";
 import { SpeciesPage } from "./pages/SpeciesPage";
 import type {
   CoreData,
   CreateBoxInput,
   CreateColonyInput,
+  CreateInspectionInput,
   CreateMeliponaryInput,
   CreateSpeciesInput,
   DashboardStats,
@@ -50,6 +53,7 @@ const viewTitles: Record<View, string> = {
   species: "Espécies",
   colonies: "Colônias",
   boxes: "Caixas",
+  inspections: "Inspeções",
 };
 
 type Feedback = { kind: "success" | "error"; text: string } | null;
@@ -107,6 +111,9 @@ function App() {
   const placeColonyFromUi = (input: PlaceColonyInput) =>
     runMutation(() => placeColony(input), "Ocupação de caixa registrada e histórico preservado.");
 
+  const createInspectionFromUi = (input: CreateInspectionInput) =>
+    runMutation(() => createInspection(input), "Inspeção registrada com sucesso.");
+
   return (
     <div className="application-frame">
       <Sidebar activeView={activeView} onNavigate={setActiveView} connectionStatus={connectionStatus} />
@@ -148,6 +155,9 @@ function App() {
           )}
           {activeView === "boxes" && (
             <BoxesPage items={data.boxes} meliponaries={data.meliponaries} busy={busy} onCreate={createBoxFromUi} />
+          )}
+          {activeView === "inspections" && (
+            <InspectionsPage colonies={data.colonies} busy={busy} onCreate={createInspectionFromUi} />
           )}
         </div>
       </main>

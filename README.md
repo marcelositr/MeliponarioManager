@@ -23,16 +23,18 @@ A aplicação é desktop e local-first. O frontend não acessa o banco diretamen
 
 ## Interface operacional atual
 
-A primeira interface de operação já permite trabalhar com a base do plantel sem acessar o banco manualmente:
+A interface de operação já permite trabalhar com a base do plantel e iniciar o manejo sem acessar o banco manualmente:
 
-- navegar entre visão geral, meliponários, espécies, colônias e caixas;
+- navegar entre visão geral, meliponários, espécies, colônias, caixas e inspeções;
 - cadastrar e listar meliponários;
 - cadastrar e listar espécies;
 - cadastrar e listar caixas físicas;
 - cadastrar e listar colônias;
 - relacionar colônia-mãe quando aplicável;
 - colocar ou mover uma colônia para uma caixa livre usando o histórico de ocupação já existente;
-- acompanhar na tela a caixa atual, o meliponário, a espécie e a situação de cada colônia.
+- acompanhar na tela a caixa atual, o meliponário, a espécie e a situação de cada colônia;
+- registrar inspeções com força, rainha, postura, reservas, crias, pragas, observações, ações e próxima inspeção;
+- consultar o histórico de inspeções por colônia, incluindo a caixa correspondente à data registrada.
 
 A interface usa componentes próprios e chamadas Tauri diretas, sem adicionar um framework de UI pesado.
 

@@ -12,6 +12,7 @@ const items: Array<{ view: View; label: string; short: string }> = [
   { view: "species", label: "Espécies", short: "ES" },
   { view: "colonies", label: "Colônias", short: "CO" },
   { view: "boxes", label: "Caixas", short: "CX" },
+  { view: "inspections", label: "Inspeções", short: "IN" },
 ];
 
 export function Sidebar({ activeView, onNavigate, connectionStatus }: SidebarProps) {
