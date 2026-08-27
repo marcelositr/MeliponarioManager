@@ -1,5 +1,4 @@
-export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production" | "history" | "alerts";
-
+export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production" | "history" | "alerts" | "genealogy";
 export type CoreSummary = { meliponaries: number; species: number; colonies: number; boxes: number; };
 export type Meliponary = { id: string; name: string; responsibleName?: string | null; location?: string | null; notes?: string | null; createdAt: string; };
 export type Species = { id: string; commonName: string; scientificName?: string | null; genus?: string | null; notes?: string | null; createdAt: string; };
@@ -11,10 +10,10 @@ export type ProductionRecord = { id: string; colonyId: string; colonyCode: strin
 export type ColonyEvent = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; eventType: string; occurredAt: string; title?: string | null; details?: string | null; severity: string; createdAt: string; };
 export type TimelineEntry = { sourceType: string; sourceId: string; occurredAt: string; title: string; details?: string | null; boxCode?: string | null; severity: string; };
 export type Alert = { alertKey: string; colonyId: string; colonyCode: string; alertType: string; severity: string; dueAt?: string | null; title: string; details?: string | null; };
-
+export type ColonyDivision = { id: string; parentColonyId: string; parentColonyCode: string; daughterColonyId?: string | null; daughterColonyCode?: string | null; sourceBoxId?: string | null; sourceBoxCode?: string | null; performedAt: string; result: string; notes?: string | null; createdAt: string; };
+export type GenealogyNode = { colonyId: string; code: string; motherColonyId?: string | null; motherColonyCode?: string | null; generation: number; };
 export type DashboardStats = CoreSummary & { inspections: number; photos: number; events: number; divisions: number; feedings: number; production: number; movements: number; documents: number; maintenance: number; lifecycle: number; alerts: number; };
 export type CoreData = { meliponaries: Meliponary[]; species: Species[]; colonies: Colony[]; boxes: HiveBox[]; };
-
 export type CreateMeliponaryInput = { name: string; responsibleName?: string; location?: string; notes?: string; };
 export type CreateSpeciesInput = { commonName: string; scientificName?: string; genus?: string; notes?: string; };
 export type CreateBoxInput = { meliponaryId: string; code: string; model?: string; material?: string; locationNote?: string; notes?: string; };
@@ -24,3 +23,4 @@ export type CreateInspectionInput = { colonyId: string; inspectedAt?: string; st
 export type CreateFeedingInput = { colonyId: string; fedAt?: string; foodType: string; quantity?: number; unit?: string; responseNotes?: string; notes?: string; nextFeedingAt?: string; };
 export type CreateProductionInput = { colonyId: string; harvestedAt?: string; productType: string; quantity: number; unit: string; purpose?: string; notes?: string; };
 export type CreateColonyEventInput = { colonyId: string; eventType: string; occurredAt?: string; title?: string; details?: string; severity?: string; };
+export type CreateDivisionInput = { parentColonyId: string; daughterCode?: string; daughterNotes?: string; performedAt?: string; result?: string; notes?: string; };
