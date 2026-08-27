@@ -174,7 +174,7 @@ async fn validate_database(path: &Path) -> Result<(), String> {
         .fetch_one(&pool)
         .await
         .map_err(|error| error.to_string())?;
-    if integrity.to_ascii_lowercase() != "ok" {
+    if !integrity.eq_ignore_ascii_case("ok") {
         pool.close().await;
         return Err(format!(
             "Falha na verificação de integridade do backup: {integrity}"
