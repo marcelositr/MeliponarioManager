@@ -1,6 +1,9 @@
-use crate::domain::{
-    Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
-    CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
+use crate::{
+    domain::{
+        Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
+        CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
+    },
+    time,
 };
 use sqlx::SqlitePool;
 use thiserror::Error;
@@ -227,6 +230,10 @@ pub async fn place_colony(
 ) -> Result<ColonyBoxOccupancy, AppError> {
     let colony_id = required(&input.colony_id, "Colônia")?;
     let box_id = required(&input.box_id, "Caixa")?;
+    let started_at = match optional(&input.started_at) {
+        Some(value) => time::normalize(&value, false)?,
+        None => time::local_now(pool).await?,
+    };
     let mut tx = pool.begin().await?;
 
     let colony_meliponary: Option<String> =
@@ -237,13 +244,19 @@ pub async fn place_colony(
     let colony_meliponary = colony_meliponary
         .ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
 
-    let box_meliponary: Option<String> =
-        sqlx::query_scalar("SELECT meliponary_id FROM boxes WHERE id = ?")
+    let target_box: Option<(String, String)> =
+        sqlx::query_as("SELECT meliponary_id, status FROM boxes WHERE id = ?")
             .bind(&box_id)
             .fetch_optional(&mut *tx)
             .await?;
-    let box_meliponary =
-        box_meliponary.ok_or_else(|| AppError::NotFound("Caixa não encontrada.".to_owned()))?;
+    let (box_meliponary, box_status) =
+        target_box.ok_or_else(|| AppError::NotFound("Caixa não encontrada.".to_owned()))?;
+
+    if box_status != "active" {
+        return Err(AppError::Validation(
+            "Somente uma caixa ativa pode receber uma nova ocupação.".to_owned(),
+        ));
+    }
 
     if colony_meliponary != box_meliponary {
         return Err(AppError::Validation(
@@ -278,15 +291,6 @@ pub async fn place_colony(
             "A caixa já está ocupada por outra colônia.".to_owned(),
         ));
     }
-
-    let started_at = match optional(&input.started_at) {
-        Some(value) => value,
-        None => {
-            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-                .fetch_one(&mut *tx)
-                .await?
-        }
-    };
 
     if let Some(active_box) = current_box {
         let current_started_at: String = sqlx::query_scalar(
@@ -515,5 +519,33 @@ mod tests {
         .await;
 
         assert!(matches!(result, Err(AppError::Validation(_))));
+    }
+
+    #[tokio::test]
+    async fn nonactive_box_is_rejected_by_repository() {
+        for status in ["maintenance", "retired"] {
+            let pool = test_pool().await;
+            let (_, _, box_one, _, colony) = seed(&pool).await;
+            sqlx::query("UPDATE boxes SET status = ? WHERE id = ?")
+                .bind(status)
+                .bind(&box_one.id)
+                .execute(&pool)
+                .await
+                .unwrap();
+
+            let result = place_colony(
+                &pool,
+                PlaceColony {
+                    colony_id: colony.id,
+                    box_id: box_one.id,
+                    started_at: Some("2026-01-01 10:00:00".into()),
+                    reason: None,
+                    notes: None,
+                },
+            )
+            .await;
+
+            assert!(matches!(result, Err(AppError::Validation(_))));
+        }
     }
 }
