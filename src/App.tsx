@@ -1,3 +1,4 @@
+import { getVersion } from "@tauri-apps/api/app";
 import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { changeColonyLifecycle, createBox, createBoxMaintenance, createColony, createColonyDivision, createColonyEvent, createColonyMovement, createFeeding, createInspection, createMeliponary, createMovementDocument, createProductionRecord, createSpecies, deleteInspectionPhoto, importInspectionPhoto, loadCoreData, loadDashboardStats, placeColony } from "./lib/api";
@@ -30,11 +31,15 @@ function App() {
   const [data, setData] = useState<CoreData>(emptyData);
   const [stats, setStats] = useState<DashboardStats>(emptyStats);
   const [connectionStatus, setConnectionStatus] = useState("Conectando...");
+  const [appVersion, setAppVersion] = useState("...");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
   async function refresh() { const [coreData, dashboardStats] = await Promise.all([loadCoreData(), loadDashboardStats()]); setData(coreData); setStats(dashboardStats); setConnectionStatus("Conectado"); }
-  useEffect(() => { refresh().catch(() => { setConnectionStatus("Abra pelo Tauri"); setFeedback({ kind: "error", text: "Não foi possível acessar o banco local. Execute a aplicação pelo Tauri." }); }); }, []);
+  useEffect(() => {
+    refresh().catch(() => { setConnectionStatus("Abra pelo Tauri"); setFeedback({ kind: "error", text: "Não foi possível acessar o banco local. Execute a aplicação pelo Tauri." }); });
+    getVersion().then(setAppVersion).catch(() => setAppVersion("dev"));
+  }, []);
   async function runMutation(action: () => Promise<unknown>, successMessage: string): Promise<boolean> { setBusy(true); setFeedback(null); try { await action(); await refresh(); setFeedback({ kind: "success", text: successMessage }); return true; } catch (error) { setFeedback({ kind: "error", text: readableError(error) }); return false; } finally { setBusy(false); } }
 
   const createMeliponaryFromUi = (input: CreateMeliponaryInput) => runMutation(() => createMeliponary(input), "Meliponário cadastrado com sucesso.");
@@ -54,7 +59,7 @@ function App() {
   const createBoxMaintenanceFromUi = (input: CreateBoxMaintenanceInput) => runMutation(() => createBoxMaintenance(input), "Manutenção da caixa registrada.");
   const changeLifecycleFromUi = (input: ChangeColonyLifecycleInput) => runMutation(() => changeColonyLifecycle(input), "Ciclo de vida atualizado e histórico preservado.");
 
-  return <div className="application-frame"><Sidebar activeView={activeView} onNavigate={setActiveView} connectionStatus={connectionStatus} /><main className="workspace"><header className="workspace-topbar"><div><span className="topbar-context">MeliponarioManager</span><strong>{viewTitles[activeView]}</strong></div><span className="version">v0.1.0</span></header>{feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso">×</button></div>}<div className="workspace-content">
+  return <div className="application-frame"><Sidebar activeView={activeView} onNavigate={setActiveView} connectionStatus={connectionStatus} /><main className="workspace"><header className="workspace-topbar"><div><span className="topbar-context">MeliponarioManager</span><strong>{viewTitles[activeView]}</strong></div><span className="version">v{appVersion}</span></header>{feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso">×</button></div>}<div className="workspace-content">
     {activeView === "dashboard" && <DashboardPage stats={stats} onNavigate={setActiveView} />}
     {activeView === "meliponaries" && <MeliponariesPage items={data.meliponaries} busy={busy} onCreate={createMeliponaryFromUi} />}
     {activeView === "species" && <SpeciesPage items={data.species} busy={busy} onCreate={createSpeciesFromUi} />}
