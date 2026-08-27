@@ -78,88 +78,276 @@ mod tests {
     use crate::{
         domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
         feeding::{self, CreateFeeding},
-        inspections::{self, CreateInspection}, repository,
+        inspections::{self, CreateInspection},
+        repository,
     };
     use sqlx::sqlite::SqlitePoolOptions;
 
     async fn test_pool() -> SqlitePool {
-        let pool = SqlitePoolOptions::new().max_connections(1)
-            .connect("sqlite::memory:").await.unwrap();
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
         sqlx::migrate!("../migrations").run(&pool).await.unwrap();
         pool
     }
 
     async fn seed(pool: &SqlitePool) -> String {
-        let m = repository::create_meliponary(pool, CreateMeliponary {
-            name: "Principal".into(), responsible_name: None, location: None, notes: None,
-        }).await.unwrap();
-        let s = repository::create_species(pool, CreateSpecies {
-            common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None,
-        }).await.unwrap();
-        let b = repository::create_box(pool, CreateHiveBox {
-            meliponary_id: m.id.clone(), code: "CX-001".into(), model: None,
-            material: None, location_note: None, notes: None,
-        }).await.unwrap();
-        let c = repository::create_colony(pool, CreateColony {
-            meliponary_id: m.id, species_id: s.id, code: "JAT-001".into(),
-            origin_type: None, origin_notes: None,
-            installed_at: Some("2000-01-01 09:00:00".into()), mother_colony_id: None, notes: None,
-        }).await.unwrap();
-        repository::place_colony(pool, PlaceColony {
-            colony_id: c.id.clone(), box_id: b.id, started_at: Some("2000-01-01 09:00:00".into()),
-            reason: None, notes: None,
-        }).await.unwrap();
-        c.id
+        let meliponary = repository::create_meliponary(
+            pool,
+            CreateMeliponary {
+                name: "Meliponário principal".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let species = repository::create_species(
+            pool,
+            CreateSpecies {
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let hive_box = repository::create_box(
+            pool,
+            CreateHiveBox {
+                meliponary_id: meliponary.id.clone(),
+                code: "CX-001".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let colony = repository::create_colony(
+            pool,
+            CreateColony {
+                meliponary_id: meliponary.id,
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: Some("2000-01-01 09:00:00".into()),
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        repository::place_colony(
+            pool,
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: hive_box.id,
+                started_at: Some("2000-01-01 09:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        colony.id
+    }
+
+    fn inspection(
+        colony_id: String,
+        inspected_at: &str,
+        strength: &str,
+        next_inspection_at: Option<&str>,
+    ) -> CreateInspection {
+        CreateInspection {
+            colony_id,
+            inspected_at: Some(inspected_at.into()),
+            strength: Some(strength.into()),
+            queen_present: None,
+            laying_status: None,
+            food_reserves: None,
+            brood_status: None,
+            pests_notes: None,
+            observations: None,
+            actions_taken: None,
+            next_inspection_at: next_inspection_at.map(Into::into),
+        }
     }
 
     #[tokio::test]
     async fn overdue_items_use_same_local_reference() {
         let pool = test_pool().await;
-        let id = seed(&pool).await;
-        inspections::create(&pool, CreateInspection {
-            colony_id: id.clone(), inspected_at: Some("2000-01-10 10:00:00".into()),
-            strength: Some("medium".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: Some("2000-01-20 10:00:00".into()),
-        }).await.unwrap();
-        feeding::create(&pool, CreateFeeding {
-            colony_id: id, fed_at: Some("2000-02-01 12:00:00".into()), food_type: "Xarope".into(),
-            quantity: Some(50.0), unit: Some("ml".into()), response_notes: None, notes: None,
-            next_feeding_at: Some("2000-02-08 12:00:00".into()),
-        }).await.unwrap();
+        let colony_id = seed(&pool).await;
+
+        inspections::create(
+            &pool,
+            inspection(
+                colony_id.clone(),
+                "2000-01-10 10:00:00",
+                "medium",
+                Some("2000-01-20 10:00:00"),
+            ),
+        )
+        .await
+        .unwrap();
+
+        feeding::create(
+            &pool,
+            CreateFeeding {
+                colony_id,
+                fed_at: Some("2000-02-01 12:00:00".into()),
+                food_type: "Xarope 1:1".into(),
+                quantity: Some(50.0),
+                unit: Some("ml".into()),
+                response_notes: None,
+                notes: None,
+                next_feeding_at: Some("2000-02-08 12:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
+
         let alerts = list(&pool).await.unwrap();
-        assert!(alerts.iter().any(|a| a.alert_type == "inspection_due"));
-        assert!(alerts.iter().any(|a| a.alert_type == "feeding_due"));
+        assert!(alerts
+            .iter()
+            .any(|alert| alert.alert_type == "inspection_due"));
+        assert!(alerts
+            .iter()
+            .any(|alert| alert.alert_type == "feeding_due"));
     }
 
     #[tokio::test]
-    async fn weakness_comes_from_latest_inspection_not_legacy_status() {
+    async fn newer_inspection_supersedes_old_schedule() {
         let pool = test_pool().await;
-        let id = seed(&pool).await;
+        let colony_id = seed(&pool).await;
+
+        inspections::create(
+            &pool,
+            inspection(
+                colony_id.clone(),
+                "2000-01-10 10:00:00",
+                "medium",
+                Some("2000-01-20 10:00:00"),
+            ),
+        )
+        .await
+        .unwrap();
+
+        inspections::create(
+            &pool,
+            inspection(
+                colony_id,
+                "2026-01-10 10:00:00",
+                "strong",
+                Some("2999-01-20 10:00:00"),
+            ),
+        )
+        .await
+        .unwrap();
+
+        let alerts = list(&pool).await.unwrap();
+        assert!(!alerts
+            .iter()
+            .any(|alert| alert.alert_type == "inspection_due"));
+    }
+
+    #[tokio::test]
+    async fn only_latest_inspection_determines_weakness() {
+        let pool = test_pool().await;
+        let colony_id = seed(&pool).await;
+
         sqlx::query("UPDATE colonies SET status = 'weak' WHERE id = ?")
-            .bind(&id).execute(&pool).await.unwrap();
-        assert!(!list(&pool).await.unwrap().iter().any(|a| a.alert_type == "weak_colony"));
-        inspections::create(&pool, CreateInspection {
-            colony_id: id, inspected_at: Some("2026-01-10 10:00:00".into()),
-            strength: Some("weak".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: None,
-        }).await.unwrap();
-        assert!(list(&pool).await.unwrap().iter().any(|a| a.alert_type == "weak_colony"));
+            .bind(&colony_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert!(!list(&pool)
+            .await
+            .unwrap()
+            .iter()
+            .any(|alert| alert.alert_type == "weak_colony"));
+
+        inspections::create(
+            &pool,
+            inspection(
+                colony_id.clone(),
+                "2026-01-10 10:00:00",
+                "weak",
+                None,
+            ),
+        )
+        .await
+        .unwrap();
+        inspections::create(
+            &pool,
+            inspection(
+                colony_id.clone(),
+                "2026-02-10 10:00:00",
+                "strong",
+                None,
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert!(!list(&pool)
+            .await
+            .unwrap()
+            .iter()
+            .any(|alert| alert.alert_type == "weak_colony"));
+
+        inspections::create(
+            &pool,
+            inspection(colony_id, "2026-03-10 10:00:00", "weak", None),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(
+            list(&pool)
+                .await
+                .unwrap()
+                .iter()
+                .filter(|alert| alert.alert_type == "weak_colony")
+                .count(),
+            1
+        );
     }
 
     #[tokio::test]
     async fn inactive_colony_is_not_alerted() {
         let pool = test_pool().await;
-        let id = seed(&pool).await;
-        inspections::create(&pool, CreateInspection {
-            colony_id: id.clone(), inspected_at: Some("2026-01-10 10:00:00".into()),
-            strength: Some("weak".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: Some("2000-01-20 10:00:00".into()),
-        }).await.unwrap();
+        let colony_id = seed(&pool).await;
+
+        inspections::create(
+            &pool,
+            inspection(
+                colony_id.clone(),
+                "2026-01-10 10:00:00",
+                "weak",
+                Some("2026-01-20 10:00:00"),
+            ),
+        )
+        .await
+        .unwrap();
+
         sqlx::query("UPDATE colonies SET status = 'inactive' WHERE id = ?")
-            .bind(&id).execute(&pool).await.unwrap();
+            .bind(&colony_id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
         assert!(list(&pool).await.unwrap().is_empty());
     }
 }
