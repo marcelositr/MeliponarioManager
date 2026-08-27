@@ -63,16 +63,20 @@ pub async fn ensure_colony_available_at(
     let effective_status = match status_at {
         Some(status) => status,
         None => {
-            let has_lifecycle_history: bool = sqlx::query_scalar(
-                "SELECT EXISTS(
-                    SELECT 1 FROM colony_lifecycle_records WHERE colony_id = ?
-                 )",
+            let has_known_later_state_event: bool = sqlx::query_scalar(
+                "SELECT
+                    EXISTS(SELECT 1 FROM colony_lifecycle_records WHERE colony_id = ?)
+                    OR EXISTS(
+                        SELECT 1 FROM colony_movements
+                        WHERE colony_id = ? AND movement_type = 'external_transfer'
+                    )",
             )
+            .bind(colony_id)
             .bind(colony_id)
             .fetch_one(pool)
             .await?;
 
-            if has_lifecycle_history {
+            if has_known_later_state_event {
                 "active".to_owned()
             } else {
                 current_status
@@ -184,7 +188,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn external_transfer_blocks_later_management() {
+    async fn external_transfer_blocks_later_management_but_preserves_retrospective_facts() {
         let pool = pool().await;
         let colony_id = seed_colony(&pool, "transferred").await;
         sqlx::query(
