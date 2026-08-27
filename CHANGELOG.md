@@ -12,6 +12,11 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Política temporal central para timestamps operacionais em horário local, normalizados para `YYYY-MM-DD HH:MM:SS` na fronteira Tauri.
 - Validação histórica da disponibilidade da colônia para inspeções, alimentações e produção, permitindo lançamentos retroativos válidos anteriores a perda, inativação ou transferência externa.
 - Teste explícito de upgrade a partir de um schema representativo da `v0.7.1`, preservando ocupações, eventos, fotos, documentos e relações ao aplicar a migration nova.
+- Novo shell desktop enterprise com menu superior, barra contextual, sidebar agrupada e recolhível, workspace e status bar.
+- Temas claro, escuro e seguir sistema baseados em tokens compartilhados, com preferência persistida localmente.
+- Contexto visual persistente de meliponário ativo, incluindo visão consolidada sem filtros silenciosos onde o backend ainda não oferece suporte confiável.
+- Componentes reutilizáveis para dialogs, confirmações, toolbars, ícones consistentes e fichas internas de registros.
+- Ficha-resumo inicial de colônia como infraestrutura para áreas internas futuras.
 
 ### Changed
 
@@ -20,11 +25,16 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Dashboard consolida `weak` e `recovering` legados na projeção administrativa `active`, mantendo força de manejo separada pela última inspeção.
 - Timestamps de ocupação, ciclo de vida, inspeção, alimentação, produção, eventos, divisões, movimentações, manutenção, documentos e fotos são normalizados antes de chegar aos serviços existentes.
 - A versão exibida no aplicativo deixa de ser hardcoded e passa a vir dos metadados reais do Tauri, com fallback seguro fora do runtime desktop.
+- Dashboard passa a priorizar indicadores executivos, situação do plantel, ocupação, alertas, produção e movimentações em uma composição mais compacta.
+- Meliponários, espécies, caixas, colônias, inspeções, alimentação, produção, histórico, divisões, movimentações, manutenção e ciclo de vida adotam toolbars, tabelas e dialogs no lugar de formulários permanentes nas telas principais.
+- Fotos deixam de ocupar um conceito principal de navegação e permanecem acessíveis como contexto transitório dentro de Manutenção, sem perda de funcionalidade.
+- A interface passa a usar densidade desktop, identidade âmbar/ocre discreta, estados semânticos por texto/forma/cor e comportamento responsivo a partir de aproximadamente `900x600`.
 
 ### Fixed
 
 - Nova ocupação é rejeitada explicitamente pelo backend quando a caixa de destino não está ativa.
 - Próxima inspeção, alimentação e manutenção são rejeitadas quando anteriores ao fato que as originou após normalização temporal consistente.
+- Confirmações críticas de ciclo de vida e remoção de fotos deixam de usar diálogos genéricos do navegador e passam a explicar a consequência da operação.
 
 ## [0.7.1] - 2026-08-27
 

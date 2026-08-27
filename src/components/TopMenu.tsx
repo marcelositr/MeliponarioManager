@@ -1,9 +1,8 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import type { ThemeMode } from "../lib/ui-preferences";
 import type { View } from "../types";
 import { Icon } from "./Icon";
-
-export type ThemeMode = "light" | "dark" | "system";
 
 type TopMenuProps = {
   theme: ThemeMode;
