@@ -55,7 +55,9 @@ fn image_format(path: &Path) -> Result<(&'static str, &'static str), AppError> {
         .extension()
         .and_then(|value| value.to_str())
         .map(str::to_ascii_lowercase)
-        .ok_or_else(|| AppError::Validation("A foto precisa ter uma extensão reconhecida.".to_owned()))?;
+        .ok_or_else(|| {
+            AppError::Validation("A foto precisa ter uma extensão reconhecida.".to_owned())
+        })?;
 
     match extension.as_str() {
         "jpg" | "jpeg" => Ok(("jpg", "image/jpeg")),
@@ -130,14 +132,13 @@ pub async fn import_photo(
     let inspection_id = required(&input.inspection_id, "Inspeção")?;
     let source_path = PathBuf::from(required(&input.source_path, "Arquivo de origem")?);
 
-    let inspection: Option<(String, String)> = sqlx::query_as(
-        "SELECT colony_id, inspected_at FROM inspections WHERE id = ?",
-    )
-    .bind(&inspection_id)
-    .fetch_optional(pool)
-    .await?;
-    let (_, inspected_at) = inspection
-        .ok_or_else(|| AppError::NotFound("Inspeção não encontrada.".to_owned()))?;
+    let inspection: Option<(String, String)> =
+        sqlx::query_as("SELECT colony_id, inspected_at FROM inspections WHERE id = ?")
+            .bind(&inspection_id)
+            .fetch_optional(pool)
+            .await?;
+    let (_, inspected_at) =
+        inspection.ok_or_else(|| AppError::NotFound("Inspeção não encontrada.".to_owned()))?;
 
     let metadata = fs::metadata(&source_path)
         .await
@@ -207,12 +208,10 @@ pub async fn list_by_inspection(
     inspection_id: &str,
 ) -> Result<Vec<InspectionPhoto>, AppError> {
     let inspection_id = required(inspection_id, "Inspeção")?;
-    let exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM inspections WHERE id = ?)",
-    )
-    .bind(&inspection_id)
-    .fetch_one(pool)
-    .await?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM inspections WHERE id = ?)")
+        .bind(&inspection_id)
+        .fetch_one(pool)
+        .await?;
     if !exists {
         return Err(AppError::NotFound("Inspeção não encontrada.".to_owned()));
     }
@@ -246,12 +245,10 @@ pub async fn list_by_colony(
     colony_id: &str,
 ) -> Result<Vec<InspectionPhoto>, AppError> {
     let colony_id = required(colony_id, "Colônia")?;
-    let exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
-    )
-    .bind(&colony_id)
-    .fetch_one(pool)
-    .await?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+        .bind(&colony_id)
+        .fetch_one(pool)
+        .await?;
     if !exists {
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
     }
@@ -286,23 +283,22 @@ pub async fn delete_photo(
     photo_id: &str,
 ) -> Result<(), AppError> {
     let photo_id = required(photo_id, "Foto")?;
-    let relative_path: Option<String> = sqlx::query_scalar(
-        "SELECT relative_path FROM inspection_photos WHERE id = ?",
-    )
-    .bind(&photo_id)
-    .fetch_optional(pool)
-    .await?;
-    let relative_path = relative_path
-        .ok_or_else(|| AppError::NotFound("Foto não encontrada.".to_owned()))?;
+    let relative_path: Option<String> =
+        sqlx::query_scalar("SELECT relative_path FROM inspection_photos WHERE id = ?")
+            .bind(&photo_id)
+            .fetch_optional(pool)
+            .await?;
+    let relative_path =
+        relative_path.ok_or_else(|| AppError::NotFound("Foto não encontrada.".to_owned()))?;
     let file_path = absolute_media_path(data_dir, &relative_path)?;
 
     let mut tx = pool.begin().await?;
     let tombstone = file_path.with_file_name(format!(".deleting-{}", Uuid::new_v4()));
     let moved_to_tombstone = match fs::metadata(&file_path).await {
         Ok(metadata) if metadata.is_file() => {
-            fs::rename(&file_path, &tombstone)
-                .await
-                .map_err(|error| storage_error("Não foi possível preparar a exclusão da foto", error))?;
+            fs::rename(&file_path, &tombstone).await.map_err(|error| {
+                storage_error("Não foi possível preparar a exclusão da foto", error)
+            })?;
             true
         }
         Ok(_) => {
@@ -338,9 +334,12 @@ pub async fn delete_photo(
     }
 
     if moved_to_tombstone {
-        fs::remove_file(&tombstone)
-            .await
-            .map_err(|error| storage_error("Metadados removidos, mas não foi possível apagar o arquivo", error))?;
+        fs::remove_file(&tombstone).await.map_err(|error| {
+            storage_error(
+                "Metadados removidos, mas não foi possível apagar o arquivo",
+                error,
+            )
+        })?;
     }
 
     Ok(())

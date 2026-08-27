@@ -50,7 +50,10 @@ fn optional(value: &Option<String>) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
-fn validate_quantity(quantity: Option<f64>, unit: &Option<String>) -> Result<Option<String>, AppError> {
+fn validate_quantity(
+    quantity: Option<f64>,
+    unit: &Option<String>,
+) -> Result<Option<String>, AppError> {
     let unit = optional(unit);
 
     match (quantity, unit) {
@@ -69,12 +72,12 @@ fn validate_quantity(quantity: Option<f64>, unit: &Option<String>) -> Result<Opt
 }
 
 async fn colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<bool, AppError> {
-    Ok(sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+            .bind(colony_id)
+            .fetch_one(pool)
+            .await?,
     )
-    .bind(colony_id)
-    .fetch_one(pool)
-    .await?)
 }
 
 async fn box_at(
@@ -124,9 +127,11 @@ pub async fn create(pool: &SqlitePool, input: CreateFeeding) -> Result<Feeding, 
 
     let fed_at = match optional(&input.fed_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
 
     let box_id = box_at(pool, &colony_id, &fed_at).await?;
@@ -187,8 +192,7 @@ mod tests {
     use super::*;
     use crate::{
         domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
-        history,
-        repository,
+        history, repository,
     };
     use sqlx::sqlite::SqlitePoolOptions;
 
@@ -369,7 +373,9 @@ mod tests {
         .await
         .unwrap();
 
-        let timeline = history::timeline_by_colony(&pool, &colony_id).await.unwrap();
+        let timeline = history::timeline_by_colony(&pool, &colony_id)
+            .await
+            .unwrap();
         assert!(timeline.iter().any(|entry| entry.source_type == "feeding"));
     }
 }

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Melipona minimalista">
+  <rect x="40" y="40" width="944" height="944" rx="210" fill="#F8F3E8"/>
+
+  <path d="M512 142 804 310v336L512 814 220 646V310Z"
+        fill="none" stroke="#F2B134" stroke-width="54" stroke-linejoin="round"/>
+
+  <path d="M157 772C236 628 338 592 454 622c-66 113-163 184-297 150Z" fill="#2F7D3E"/>
+  <path d="M194 791c68-88 144-137 232-156" fill="none" stroke="#1F5B2E" stroke-width="22" stroke-linecap="round"/>
+  <path d="M250 844c63-112 149-167 258-164-50 105-135 166-258 164Z" fill="#4C963F"/>
+
+  <g transform="rotate(-17 545 493)">
+    <ellipse cx="470" cy="396" rx="138" ry="76" fill="#F7D99A" fill-opacity="0.72" stroke="#D88C31" stroke-width="18"/>
+    <ellipse cx="559" cy="362" rx="126" ry="68" fill="#F7D99A" fill-opacity="0.64" stroke="#D88C31" stroke-width="18"/>
+
+    <ellipse cx="540" cy="528" rx="190" ry="126" fill="#221F23"/>
+    <path d="M414 468c35-30 75-50 119-58l32 236c-47-2-89-17-125-45Z" fill="#F2A61F"/>
+    <path d="M559 405c41 3 80 15 114 36l-30 185c-34 14-70 21-108 20Z" fill="#D88917"/>
+    <ellipse cx="705" cy="506" rx="92" ry="96" fill="#1C1A1D"/>
+    <circle cx="736" cy="474" r="19" fill="#F8F3E8" fill-opacity="0.9"/>
+
+    <path d="M756 430c54-62 112-78 168-62" fill="none" stroke="#221F23" stroke-width="18" stroke-linecap="round"/>
+    <path d="M771 451c66-30 125-27 177 10" fill="none" stroke="#221F23" stroke-width="18" stroke-linecap="round"/>
+
+    <path d="M457 603c-38 41-48 79-28 115" fill="none" stroke="#221F23" stroke-width="24" stroke-linecap="round"/>
+    <path d="M557 639c-16 49-8 89 22 120" fill="none" stroke="#221F23" stroke-width="24" stroke-linecap="round"/>
+    <path d="M654 617c11 49 35 82 72 99" fill="none" stroke="#221F23" stroke-width="24" stroke-linecap="round"/>
+  </g>
+
+  <g transform="rotate(17 807 690)">
+    <path d="M747 609c98-39 177 27 175 126-1 69-41 135-104 176l-125-62c43-54 61-107 54-160Z" fill="#82451F"/>
+    <ellipse cx="764" cy="672" rx="95" ry="72" fill="#B86C2C"/>
+    <ellipse cx="764" cy="672" rx="61" ry="43" fill="#3B1D12"/>
+    <ellipse cx="756" cy="661" rx="36" ry="23" fill="#1D0D08"/>
+  </g>
+</svg>

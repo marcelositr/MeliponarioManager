@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "br.devnux.meliponariomanager",
   "build": {
-    "beforeDevCommand": "npm run dev",
+    "beforeDevCommand": "npm run icons && npm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "npm run build",
+    "beforeBuildCommand": "npm run icons && npm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -21,7 +21,15 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": {
+        "default-src": "'self' customprotocol: asset:",
+        "connect-src": "ipc: http://ipc.localhost",
+        "img-src": "'self' asset: http://asset.localhost blob: data:",
+        "style-src": "'unsafe-inline' 'self'"
+      },
+      "headers": {
+        "X-Content-Type-Options": "nosniff"
+      }
     }
   },
   "bundle": {

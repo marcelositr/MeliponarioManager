@@ -72,12 +72,12 @@ fn optional(value: &Option<String>) -> Option<String> {
 }
 
 async fn colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<bool, AppError> {
-    Ok(sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+            .bind(colony_id)
+            .fetch_one(pool)
+            .await?,
     )
-    .bind(colony_id)
-    .fetch_one(pool)
-    .await?)
 }
 
 async fn box_at(
@@ -115,10 +115,7 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<ColonyEvent, AppError> {
     .await?)
 }
 
-pub async fn create(
-    pool: &SqlitePool,
-    input: CreateColonyEvent,
-) -> Result<ColonyEvent, AppError> {
+pub async fn create(pool: &SqlitePool, input: CreateColonyEvent) -> Result<ColonyEvent, AppError> {
     let colony_id = required(&input.colony_id, "Colônia")?;
     let event_type = required(&input.event_type, "Tipo do evento")?;
     if !EVENT_TYPES.contains(&event_type.as_str()) {
@@ -138,9 +135,11 @@ pub async fn create(
 
     let occurred_at = match optional(&input.occurred_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
     let box_id = box_at(pool, &colony_id, &occurred_at).await?;
     let id = Uuid::new_v4().to_string();
@@ -504,8 +503,12 @@ mod tests {
 
         let timeline = timeline_by_colony(&pool, &colony_id).await.unwrap();
         assert_eq!(timeline[0].source_type, "event");
-        assert!(timeline.iter().any(|entry| entry.source_type == "inspection"));
-        assert!(timeline.iter().any(|entry| entry.source_type == "box_occupancy"));
+        assert!(timeline
+            .iter()
+            .any(|entry| entry.source_type == "inspection"));
+        assert!(timeline
+            .iter()
+            .any(|entry| entry.source_type == "box_occupancy"));
     }
 
     #[tokio::test]

@@ -81,11 +81,10 @@ pub async fn overview(pool: &SqlitePool) -> Result<DashboardOverview, AppError> 
     .fetch_all(pool)
     .await?;
 
-    let occupied_boxes: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM colony_box_occupancies WHERE ended_at IS NULL",
-    )
-    .fetch_one(pool)
-    .await?;
+    let occupied_boxes: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM colony_box_occupancies WHERE ended_at IS NULL")
+            .fetch_one(pool)
+            .await?;
 
     let free_boxes: i64 = sqlx::query_scalar(
         "SELECT COUNT(*)
@@ -167,34 +166,99 @@ mod tests {
         let pool = test_pool().await;
         let meliponary = repository::create_meliponary(
             &pool,
-            CreateMeliponary { name: "Principal".into(), responsible_name: None, location: None, notes: None },
-        ).await.unwrap();
+            CreateMeliponary {
+                name: "Principal".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         let species = repository::create_species(
             &pool,
-            CreateSpecies { common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None },
-        ).await.unwrap();
+            CreateSpecies {
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         let hive_box = repository::create_box(
             &pool,
-            CreateHiveBox { meliponary_id: meliponary.id.clone(), code: "CX-001".into(), model: None, material: None, location_note: None, notes: None },
-        ).await.unwrap();
+            CreateHiveBox {
+                meliponary_id: meliponary.id.clone(),
+                code: "CX-001".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         let colony = repository::create_colony(
             &pool,
-            CreateColony { meliponary_id: meliponary.id, species_id: species.id, code: "JAT-001".into(), origin_type: None, origin_notes: None, installed_at: None, mother_colony_id: None, notes: None },
-        ).await.unwrap();
+            CreateColony {
+                meliponary_id: meliponary.id,
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: None,
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         repository::place_colony(
             &pool,
-            PlaceColony { colony_id: colony.id.clone(), box_id: hive_box.id, started_at: None, reason: None, notes: None },
-        ).await.unwrap();
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: hive_box.id,
+                started_at: None,
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         inspections::create(
             &pool,
-            CreateInspection { colony_id: colony.id, inspected_at: None, strength: Some("weak".into()), queen_present: None, laying_status: None, food_reserves: None, brood_status: None, pests_notes: None, observations: None, actions_taken: None, next_inspection_at: None },
-        ).await.unwrap();
+            CreateInspection {
+                colony_id: colony.id,
+                inspected_at: None,
+                strength: Some("weak".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: None,
+            },
+        )
+        .await
+        .unwrap();
 
         let result = overview(&pool).await.unwrap();
         assert_eq!(result.occupied_boxes, 1);
         assert_eq!(result.free_boxes, 0);
-        assert!(result.species_distribution.iter().any(|item| item.label == "Jataí" && item.count == 1));
-        assert!(result.inspection_strengths.iter().any(|item| item.label == "weak" && item.count == 1));
-        assert!(result.alerts.iter().any(|item| item.alert_type == "weak_colony"));
+        assert!(result
+            .species_distribution
+            .iter()
+            .any(|item| item.label == "Jataí" && item.count == 1));
+        assert!(result
+            .inspection_strengths
+            .iter()
+            .any(|item| item.label == "weak" && item.count == 1));
+        assert!(result
+            .alerts
+            .iter()
+            .any(|item| item.alert_type == "weak_colony"));
     }
 }

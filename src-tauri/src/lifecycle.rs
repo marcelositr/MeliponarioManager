@@ -104,9 +104,11 @@ pub async fn change(
 
     let occurred_at = match optional(&input.occurred_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
 
     let mut tx = pool.begin().await?;
@@ -186,8 +188,7 @@ pub async fn change(
         if let Some((occupancy_id, _, started_at)) = &active_occupancy {
             if occurred_at < *started_at {
                 return Err(AppError::Validation(
-                    "A data da baixa não pode ser anterior ao início da ocupação atual."
-                        .to_owned(),
+                    "A data da baixa não pode ser anterior ao início da ocupação atual.".to_owned(),
                 ));
             }
 
@@ -348,9 +349,11 @@ pub async fn timeline_entries(
 }
 
 pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
-    Ok(sqlx::query_scalar("SELECT COUNT(*) FROM colony_lifecycle_records")
-        .fetch_one(pool)
-        .await?)
+    Ok(
+        sqlx::query_scalar("SELECT COUNT(*) FROM colony_lifecycle_records")
+            .fetch_one(pool)
+            .await?,
+    )
 }
 
 #[cfg(test)]
@@ -465,13 +468,12 @@ mod tests {
             .fetch_one(&pool)
             .await
             .unwrap();
-        let ended_at: String = sqlx::query_scalar(
-            "SELECT ended_at FROM colony_box_occupancies WHERE colony_id = ?",
-        )
-        .bind(&colony_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let ended_at: String =
+            sqlx::query_scalar("SELECT ended_at FROM colony_box_occupancies WHERE colony_id = ?")
+                .bind(&colony_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         assert_eq!(status, "lost");
         assert_eq!(ended_at, "2026-02-01 10:00:00");
@@ -573,7 +575,9 @@ mod tests {
         .unwrap();
 
         let entries = timeline::by_colony(&pool, &colony_id).await.unwrap();
-        assert!(entries.iter().any(|entry| entry.source_type == "colony_entry"));
+        assert!(entries
+            .iter()
+            .any(|entry| entry.source_type == "colony_entry"));
         assert!(entries.iter().any(|entry| entry.source_type == "lifecycle"));
     }
 }
