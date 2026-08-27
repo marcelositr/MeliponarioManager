@@ -107,7 +107,10 @@ pub async fn change(
     .bind(&box_id)
     .fetch_one(&mut *tx)
     .await?;
-    if last_at.as_deref().is_some_and(|last| occurred_at < last) {
+    if last_at
+        .as_deref()
+        .is_some_and(|last| occurred_at.as_str() < last)
+    {
         return Err(AppError::Validation(
             "A mudança de estado não pode ser anterior à última mudança registrada.".to_owned(),
         ));
