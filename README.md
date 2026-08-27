@@ -1,87 +1,111 @@
 # MeliponarioManager
 
-Sistema experimental para gerenciamento de meliponários, com foco em colônias, caixas, inspeções, manejo, alimentação, produção, divisões, movimentações, histórico e rastreabilidade do plantel.
+[![CI](https://github.com/marcelositr/MeliponarioManager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marcelositr/MeliponarioManager/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-experimental-orange.svg)](docs/ROADMAP.md)
 
-## Status do projeto
+Aplicação desktop local-first para gerenciamento de meliponários, com foco em manejo, histórico e rastreabilidade de colônias de abelhas sem ferrão.
 
-> Projeto experimental e em desenvolvimento contínuo.
+> **Status:** projeto experimental em desenvolvimento contínuo. O MeliponarioManager permanecerá na série `0.x` e não possui meta de chegar à versão `1.0.0`.
 
-O MeliponarioManager utiliza Versionamento Semântico (`vMAJOR.MINOR.PATCH`), mas permanecerá na série `0.x`. Não há previsão de uma versão `1.0.0`, pois o projeto é tratado como um laboratório permanente de evolução e testes.
+## Visão geral
+
+O MeliponarioManager organiza o plantel sem confundir a colônia biológica com a caixa física que ela ocupa. Mudanças de caixa, divisões, movimentações, perdas, inspeções e demais fatos relevantes preservam o histórico em vez de sobrescrever o passado.
+
+A aplicação é desktop e local-first. O frontend React conversa com o backend Rust através do IPC do Tauri; regras de domínio e persistência permanecem no backend. Os dados estruturados ficam em SQLite e os arquivos de mídia ficam no diretório de dados da aplicação.
+
+## Recursos atuais
+
+### Plantel e estrutura
+
+- múltiplos meliponários;
+- cadastro de espécies;
+- colônias com origem, situação, data de instalação e relação de colônia-mãe;
+- caixas físicas separadas das colônias;
+- histórico de ocupação de caixas;
+- movimentação de colônias entre caixas livres sem apagar ocupações anteriores.
+
+### Manejo
+
+- inspeções com força da colônia, rainha, postura, reservas, crias, pragas, observações, ações realizadas e próxima inspeção;
+- alimentação e suplementação com quantidade, unidade, resposta observada e próximo manejo;
+- manutenção de caixas físicas com preservação do contexto histórico da colônia ocupante;
+- fotos associadas às inspeções, armazenadas fora do banco em área de mídia gerenciada;
+- produção de mel, pólen, própolis, cera, cerume e outros produtos.
+
+### Histórico e rastreabilidade
+
+- eventos operacionais e biológicos por colônia;
+- timeline unificada com ocupações, inspeções, eventos, alimentação, produção, movimentações, manutenção e ciclo de vida;
+- divisões e multiplicações com criação de descendentes e genealogia;
+- transferências internas, transferências externas e transportes temporários;
+- documentos estruturados associados às movimentações, incluindo GTA, autorizações, notas fiscais, recibos, declarações, protocolos, certificados e outros registros;
+- baixa por perda, inativação e reativação como transições explícitas de ciclo de vida;
+- alertas derivados dos dados atuais de manejo, sem tabela paralela de pendências.
+
+### Operação e dados
+
+- dashboard operacional com situação do plantel, força das últimas inspeções, distribuição por espécie, ocupação de caixas, alertas, produção e movimentações recentes;
+- backup do SQLite e da mídia;
+- exportação portátil em JSON;
+- relatório gerencial em Markdown;
+- restauração preparada com validação de integridade e backup de segurança antes da troca dos dados.
+
+## Arquitetura
+
+```text
+React + TypeScript
+        |
+        | Tauri IPC
+        v
+Rust / regras de domínio
+        |
+        | SQLx
+        v
+SQLite + arquivos locais de mídia
+```
+
+Princípios principais:
+
+- o frontend não acessa o SQLite diretamente;
+- a colônia é uma entidade histórica;
+- caixa física e colônia são entidades distintas;
+- fatos históricos relevantes não são sobrescritos;
+- alertas, timeline e dashboard são visões derivadas dos registros reais;
+- arquivos binários não são armazenados como BLOB no SQLite.
+
+A documentação detalhada do modelo está em [docs/DOMAIN.md](docs/DOMAIN.md).
+
+## Dados locais
+
+O banco SQLite é criado automaticamente no diretório de dados da aplicação e recebe as migrations durante a inicialização.
+
+Fotos importadas pelo backend são mantidas em `media/inspections/<inspection-id>/`, enquanto o SQLite armazena apenas metadados e caminhos relativos.
+
+Recursos de backup, exportação, relatório e restauração são descritos em [docs/DATA-MANAGEMENT.md](docs/DATA-MANAGEMENT.md).
+
+## Referências de rastreabilidade
+
+A modelagem de origem, plantel, movimentações e documentos considera como referência conceitual fluxos utilizados por GEFAU, GEDAVE e GTA no Estado de São Paulo.
+
+O MeliponarioManager **não substitui sistemas oficiais, não emite autorizações e não certifica validade jurídica de documentos**. Essas referências servem para estruturar os dados e preservar rastreabilidade sem importar burocracia desnecessária para o uso cotidiano.
 
 ## Tecnologias
 
-A base inicial utiliza:
-
-- Rust;
+- Rust 1.94.1;
 - Tauri 2;
-- React + TypeScript;
-- Vite;
+- React 19;
+- TypeScript;
+- Vite 8;
 - SQLite;
-- SQLx.
+- SQLx 0.9.
 
-A aplicação é desktop e local-first. O frontend não acessa o banco diretamente: persistência e regras de domínio ficam no backend Rust.
+## Desenvolvimento local
 
-## Interface operacional atual
+### Pré-requisitos
 
-A interface de operação já permite trabalhar com a base do plantel e iniciar o manejo sem acessar o banco manualmente:
-
-- navegar entre visão geral, meliponários, espécies, colônias, caixas e inspeções;
-- cadastrar e listar meliponários;
-- cadastrar e listar espécies;
-- cadastrar e listar caixas físicas;
-- cadastrar e listar colônias;
-- relacionar colônia-mãe quando aplicável;
-- colocar ou mover uma colônia para uma caixa livre usando o histórico de ocupação já existente;
-- acompanhar na tela a caixa atual, o meliponário, a espécie e a situação de cada colônia;
-- registrar inspeções com força, rainha, postura, reservas, crias, pragas, observações, ações e próxima inspeção;
-- consultar o histórico de inspeções por colônia, incluindo a caixa correspondente à data registrada.
-
-A interface usa componentes próprios e chamadas Tauri diretas, sem adicionar um framework de UI pesado.
-
-## Objetivos
-
-O sistema deve permitir, entre outras operações:
-
-- cadastrar meliponários, espécies, colônias e caixas;
-- registrar origem, instalação e localização das colônias;
-- registrar inspeções e acompanhar a condição de cada colônia;
-- registrar alimentação e suplementação;
-- registrar divisões, multiplicações e genealogia;
-- registrar produção de mel, pólen, própolis, cera e outros produtos;
-- registrar eventos como enxameação, abandono, perda de rainha, ataques e transferências;
-- registrar movimentações com documentos e referências de rastreabilidade quando aplicável;
-- registrar manutenção e troca de caixas;
-- armazenar fotos associadas às inspeções;
-- gerar alertas de manejo e acompanhamento;
-- manter histórico completo e rastreável do plantel;
-- apresentar um dashboard com a situação geral do meliponário.
-
-## Filosofia de domínio
-
-A colônia é tratada como uma entidade histórica. Uma troca de caixa, divisão, transferência ou baixa não apaga o que aconteceu anteriormente.
-
-A entrada no plantel é derivada do próprio cadastro e da origem da colônia, sem criar um segundo registro redundante. Perdas, inativações e reativações são transições explícitas, preservando status anterior, novo status, data, motivo e o contexto da caixa quando aplicável.
-
-A caixa física e a colônia são entidades distintas: uma mesma colônia pode ocupar caixas diferentes ao longo do tempo.
-
-Manutenções pertencem à caixa física e preservam o contexto da colônia que a ocupava na data registrada, quando houver. Assim, reparar ou limpar uma caixa não é tratado como troca de caixa nem como evento genérico da colônia.
-
-Fotos de inspeção pertencem à inspeção que lhes dá contexto. O SQLite armazena apenas metadados e um caminho relativo; o arquivo é copiado para o diretório de dados da aplicação em `media/inspections/`. A colônia da foto é sempre derivada da inspeção, evitando um segundo vínculo independente. A primeira versão aceita JPG, PNG e WebP.
-
-Documentos de movimentação pertencem ao registro de movimentação e funcionam como evidência de rastreabilidade. Uma movimentação pode possuir vários documentos ou referências, com tipo, número, sistema de origem, emissor, emissão, validade, caminho de arquivo e observações. O sistema registra esses dados, mas não presume nem certifica validade jurídica.
-
-Referências simples gravadas pelo campo legado `document_reference` são normalizadas automaticamente para a estrutura documental, evitando duas fontes permanentes de verdade.
-
-Os alertas de manejo são derivados dos registros mais recentes de inspeção, alimentação e condição da colônia. Eles não são persistidos como um segundo estado independente, evitando alertas desatualizados quando um novo manejo substitui uma pendência anterior.
-
-A modelagem de movimentações e rastreabilidade considera como referência conceitual os fluxos utilizados por GEFAU, GEDAVE e GTA no Estado de São Paulo, sem transformar o MeliponarioManager em uma cópia desses sistemas ou impor burocracia oficial ao uso cotidiano.
-
-## Desenvolvimento
-
-Pré-requisitos principais:
-
-- Node.js 22 ou compatível com Vite 8;
-- Rust 1.94 ou superior;
+- Node.js 22;
+- Rust 1.94.1;
 - dependências de sistema exigidas pelo Tauri para a plataforma utilizada.
 
 Instale as dependências do frontend:
@@ -96,24 +120,63 @@ Execute apenas o frontend:
 npm run dev
 ```
 
-Execute a aplicação desktop:
+Execute a aplicação desktop em modo de desenvolvimento:
 
 ```bash
-npm run tauri dev
+npm run desktop:dev
 ```
 
-O banco SQLite é criado automaticamente no diretório de dados da aplicação e recebe as migrations durante a inicialização. Fotos importadas pelo backend são mantidas no subdiretório `media/inspections/` do mesmo diretório de dados.
+Gere um build desktop local:
 
-## Fluxo de desenvolvimento
+```bash
+npm run desktop:build
+```
 
-- `main`: estado integrado do projeto;
-- branches curtas para cada alteração;
-- alterações relevantes entram por Pull Request;
-- versões são identificadas por tags SemVer no formato `v0.x.y`;
-- correções incrementam `PATCH`;
-- novas funcionalidades compatíveis incrementam `MINOR`.
+## Qualidade e CI
 
-Mais detalhes em [CONTRIBUTING.md](CONTRIBUTING.md).
+Pull Requests para `main` passam pelo workflow de CI, que valida:
+
+- geração dos ícones desktop;
+- build React/TypeScript;
+- formatação Rust com `cargo fmt --check`;
+- `cargo check`;
+- `cargo clippy --all-targets -- -D warnings`;
+- `cargo test`;
+- build Tauri sem bundle para validar o binário desktop.
+
+## Distribuição
+
+O projeto possui pipeline para gerar:
+
+- Linux: `.deb` e AppImage;
+- Windows: NSIS e MSI.
+
+Enquanto o projeto permanecer experimental, as versões publicadas no GitHub são tratadas como **Pre-release**. Instaladores Windows ainda não possuem assinatura de código e devem ser considerados builds de teste.
+
+Consulte [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) e [docs/RELEASES.md](docs/RELEASES.md) para o fluxo completo.
+
+## Documentação
+
+- [Modelo de domínio](docs/DOMAIN.md)
+- [Roadmap experimental](docs/ROADMAP.md)
+- [Gerenciamento e segurança dos dados](docs/DATA-MANAGEMENT.md)
+- [Distribuição desktop](docs/DISTRIBUTION.md)
+- [Política de versões e releases](docs/RELEASES.md)
+- [Changelog](CHANGELOG.md)
+- [Guia de contribuição](CONTRIBUTING.md)
+
+## Versionamento
+
+O projeto segue Semantic Versioning no formato `vMAJOR.MINOR.PATCH`, permanecendo intencionalmente na série `0.x`.
+
+- correções compatíveis incrementam `PATCH`;
+- novas funcionalidades compatíveis incrementam `MINOR`;
+- tags de distribuição usam o formato `v0.x.y`;
+- o histórico de desenvolvimento anterior à primeira release pública permanece registrado em commits e Pull Requests, sem criação retroativa de tags artificiais.
+
+## Contribuição
+
+Alterações relevantes são desenvolvidas em branches curtas e entram em `main` por Pull Request. Convenções de branches, commits, testes e documentação estão em [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licença
 

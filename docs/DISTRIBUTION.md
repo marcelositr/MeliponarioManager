@@ -1,40 +1,135 @@
 # Distribuição desktop
 
-O MeliponarioManager permanece experimental na série `0.x`. Os bundles desta fase são destinados a teste e validação, não implicam uma versão `1.0`.
+O MeliponarioManager permanece experimental na série `0.x`. Os bundles desta fase são destinados a teste e validação e são publicados como **GitHub Pre-release**.
 
-## Validação em pull request
+## Validação em Pull Request
 
-O workflow `CI` executa, nesta ordem geral:
+O workflow `CI` valida a aplicação antes da integração em `main`.
 
+A sequência geral inclui:
+
+- checkout do repositório;
+- dependências de sistema necessárias ao Tauri em Linux;
+- Node.js 22;
+- Rust 1.94.1 com `rustfmt` e `clippy`;
 - instalação das dependências do frontend;
-- geração e validação do conjunto de ícones Tauri a partir de `src-tauri/icons/icon.png`;
+- geração dos ícones desktop a partir de `assets/app-icon.svg`;
 - build React/TypeScript;
+- `cargo fmt --all -- --check`;
 - `cargo check`;
-- `cargo clippy --all-targets`;
+- `cargo clippy --all-targets -- -D warnings`;
 - `cargo test`;
-- `tauri build --no-bundle`, validando a compilação do desktop sem produzir instaladores.
+- build Tauri com `--no-bundle` para validar o binário desktop sem produzir instaladores.
 
-Rust é fixado em `1.94.1` por `rust-toolchain.toml` e também explicitamente no CI.
+Rust também é fixado em `1.94.1` por `rust-toolchain.toml`.
 
 ## Bundles Linux e Windows
 
-O workflow `Build desktop bundles` pode ser executado manualmente na aba Actions. Ele produz:
+O workflow `Build desktop bundles` pode ser executado manualmente na aba Actions ou disparado por uma tag de versão.
 
-- Linux: `deb` e `AppImage`;
-- Windows: `NSIS` e `MSI`.
+Plataformas atuais:
 
-Os artefatos são anexados à própria execução do GitHub Actions.
+- Linux `ubuntu-22.04`: `deb` e AppImage;
+- Windows `windows-latest`: NSIS e MSI.
 
-Ao enviar uma tag no formato `app-v*`, por exemplo `app-v0.1.0`, o mesmo workflow cria uma **release draft e prerelease**, deixando os instaladores para revisão antes de qualquer publicação.
+Em execução manual, os bundles são anexados à própria execução do GitHub Actions como artefatos para teste.
+
+## Tags de distribuição
+
+Tags públicas seguem a convenção:
+
+```text
+v0.x.y
+```
+
+Exemplo:
+
+```text
+v0.7.0
+```
+
+O workflow de bundles reage a tags `v0.*`.
+
+Antes de criar uma tag, a versão precisa estar sincronizada em:
+
+- `package.json`;
+- `src-tauri/Cargo.toml`;
+- `src-tauri/tauri.conf.json`.
+
+A tag deve apontar para um commit já integrado em `main` e com CI verde.
+
+## Notas de release versionadas
+
+Cada versão distribuída deve possuir um arquivo correspondente em:
+
+```text
+docs/releases/v0.x.y.md
+```
+
+Exemplo:
+
+```text
+docs/releases/v0.7.0.md
+```
+
+Durante um build disparado por tag, o workflow carrega esse arquivo e usa seu conteúdo como descrição da GitHub Release. Se as notas correspondentes à tag estiverem ausentes, o build de release deve falhar em vez de publicar uma descrição improvisada.
+
+## GitHub Release
+
+Para tags `v0.*`, o pipeline cria ou atualiza uma release com:
+
+- título `MeliponarioManager <tag>`;
+- conteúdo vindo de `docs/releases/<tag>.md`;
+- `Draft` habilitado inicialmente;
+- `Pre-release` habilitado;
+- bundles Linux e Windows anexados à mesma release.
+
+O draft permite revisar título, notas e arquivos antes da publicação manual da pré-release.
 
 ## Ícones
 
-O repositório mantém `src-tauri/icons/icon.png` como fonte. O pipeline executa `tauri icon` antes do empacotamento para gerar os formatos e tamanhos específicos de cada plataforma, incluindo ICO no Windows e PNGs de desktop no Linux.
+A fonte oficial dos ícones desktop é:
 
-## Assinatura
+```text
+assets/app-icon.svg
+```
 
-Os instaladores Windows ainda não possuem certificado de assinatura de código configurado. Antes de distribuição ampla fora de ambiente de teste, configure a assinatura no workflow e proteja as credenciais com GitHub Secrets.
+O script `npm run icons` executa `tauri icon` para gerar os formatos exigidos pelas plataformas antes dos builds e bundles.
+
+Arquivos gerados em `src-tauri/icons/` não são tratados como fonte de design independente.
+
+## Assinatura Windows
+
+Os instaladores Windows ainda não possuem certificado de assinatura de código configurado.
+
+Enquanto essa limitação existir:
+
+- builds Windows devem ser tratados como experimentais;
+- a release deve informar claramente que os instaladores não são assinados;
+- credenciais futuras de assinatura devem ser armazenadas apenas em GitHub Secrets ou mecanismo equivalente;
+- chaves e certificados privados nunca devem ser adicionados ao repositório.
 
 ## Dependências reproduzíveis
 
-Enquanto `package-lock.json` e `Cargo.lock` não estiverem versionados, os workflows continuam usando `npm install` e resolução normal do Cargo. Esses lockfiles devem ser gerados pelas ferramentas oficiais em um ambiente com acesso aos registries e então versionados; não devem ser montados manualmente.
+`package-lock.json` e `Cargo.lock` ainda não estão versionados.
+
+Enquanto isso, os workflows usam `npm install` e a resolução normal do Cargo. Essa situação é aceitável para a fase experimental atual, mas reduz a reprodutibilidade exata dos builds.
+
+Os lockfiles devem ser gerados pelas ferramentas oficiais com acesso aos registries e versionados em uma alteração própria. Não devem ser montados manualmente.
+
+Depois que `package-lock.json` estiver versionado, o pipeline pode migrar de `npm install` para `npm ci`.
+
+## Fluxo recomendado
+
+1. concluir a alteração em uma branch curta;
+2. atualizar documentação e changelog quando necessário;
+3. abrir Pull Request para `main`;
+4. aguardar CI verde;
+5. integrar a PR;
+6. confirmar a versão e as notas em `docs/releases/`;
+7. criar a tag `v0.x.y` a partir de `main`;
+8. aguardar os bundles Linux e Windows;
+9. revisar a release em draft;
+10. publicar como Pre-release.
+
+A política de versionamento e publicação está detalhada em [RELEASES.md](RELEASES.md).

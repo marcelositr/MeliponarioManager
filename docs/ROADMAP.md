@@ -1,65 +1,116 @@
-# Roadmap inicial
+# Roadmap experimental
 
-O MeliponarioManager permanecerá em desenvolvimento experimental contínuo na série `0.x`.
+O MeliponarioManager permanecerá em desenvolvimento contínuo na série `0.x`.
 
-Este roadmap é intencionalmente enxuto e pode evoluir conforme o domínio seja validado no uso real.
+Este roadmap registra a evolução planejada do produto, mas **não representa uma sequência de releases históricas publicadas**. Antes da primeira distribuição pública, o projeto percorreu internamente vários marcos de escopo sem criar tags intermediárias.
 
-## v0.1.0 — Núcleo utilizável
+A primeira versão preparada para distribuição pública consolida esse trabalho em `v0.7.0` como GitHub Pre-release.
+
+## Escopo consolidado até v0.7.0
+
+### Marco 0.1 - Núcleo utilizável
+
+**Concluído no desenvolvimento pré-release.**
 
 - meliponários;
 - espécies;
 - colônias;
-- caixas;
+- caixas físicas;
 - inspeções;
 - eventos;
 - histórico por colônia;
 - plantel atual derivado dos registros.
 
-## v0.2.0 — Manejo
+### Marco 0.2 - Manejo
+
+**Concluído no desenvolvimento pré-release.**
 
 - alimentação e suplementação;
 - manutenção de caixas;
-- troca de caixa;
-- alertas básicos de acompanhamento.
+- troca de caixa preservando ocupações anteriores;
+- alertas básicos de acompanhamento derivados dos registros.
 
-## v0.3.0 — Multiplicação e genealogia
+### Marco 0.3 - Multiplicação e genealogia
+
+**Núcleo concluído no desenvolvimento pré-release.**
 
 - divisões e multiplicações;
 - relação entre colônia de origem e descendentes;
-- árvore genealógica do plantel;
-- acompanhamento pós-divisão.
+- consulta de genealogia por gerações;
+- interface de registro e histórico de divisões.
 
-## v0.4.0 — Movimentações e rastreabilidade
+Acompanhamentos pós-divisão mais especializados podem evoluir em ciclos futuros a partir do uso real.
 
-- entradas e saídas;
-- transferências entre meliponários;
-- baixas e perdas;
-- documentos e referências de trânsito quando aplicável;
-- estrutura compatível com os conceitos de rastreabilidade usados por GEFAU, GEDAVE e GTA.
+### Marco 0.4 - Movimentações e rastreabilidade
 
-## v0.5.0 — Produção
+**Concluído no desenvolvimento pré-release.**
+
+- transferências internas entre meliponários;
+- transferências externas;
+- transportes temporários;
+- baixas, perdas, inativações e reativações com histórico;
+- documentos e referências vinculados às movimentações;
+- estrutura inspirada conceitualmente em fluxos de GEFAU, GEDAVE e GTA sem substituir sistemas oficiais.
+
+### Marco 0.5 - Produção
+
+**Concluído no desenvolvimento pré-release.**
 
 - mel;
 - pólen;
 - própolis;
-- cera/cerume;
-- histórico de produção por colônia e espécie.
+- cera e cerume;
+- outros produtos;
+- histórico por colônia.
 
-## v0.6.0 — Fotos e evolução
+### Marco 0.6 - Fotos e evolução visual
+
+**Base concluída no desenvolvimento pré-release.**
 
 - fotos associadas às inspeções;
-- comparação temporal;
-- histórico visual da colônia.
+- armazenamento local gerenciado;
+- consulta de fotos no contexto histórico da colônia.
 
-## v0.7.0 — Dashboard e análise
+Uma experiência dedicada de comparação visual lado a lado permanece como possibilidade futura e não é tratada como requisito já entregue.
 
-- estado geral do plantel;
-- colônias fortes, médias, fracas, novas, perdidas e produzindo;
+### Marco 0.7 - Dashboard, operação e dados
+
+**Concluído para a primeira pré-release pública.**
+
+- dashboard operacional do plantel;
+- situação e força das colônias;
+- distribuição por espécie;
+- ocupação de caixas;
 - pendências e alertas;
-- indicadores básicos de evolução.
+- produção e movimentações recentes;
+- interfaces operacionais para os módulos já implementados;
+- backup do SQLite e da mídia;
+- exportação JSON;
+- relatório Markdown;
+- restauração preparada com validação de integridade;
+- hardening de CI e pipeline de bundles Linux e Windows.
 
-## Depois disso
+## Próximos ciclos 0.x
 
-As versões `0.x` seguintes serão definidas a partir do uso real, testes, necessidades de manejo e maturidade do modelo de domínio.
+As próximas versões serão definidas pelo uso real do sistema e não por uma corrida artificial de números.
 
-Não existe meta de lançamento `v1.0.0`.
+Temas prováveis de evolução:
+
+- polimento de UX e fluxos de edição;
+- filtros, busca e navegação em bases maiores;
+- validação prática com dados reais de meliponários;
+- testes de regressão e migração mais amplos;
+- maior reprodutibilidade de builds e dependências;
+- refinamento de backup, restauração e portabilidade entre versões;
+- assinatura de código e amadurecimento da distribuição desktop;
+- melhorias de análise e acompanhamento conforme surgirem necessidades reais de manejo.
+
+## Política de versão
+
+- o projeto permanece em `0.x` por decisão de produto;
+- novas funcionalidades compatíveis incrementam `MINOR`;
+- correções compatíveis incrementam `PATCH`;
+- não existe meta de lançamento `v1.0.0`;
+- versões anteriores a `v0.7.0` são marcos de planejamento interno, não releases públicas retroativas.
+
+Consulte [RELEASES.md](RELEASES.md) para a política de tags e publicação.
