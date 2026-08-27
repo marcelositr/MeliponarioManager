@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { Alert, Colony, ColonyDivision, ColonyEvent, ColonyMovement, CoreData, CoreSummary, CreateBoxInput, CreateColonyEventInput, CreateColonyInput, CreateDivisionInput, CreateFeedingInput, CreateInspectionInput, CreateMeliponaryInput, CreateMovementDocumentInput, CreateMovementInput, CreateProductionInput, CreateSpeciesInput, DashboardStats, Feeding, GenealogyNode, HiveBox, Inspection, Meliponary, MovementDocument, PlaceColonyInput, ProductionRecord, Species, TimelineEntry } from "../types";
+import type { Alert, BoxMaintenance, Colony, ColonyDivision, ColonyEvent, ColonyMovement, CoreData, CoreSummary, CreateBoxInput, CreateBoxMaintenanceInput, CreateColonyEventInput, CreateColonyInput, CreateDivisionInput, CreateFeedingInput, CreateInspectionInput, CreateMeliponaryInput, CreateMovementDocumentInput, CreateMovementInput, CreateProductionInput, CreateSpeciesInput, DashboardStats, Feeding, GenealogyNode, HiveBox, ImportInspectionPhotoInput, Inspection, InspectionPhoto, Meliponary, MovementDocument, PlaceColonyInput, ProductionRecord, Species, TimelineEntry } from "../types";
 export async function loadCoreData(): Promise<CoreData> { const [meliponaries, species, colonies, boxes] = await Promise.all([invoke<Meliponary[]>("list_meliponaries"), invoke<Species[]>("list_species"), invoke<Colony[]>("list_colonies"), invoke<HiveBox[]>("list_boxes")]); return { meliponaries, species, colonies, boxes }; }
 export async function loadDashboardStats(): Promise<DashboardStats> { const [summary, inspections, photos, events, divisions, feedings, production, movements, documents, maintenance, lifecycle, alerts] = await Promise.all([invoke<CoreSummary>("get_core_summary"), invoke<number>("get_inspection_count"), invoke<number>("get_inspection_photo_count"), invoke<number>("get_event_count"), invoke<number>("get_division_count"), invoke<number>("get_feeding_count"), invoke<number>("get_production_count"), invoke<number>("get_movement_count"), invoke<number>("get_movement_document_count"), invoke<number>("get_box_maintenance_count"), invoke<number>("get_lifecycle_count"), invoke<number>("get_alert_count")]); return { ...summary, inspections, photos, events, divisions, feedings, production, movements, documents, maintenance, lifecycle, alerts }; }
 export const createMeliponary = (input: CreateMeliponaryInput) => invoke<Meliponary>("create_meliponary", { input });
@@ -9,6 +9,10 @@ export const createColony = (input: CreateColonyInput) => invoke<Colony>("create
 export const placeColony = (input: PlaceColonyInput) => invoke("place_colony", { input });
 export const createInspection = (input: CreateInspectionInput) => invoke<Inspection>("create_inspection", { input });
 export const listColonyInspections = (colonyId: string) => invoke<Inspection[]>("list_colony_inspections", { colonyId });
+export const importInspectionPhoto = (input: ImportInspectionPhotoInput) => invoke<InspectionPhoto>("import_inspection_photo", { input });
+export const listInspectionPhotos = (inspectionId: string) => invoke<InspectionPhoto[]>("list_inspection_photos", { inspectionId });
+export const listColonyPhotos = (colonyId: string) => invoke<InspectionPhoto[]>("list_colony_photos", { colonyId });
+export const deleteInspectionPhoto = (photoId: string) => invoke<void>("delete_inspection_photo", { photoId });
 export const createFeeding = (input: CreateFeedingInput) => invoke<Feeding>("create_feeding", { input });
 export const listColonyFeedings = (colonyId: string) => invoke<Feeding[]>("list_colony_feedings", { colonyId });
 export const createProductionRecord = (input: CreateProductionInput) => invoke<ProductionRecord>("create_production_record", { input });
@@ -23,3 +27,5 @@ export const createColonyMovement = (input: CreateMovementInput) => invoke<Colon
 export const listColonyMovements = (colonyId: string) => invoke<ColonyMovement[]>("list_colony_movements", { colonyId });
 export const createMovementDocument = (input: CreateMovementDocumentInput) => invoke<MovementDocument>("create_movement_document", { input });
 export const listMovementDocuments = (movementId: string) => invoke<MovementDocument[]>("list_movement_documents", { movementId });
+export const createBoxMaintenance = (input: CreateBoxMaintenanceInput) => invoke<BoxMaintenance>("create_box_maintenance", { input });
+export const listBoxMaintenance = (boxId: string) => invoke<BoxMaintenance[]>("list_box_maintenance", { boxId });
