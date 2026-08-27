@@ -6,7 +6,25 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
-Nenhuma mudança preparada após a pré-release `v0.7.1`.
+### Added
+
+- Fundação histórica para estados físicos de caixas, com transições `active`, `maintenance` e `retired`, consulta de histórico e proteção SQLite contra nova ocupação em caixa não ativa.
+- Política temporal central para timestamps operacionais em horário local, normalizados para `YYYY-MM-DD HH:MM:SS` na fronteira Tauri.
+- Validação histórica da disponibilidade da colônia para inspeções, alimentações e produção, permitindo lançamentos retroativos válidos anteriores a perda, inativação ou transferência externa.
+- Teste explícito de upgrade a partir de um schema representativo da `v0.7.1`, preservando ocupações, eventos, fotos, documentos e relações ao aplicar a migration nova.
+
+### Changed
+
+- `weak` e `recovering` passam a ser tratados como valores legados administrativamente ativos; condição de fraqueza operacional é derivada da última inspeção.
+- Alertas usam a mesma referência temporal local e deixam de tratar `colonies.status = 'weak'` como fonte de verdade para fraqueza.
+- Dashboard consolida `weak` e `recovering` legados na projeção administrativa `active`, mantendo força de manejo separada pela última inspeção.
+- Timestamps de ocupação, ciclo de vida, inspeção, alimentação, produção, eventos, divisões, movimentações, manutenção, documentos e fotos são normalizados antes de chegar aos serviços existentes.
+- A versão exibida no aplicativo deixa de ser hardcoded e passa a vir dos metadados reais do Tauri, com fallback seguro fora do runtime desktop.
+
+### Fixed
+
+- Nova ocupação é rejeitada explicitamente pelo backend quando a caixa de destino não está ativa.
+- Próxima inspeção, alimentação e manutenção são rejeitadas quando anteriores ao fato que as originou após normalização temporal consistente.
 
 ## [0.7.1] - 2026-08-27
 
