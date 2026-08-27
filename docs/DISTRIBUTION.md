@@ -35,6 +35,22 @@ Plataformas atuais:
 
 Em execução manual, os bundles são anexados à própria execução do GitHub Actions como artefatos para teste.
 
+## Troubleshooting Linux · WebKitGTK
+
+Em algumas combinações específicas de driver gráfico, WebKitGTK e ambiente desktop, a janela do aplicativo pode apresentar falha ou corrupção de renderização. Em teste real foi confirmado que iniciar o aplicativo com as variáveis abaixo pode contornar esse problema:
+
+```bash
+GIO_MODULE_DIR= WEBKIT_DISABLE_DMABUF_RENDERER=1 <comando-do-aplicativo>
+```
+
+Esse é um **workaround**, não uma configuração padrão do MeliponarioManager.
+
+- `GIO_MODULE_DIR=` está intencionalmente vazio e evita o carregamento de módulos GIO problemáticos naquele processo;
+- `WEBKIT_DISABLE_DMABUF_RENDERER=1` desativa o caminho DMABUF do renderer WebKitGTK;
+- as variáveis devem ser usadas somente quando houver problema de renderização compatível com esse cenário;
+- não devem ser exportadas globalmente nem impostas a todos os usuários;
+- se a aplicação renderiza normalmente, não há motivo para ativá-las.
+
 ## Tags de distribuição
 
 Tags públicas seguem a convenção:
