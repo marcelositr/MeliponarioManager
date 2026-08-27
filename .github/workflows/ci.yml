@@ -39,6 +39,9 @@ jobs:
           toolchain: 1.94.1
           components: clippy,rustfmt
 
+      - name: Validate version metadata
+        run: npm run version:check
+
       - name: Install frontend dependencies
         run: npm install
 

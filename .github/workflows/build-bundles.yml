@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "app-v*"
+      - "v0.*"
 
 permissions:
   contents: write
@@ -52,11 +52,31 @@ jobs:
         with:
           toolchain: 1.94.1
 
+      - name: Validate release version
+        if: startsWith(github.ref, 'refs/tags/v0.')
+        run: npm run version:check -- --tag "${{ github.ref_name }}"
+
       - name: Install frontend dependencies
         run: npm install
 
       - name: Generate platform icons
         run: npm run icons
+
+      - name: Load release notes
+        id: release_notes
+        if: startsWith(github.ref, 'refs/tags/v0.')
+        shell: bash
+        run: |
+          notes_file="docs/releases/${GITHUB_REF_NAME}.md"
+          if [ ! -f "$notes_file" ]; then
+            echo "::error::Missing release notes: $notes_file"
+            exit 1
+          fi
+          {
+            echo 'body<<__RELEASE_NOTES__'
+            cat "$notes_file"
+            echo '__RELEASE_NOTES__'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build bundles for manual run
         if: github.event_name == 'workflow_dispatch'
@@ -67,14 +87,14 @@ jobs:
           args: --bundles ${{ matrix.bundles }}
 
       - name: Build and attach draft release
-        if: startsWith(github.ref, 'refs/tags/app-v')
+        if: startsWith(github.ref, 'refs/tags/v0.')
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "MeliponarioManager ${{ github.ref_name }}"
-          releaseBody: "Build experimental do MeliponarioManager. Revise os artefatos antes de promover qualquer distribuição pública."
+          releaseBody: ${{ steps.release_notes.outputs.body }}
           releaseDraft: true
           prerelease: true
           args: --bundles ${{ matrix.bundles }}
