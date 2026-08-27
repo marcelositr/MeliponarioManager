@@ -1,92 +1,23 @@
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
+import { Dialog } from "../components/Dialog";
+import { PageToolbar } from "../components/PageToolbar";
 import type { CreateMeliponaryInput, Meliponary } from "../types";
 
-type MeliponariesPageProps = {
-  items: Meliponary[];
-  busy: boolean;
-  onCreate: (input: CreateMeliponaryInput) => Promise<boolean>;
-};
-
-const initialForm: CreateMeliponaryInput = {
-  name: "",
-  responsibleName: "",
-  location: "",
-  notes: "",
-};
+type MeliponariesPageProps = { items: Meliponary[]; busy: boolean; onCreate: (input: CreateMeliponaryInput) => Promise<boolean>; };
+const initialForm: CreateMeliponaryInput = { name: "", responsibleName: "", location: "", notes: "" };
 
 export function MeliponariesPage({ items, busy, onCreate }: MeliponariesPageProps) {
   const [form, setForm] = useState<CreateMeliponaryInput>(initialForm);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => { const query = search.trim().toLocaleLowerCase(); return query ? items.filter((item) => [item.name, item.location, item.responsibleName].some((value) => value?.toLocaleLowerCase().includes(query))) : items; }, [items, search]);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (await onCreate(form)) setForm(initialForm);
-  }
+  async function submit(event: FormEvent) { event.preventDefault(); if (await onCreate(form)) { setForm(initialForm); setOpen(false); } }
+  function close() { if (!busy) { setOpen(false); setForm(initialForm); } }
 
-  return (
-    <div className="page-stack">
-      <section className="page-heading">
-        <div>
-          <span className="eyebrow">Estrutura</span>
-          <h1>Meliponários</h1>
-          <p>Cadastre cada unidade de criação separadamente. Caixas e colônias permanecem vinculadas ao local correto.</p>
-        </div>
-        <span className="count-pill">{items.length} cadastrados</span>
-      </section>
-
-      <div className="content-grid">
-        <section className="panel form-panel">
-          <div className="panel-heading">
-            <h2>Novo meliponário</h2>
-            <p>Somente o nome é obrigatório.</p>
-          </div>
-          <form className="form-grid" onSubmit={submit}>
-            <label className="field full">
-              <span>Nome</span>
-              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex.: Meliponário principal" />
-            </label>
-            <label className="field">
-              <span>Responsável</span>
-              <input value={form.responsibleName} onChange={(e) => setForm({ ...form, responsibleName: e.target.value })} placeholder="Nome do responsável" />
-            </label>
-            <label className="field">
-              <span>Localização</span>
-              <input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Sítio, bairro ou referência" />
-            </label>
-            <label className="field full">
-              <span>Observações</span>
-              <textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Informações úteis sobre este local" />
-            </label>
-            <div className="form-actions full">
-              <button disabled={busy} type="submit">{busy ? "Salvando..." : "Cadastrar meliponário"}</button>
-            </div>
-          </form>
-        </section>
-
-        <section className="panel list-panel">
-          <div className="panel-heading">
-            <h2>Locais cadastrados</h2>
-            <p>A base física do plantel.</p>
-          </div>
-          {items.length === 0 ? (
-            <div className="empty-list">Nenhum meliponário cadastrado ainda.</div>
-          ) : (
-            <div className="record-list">
-              {items.map((item) => (
-                <article className="record-card" key={item.id}>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.location || "Localização não informada"}</span>
-                  </div>
-                  <dl>
-                    <div><dt>Responsável</dt><dd>{item.responsibleName || "Não informado"}</dd></div>
-                  </dl>
-                  {item.notes && <p>{item.notes}</p>}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
-  );
+  return <div className="page-stack">
+    <PageToolbar title="Meliponários" description="Unidades físicas de criação e contexto operacional." count={`${items.length} cadastrados`} search={{ value: search, onChange: setSearch, placeholder: "Buscar meliponário..." }} primaryAction={{ label: "Novo meliponário", onClick: () => setOpen(true), disabled: busy }} />
+    <section className="panel wide-list"><div className="panel-heading"><h2>Locais cadastrados</h2><p>A base física do plantel. A seleção global no topo não filtra silenciosamente esta lista nesta etapa.</p></div>{filtered.length === 0 ? <div className="empty-list">{items.length === 0 ? "Nenhum meliponário cadastrado ainda." : "Nenhum resultado para a busca."}</div> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Nome</th><th>Localização</th><th>Responsável</th><th>Observações</th></tr></thead><tbody>{filtered.map((item) => <tr key={item.id}><td><strong>{item.name}</strong></td><td>{item.location || "Não informada"}</td><td>{item.responsibleName || "Não informado"}</td><td>{item.notes || "—"}</td></tr>)}</tbody></table></div>}</section>
+    <Dialog open={open} onClose={close} title="Novo meliponário" description="Somente o nome é obrigatório." size="medium"><form className="form-grid" onSubmit={submit}><label className="field full"><span>Nome</span><input autoFocus required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ex.: Meliponário principal" /></label><label className="field"><span>Responsável</span><input value={form.responsibleName} onChange={(e) => setForm({ ...form, responsibleName: e.target.value })} /></label><label className="field"><span>Localização</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={close} disabled={busy}>Cancelar</button><button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar meliponário"}</button></div></form></Dialog>
+  </div>;
 }
