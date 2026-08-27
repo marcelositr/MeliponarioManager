@@ -13,6 +13,8 @@ const items: Array<{ view: View; label: string; short: string }> = [
   { view: "colonies", label: "Colônias", short: "CO" },
   { view: "boxes", label: "Caixas", short: "CX" },
   { view: "inspections", label: "Inspeções", short: "IN" },
+  { view: "feeding", label: "Alimentação", short: "AL" },
+  { view: "production", label: "Produção", short: "PR" },
 ];
 
 export function Sidebar({ activeView, onNavigate, connectionStatus }: SidebarProps) {

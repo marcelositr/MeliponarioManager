@@ -5,14 +5,18 @@ import type {
   CoreSummary,
   CreateBoxInput,
   CreateColonyInput,
+  CreateFeedingInput,
   CreateInspectionInput,
   CreateMeliponaryInput,
+  CreateProductionInput,
   CreateSpeciesInput,
   DashboardStats,
+  Feeding,
   HiveBox,
   Inspection,
   Meliponary,
   PlaceColonyInput,
+  ProductionRecord,
   Species,
 } from "../types";
 
@@ -98,4 +102,20 @@ export function createInspection(input: CreateInspectionInput) {
 
 export function listColonyInspections(colonyId: string) {
   return invoke<Inspection[]>("list_colony_inspections", { colonyId });
+}
+
+export function createFeeding(input: CreateFeedingInput) {
+  return invoke<Feeding>("create_feeding", { input });
+}
+
+export function listColonyFeedings(colonyId: string) {
+  return invoke<Feeding[]>("list_colony_feedings", { colonyId });
+}
+
+export function createProductionRecord(input: CreateProductionInput) {
+  return invoke<ProductionRecord>("create_production_record", { input });
+}
+
+export function listColonyProduction(colonyId: string) {
+  return invoke<ProductionRecord[]>("list_colony_production", { colonyId });
 }

@@ -1,4 +1,4 @@
-export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections";
+export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production";
 
 export type CoreSummary = {
   meliponaries: number;
@@ -69,6 +69,37 @@ export type Inspection = {
   observations?: string | null;
   actionsTaken?: string | null;
   nextInspectionAt?: string | null;
+  createdAt: string;
+};
+
+export type Feeding = {
+  id: string;
+  colonyId: string;
+  colonyCode: string;
+  boxId?: string | null;
+  boxCode?: string | null;
+  fedAt: string;
+  foodType: string;
+  quantity?: number | null;
+  unit?: string | null;
+  responseNotes?: string | null;
+  notes?: string | null;
+  nextFeedingAt?: string | null;
+  createdAt: string;
+};
+
+export type ProductionRecord = {
+  id: string;
+  colonyId: string;
+  colonyCode: string;
+  boxId?: string | null;
+  boxCode?: string | null;
+  harvestedAt: string;
+  productType: string;
+  quantity: number;
+  unit: string;
+  purpose?: string | null;
+  notes?: string | null;
   createdAt: string;
 };
 
@@ -147,4 +178,25 @@ export type CreateInspectionInput = {
   observations?: string;
   actionsTaken?: string;
   nextInspectionAt?: string;
+};
+
+export type CreateFeedingInput = {
+  colonyId: string;
+  fedAt?: string;
+  foodType: string;
+  quantity?: number;
+  unit?: string;
+  responseNotes?: string;
+  notes?: string;
+  nextFeedingAt?: string;
+};
+
+export type CreateProductionInput = {
+  colonyId: string;
+  harvestedAt?: string;
+  productType: string;
+  quantity: number;
+  unit: string;
+  purpose?: string;
+  notes?: string;
 };
