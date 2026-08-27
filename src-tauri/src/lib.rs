@@ -1,4 +1,5 @@
 mod alerts;
+mod box_states;
 mod commands;
 mod dashboard;
 mod data_management;
@@ -13,8 +14,10 @@ mod lifecycle;
 mod maintenance;
 mod media;
 mod movements;
+mod operational;
 mod production;
 mod repository;
+mod time;
 mod timeline;
 
 use sqlx::SqlitePool;
@@ -60,6 +63,8 @@ pub fn run() {
             commands::list_species,
             commands::create_box,
             commands::list_boxes,
+            commands::change_box_state,
+            commands::list_box_state_history,
             commands::create_box_maintenance,
             commands::list_box_maintenance,
             commands::create_colony,
