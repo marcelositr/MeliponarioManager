@@ -44,10 +44,12 @@ pub struct DashboardOverview {
 
 pub async fn overview(pool: &SqlitePool) -> Result<DashboardOverview, AppError> {
     let colony_statuses = sqlx::query_as::<_, DashboardCount>(
-        "SELECT status AS label, COUNT(*) AS count
+        "SELECT
+            CASE WHEN status IN ('weak', 'recovering') THEN 'active' ELSE status END AS label,
+            COUNT(*) AS count
          FROM colonies
-         GROUP BY status
-         ORDER BY count DESC, status COLLATE NOCASE",
+         GROUP BY CASE WHEN status IN ('weak', 'recovering') THEN 'active' ELSE status END
+         ORDER BY count DESC, label COLLATE NOCASE",
     )
     .fetch_all(pool)
     .await?;
@@ -167,98 +169,48 @@ mod tests {
         let meliponary = repository::create_meliponary(
             &pool,
             CreateMeliponary {
-                name: "Principal".into(),
-                responsible_name: None,
-                location: None,
-                notes: None,
+                name: "Principal".into(), responsible_name: None, location: None, notes: None,
             },
-        )
-        .await
-        .unwrap();
+        ).await.unwrap();
         let species = repository::create_species(
             &pool,
             CreateSpecies {
-                common_name: "Jataí".into(),
-                scientific_name: None,
-                genus: None,
-                notes: None,
+                common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None,
             },
-        )
-        .await
-        .unwrap();
+        ).await.unwrap();
         let hive_box = repository::create_box(
             &pool,
             CreateHiveBox {
-                meliponary_id: meliponary.id.clone(),
-                code: "CX-001".into(),
-                model: None,
-                material: None,
-                location_note: None,
-                notes: None,
+                meliponary_id: meliponary.id.clone(), code: "CX-001".into(), model: None,
+                material: None, location_note: None, notes: None,
             },
-        )
-        .await
-        .unwrap();
+        ).await.unwrap();
         let colony = repository::create_colony(
             &pool,
             CreateColony {
-                meliponary_id: meliponary.id,
-                species_id: species.id,
-                code: "JAT-001".into(),
-                origin_type: None,
-                origin_notes: None,
-                installed_at: None,
-                mother_colony_id: None,
-                notes: None,
+                meliponary_id: meliponary.id, species_id: species.id, code: "JAT-001".into(),
+                origin_type: None, origin_notes: None, installed_at: None,
+                mother_colony_id: None, notes: None,
             },
-        )
-        .await
-        .unwrap();
-        repository::place_colony(
-            &pool,
-            PlaceColony {
-                colony_id: colony.id.clone(),
-                box_id: hive_box.id,
-                started_at: None,
-                reason: None,
-                notes: None,
-            },
-        )
-        .await
-        .unwrap();
-        inspections::create(
-            &pool,
-            CreateInspection {
-                colony_id: colony.id,
-                inspected_at: None,
-                strength: Some("weak".into()),
-                queen_present: None,
-                laying_status: None,
-                food_reserves: None,
-                brood_status: None,
-                pests_notes: None,
-                observations: None,
-                actions_taken: None,
-                next_inspection_at: None,
-            },
-        )
-        .await
-        .unwrap();
+        ).await.unwrap();
+        repository::place_colony(&pool, PlaceColony {
+            colony_id: colony.id.clone(), box_id: hive_box.id, started_at: None,
+            reason: None, notes: None,
+        }).await.unwrap();
+        inspections::create(&pool, CreateInspection {
+            colony_id: colony.id.clone(), inspected_at: None, strength: Some("weak".into()),
+            queen_present: None, laying_status: None, food_reserves: None, brood_status: None,
+            pests_notes: None, observations: None, actions_taken: None, next_inspection_at: None,
+        }).await.unwrap();
+        sqlx::query("UPDATE colonies SET status = 'weak' WHERE id = ?")
+            .bind(&colony.id).execute(&pool).await.unwrap();
 
         let result = overview(&pool).await.unwrap();
         assert_eq!(result.occupied_boxes, 1);
         assert_eq!(result.free_boxes, 0);
-        assert!(result
-            .species_distribution
-            .iter()
-            .any(|item| item.label == "Jataí" && item.count == 1));
-        assert!(result
-            .inspection_strengths
-            .iter()
-            .any(|item| item.label == "weak" && item.count == 1));
-        assert!(result
-            .alerts
-            .iter()
-            .any(|item| item.alert_type == "weak_colony"));
+        assert!(result.colony_statuses.iter().any(|item| item.label == "active" && item.count == 1));
+        assert!(!result.colony_statuses.iter().any(|item| item.label == "weak"));
+        assert!(result.inspection_strengths.iter().any(|item| item.label == "weak" && item.count == 1));
+        assert!(result.alerts.iter().any(|item| item.alert_type == "weak_colony"));
     }
 }
