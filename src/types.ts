@@ -1,4 +1,4 @@
-export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production" | "history" | "alerts" | "genealogy" | "movements" | "assets" | "lifecycle";
+export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production" | "history" | "alerts" | "genealogy" | "movements" | "assets" | "lifecycle" | "data";
 export type CoreSummary = { meliponaries: number; species: number; colonies: number; boxes: number; };
 export type Meliponary = { id: string; name: string; responsibleName?: string | null; location?: string | null; notes?: string | null; createdAt: string; };
 export type Species = { id: string; commonName: string; scientificName?: string | null; genus?: string | null; notes?: string | null; createdAt: string; };

@@ -1,6 +1,7 @@
 mod alerts;
 mod commands;
 mod dashboard;
+mod data_management;
 mod database;
 mod divisions;
 mod documents;
@@ -24,6 +25,8 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
+            data_management::apply_pending_restore(&data_dir)
+                .map_err(std::io::Error::other)?;
             std::fs::create_dir_all(data_dir.join("media").join("inspections"))?;
 
             let database_path = data_dir.join("meliponario.db");
@@ -46,6 +49,10 @@ pub fn run() {
             commands::get_box_maintenance_count,
             commands::get_lifecycle_count,
             dashboard::get_dashboard_overview,
+            data_management::create_full_backup,
+            data_management::export_portable_json,
+            data_management::generate_management_report,
+            data_management::stage_restore,
             commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,

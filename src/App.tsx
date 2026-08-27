@@ -6,6 +6,7 @@ import { AssetsPage } from "./pages/AssetsPage";
 import { BoxesPage } from "./pages/BoxesPage";
 import { ColoniesPage } from "./pages/ColoniesPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { DataManagementPage } from "./pages/DataManagementPage";
 import { DivisionsPage } from "./pages/DivisionsPage";
 import { EventsTimelinePage } from "./pages/EventsTimelinePage";
 import { FeedingPage } from "./pages/FeedingPage";
@@ -20,7 +21,7 @@ import type { ChangeColonyLifecycleInput, CoreData, CreateBoxInput, CreateBoxMai
 const emptyData: CoreData = { meliponaries: [], species: [], colonies: [], boxes: [] };
 const emptyStats: DashboardStats = { meliponaries: 0, species: 0, colonies: 0, boxes: 0, inspections: 0, photos: 0, events: 0, divisions: 0, feedings: 0, production: 0, movements: 0, documents: 0, maintenance: 0, lifecycle: 0, alerts: 0 };
 const viewTitles: Record<View, string> = {
-  dashboard: "Visão geral", meliponaries: "Meliponários", species: "Espécies", colonies: "Colônias", boxes: "Caixas", inspections: "Inspeções", feeding: "Alimentação", production: "Produção", history: "Eventos e histórico", alerts: "Alertas", genealogy: "Divisões e genealogia", movements: "Movimentações e documentos", assets: "Fotos e manutenção", lifecycle: "Ciclo de vida",
+  dashboard: "Visão geral", meliponaries: "Meliponários", species: "Espécies", colonies: "Colônias", boxes: "Caixas", inspections: "Inspeções", feeding: "Alimentação", production: "Produção", history: "Eventos e histórico", alerts: "Alertas", genealogy: "Divisões e genealogia", movements: "Movimentações e documentos", assets: "Fotos e manutenção", lifecycle: "Ciclo de vida", data: "Dados, backup e relatórios",
 };
 type Feedback = { kind: "success" | "error"; text: string } | null;
 
@@ -68,6 +69,7 @@ function App() {
     {activeView === "movements" && <MovementsPage colonies={data.colonies} meliponaries={data.meliponaries} boxes={data.boxes} busy={busy} onCreateMovement={createMovementFromUi} onCreateDocument={createMovementDocumentFromUi} />}
     {activeView === "assets" && <AssetsPage colonies={data.colonies} boxes={data.boxes} busy={busy} onImportPhoto={importInspectionPhotoFromUi} onDeletePhoto={deleteInspectionPhotoFromUi} onCreateMaintenance={createBoxMaintenanceFromUi} />}
     {activeView === "lifecycle" && <LifecyclePage colonies={data.colonies} busy={busy} onChange={changeLifecycleFromUi} />}
+    {activeView === "data" && <DataManagementPage />}
   </div></main></div>;
 }
 function readableError(error: unknown) { if (typeof error === "string" && error.trim()) return error; if (error instanceof Error && error.message) return error.message; return "Não foi possível concluir a operação."; }
