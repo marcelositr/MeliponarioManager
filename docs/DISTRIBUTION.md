@@ -14,6 +14,7 @@ A sequência geral inclui:
 - Rust 1.94.1 com `rustfmt` e `clippy`;
 - instalação das dependências do frontend;
 - geração dos ícones desktop a partir de `assets/app-icon.svg`;
+- validação da configuração e dos arquivos de ícone usados pelos bundles;
 - build React/TypeScript;
 - `cargo fmt --all -- --check`;
 - `cargo check`;
@@ -45,7 +46,7 @@ v0.x.y
 Exemplo:
 
 ```text
-v0.7.0
+v0.7.1
 ```
 
 O workflow de bundles reage a tags `v0.*`.
@@ -58,6 +59,8 @@ Antes de criar uma tag, a versão precisa estar sincronizada em:
 
 A tag deve apontar para um commit já integrado em `main` e com CI verde.
 
+Tags publicadas são tratadas como imutáveis. Se uma tentativa de distribuição revelar um erro de empacotamento após a criação da tag, a correção segue em um novo `PATCH` em vez de reescrever a tag anterior.
+
 ## Notas de release versionadas
 
 Cada versão distribuída deve possuir um arquivo correspondente em:
@@ -69,7 +72,7 @@ docs/releases/v0.x.y.md
 Exemplo:
 
 ```text
-docs/releases/v0.7.0.md
+docs/releases/v0.7.1.md
 ```
 
 Durante um build disparado por tag, o workflow carrega esse arquivo e usa seu conteúdo como descrição da GitHub Release. Se as notas correspondentes à tag estiverem ausentes, o build de release deve falhar em vez de publicar uma descrição improvisada.
@@ -96,7 +99,33 @@ assets/app-icon.svg
 
 O script `npm run icons` executa `tauri icon` para gerar os formatos exigidos pelas plataformas antes dos builds e bundles.
 
+Além de gerar os arquivos, `src-tauri/tauri.conf.json` precisa declarar explicitamente os ícones usados pelo bundler:
+
+```json
+"bundle": {
+  "active": true,
+  "targets": "all",
+  "icon": [
+    "icons/32x32.png",
+    "icons/128x128.png",
+    "icons/128x128@2x.png",
+    "icons/icon.icns",
+    "icons/icon.ico"
+  ]
+}
+```
+
+Essa declaração é necessária porque diferentes empacotadores exigem formatos específicos. O AppImage precisa localizar um ícone PNG quadrado e o MSI/WiX precisa localizar um `.ico`.
+
+O comando `npm run bundle:check` valida tanto a lista de `bundle.icon` quanto a existência dos arquivos gerados. O CI e o workflow de bundles executam essa verificação imediatamente após `npm run icons`.
+
 Arquivos gerados em `src-tauri/icons/` não são tratados como fonte de design independente.
+
+### Incidente da tag `v0.7.0`
+
+A primeira tentativa de distribuição confirmou que apenas gerar os ícones não era suficiente. O `.deb` e o NSIS chegaram a ser produzidos, mas o AppImage falhou por não encontrar um ícone quadrado configurado e o MSI/WiX falhou por não encontrar um `.ico` declarado.
+
+A tag `v0.7.0` foi preservada sem reescrita. A correção foi preparada como `v0.7.1`, com configuração explícita e validação preventiva no CI.
 
 ## Assinatura Windows
 
