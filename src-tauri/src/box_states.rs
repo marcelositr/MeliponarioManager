@@ -213,6 +213,22 @@ mod tests {
         pool
     }
 
+    async fn occupy(pool: &SqlitePool) {
+        sqlx::query(
+            "INSERT INTO colonies (id, meliponary_id, species_id, code) VALUES ('c1','m1','s1','JAT-001')",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO colony_box_occupancies (id, colony_id, box_id, started_at)
+             VALUES ('o1','c1','b1','2026-01-01 09:00:00')",
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
     #[tokio::test]
     async fn valid_transitions_create_history_and_retired_is_terminal() {
         let pool = pool().await;
@@ -261,19 +277,7 @@ mod tests {
     #[tokio::test]
     async fn occupied_box_cannot_leave_active_state() {
         let pool = pool().await;
-        sqlx::query(
-            "INSERT INTO colonies (id, meliponary_id, species_id, code) VALUES ('c1','m1','s1','JAT-001')",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
-        sqlx::query(
-            "INSERT INTO colony_box_occupancies (id, colony_id, box_id, started_at)
-             VALUES ('o1','c1','b1','2026-01-01 09:00:00')",
-        )
-        .execute(&pool)
-        .await
-        .unwrap();
+        occupy(&pool).await;
 
         assert!(change(
             &pool,
@@ -287,6 +291,17 @@ mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn sqlite_rejects_nonactive_state_for_occupied_box() {
+        let pool = pool().await;
+        occupy(&pool).await;
+
+        let result = sqlx::query("UPDATE boxes SET status = 'maintenance' WHERE id = 'b1'")
+            .execute(&pool)
+            .await;
+        assert!(result.is_err());
     }
 
     #[tokio::test]
