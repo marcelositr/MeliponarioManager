@@ -111,9 +111,10 @@ pub async fn create_full_backup(app: AppHandle, pool: State<'_, SqlitePool>) -> 
     let target_dir = data_dir.join("backups").join(format!("backup-{created_at}-{}", &suffix[..8]));
     fs::create_dir_all(&target_dir).map_err(|error| io_error("Não foi possível criar diretório de backup", error))?;
     let target_db = target_dir.join("meliponario.db");
-    let escaped = target_db.to_string_lossy().replace('\'', "''");
-    sqlx::query(&format!("VACUUM INTO '{escaped}'"))
-        .execute(&**pool)
+    let target_db_string = target_db.to_string_lossy().into_owned();
+    sqlx::query("VACUUM INTO ?")
+        .bind(target_db_string)
+        .execute(&*pool)
         .await
         .map_err(|error| error.to_string())?;
     copy_tree(&data_dir.join("media"), &target_dir.join("media"))?;
@@ -210,7 +211,7 @@ pub async fn export_portable_json(app: AppHandle, pool: State<'_, SqlitePool>) -
     let colonies = repository::list_colonies(&pool).await.map_err(|error| error.to_string())?;
     let occupancies = sqlx::query_as::<_, crate::domain::ColonyBoxOccupancy>(
         "SELECT id, colony_id, box_id, started_at, ended_at, reason, notes FROM colony_box_occupancies ORDER BY started_at",
-    ).fetch_all(&**pool).await.map_err(|error| error.to_string())?;
+    ).fetch_all(&*pool).await.map_err(|error| error.to_string())?;
     let mut timeline_by_colony = Vec::with_capacity(colonies.len());
     for colony in &colonies {
         let timeline = crate::timeline::by_colony(&pool, &colony.id).await.map_err(|error| error.to_string())?;
