@@ -42,18 +42,15 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Inspect legacy icon bytes
-        run: |
-          echo "ICON_BASE64_BEGIN"
-          base64 -w0 src-tauri/icons/icon.png
-          echo
-          echo "ICON_BASE64_END"
-
-      - name: Validate and generate bundle icons
-        run: npm run tauri icon src-tauri/icons/icon.png
+      - name: Generate desktop icons
+        run: npm run icons
 
       - name: Build frontend
         run: npm run build
+
+      - name: Check Rust formatting
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
 
       - name: Check Rust backend
         working-directory: src-tauri
@@ -61,7 +58,7 @@ jobs:
 
       - name: Clippy
         working-directory: src-tauri
-        run: cargo clippy --all-targets
+        run: cargo clippy --all-targets -- -D warnings
 
       - name: Test Rust backend
         working-directory: src-tauri
