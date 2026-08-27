@@ -42,6 +42,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      - name: Inspect legacy icon bytes
+        run: |
+          echo "ICON_BASE64_BEGIN"
+          base64 -w0 src-tauri/icons/icon.png
+          echo
+          echo "ICON_BASE64_END"
+
       - name: Validate and generate bundle icons
         run: npm run tauri icon src-tauri/icons/icon.png
 
