@@ -38,18 +38,22 @@ v0.x.y
 Exemplo:
 
 ```text
-v0.7.0
+v0.7.1
 ```
+
+Depois que uma tag pública é criada, ela não deve ser movida ou recriada para esconder uma falha de distribuição. Se o problema for compatível, a correção segue em um novo `PATCH`.
 
 ### GitHub Release
 
 É a página de distribuição associada à tag. Contém título, notas públicas e bundles gerados pelo pipeline.
 
+Uma tag pode existir sem que uma GitHub Release tenha sido concluída. Isso aconteceu com `v0.7.0`: a tag disparou o pipeline, mas os bundles completos falharam antes da criação da release.
+
 ## Por que usamos GitHub Pre-release sem sufixo `-rc`
 
 Enquanto o MeliponarioManager estiver em fase experimental, as releases públicas são marcadas como **Pre-release** no GitHub.
 
-A versão interna continua usando SemVer simples, como `0.7.0`, em vez de `0.7.0-rc.1`.
+A versão interna continua usando SemVer simples, como `0.7.1`, em vez de `0.7.1-rc.1`.
 
 Essa política mantém a mesma versão entre frontend, Cargo, Tauri e instaladores de todas as plataformas. Em especial, evita criar uma segunda regra apenas para o versionamento numérico exigido pelo MSI/WiX no Windows.
 
@@ -59,13 +63,23 @@ O caráter experimental fica explícito em três lugares:
 - o status do projeto na documentação;
 - a marcação `Pre-release` do GitHub.
 
-## Primeira release pública
+## Primeiras tags públicas
 
-A primeira versão preparada para distribuição é:
+A primeira tag pública do projeto foi:
 
 ```text
 v0.7.0
 ```
+
+Ela marcou a primeira tentativa de distribuição, mas não resultou em uma GitHub Release porque o AppImage e o MSI falharam por ausência de ícones explicitamente configurados no bundle.
+
+A correção foi preparada como:
+
+```text
+v0.7.1
+```
+
+Isso preserva a imutabilidade da `v0.7.0` e usa `PATCH` para uma correção compatível de empacotamento.
 
 Os números `0.1` a `0.6` foram usados como marcos de roadmap durante o desenvolvimento inicial, mas não foram publicados como tags ou releases.
 
@@ -82,7 +96,7 @@ docs/releases/<tag>.md
 Exemplo:
 
 ```text
-docs/releases/v0.7.0.md
+docs/releases/v0.7.1.md
 ```
 
 Esse arquivo é a fonte versionada da descrição pública da release.
@@ -132,7 +146,7 @@ MeliponarioManager v0.x.y
 Exemplo:
 
 ```text
-MeliponarioManager v0.7.0
+MeliponarioManager v0.7.1
 ```
 
 ## Changelog
@@ -141,7 +155,7 @@ MeliponarioManager v0.7.0
 
 A seção da versão deve estar pronta antes da tag. O changelog pode ser mais técnico e completo do que as notas públicas de release.
 
-## Correções após uma release
+## Correções após uma tag ou release
 
 Se `v0.7.0` revelar um bug compatível, a correção deve seguir para:
 
