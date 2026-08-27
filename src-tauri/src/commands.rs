@@ -108,7 +108,9 @@ pub async fn create_species(
     pool: State<'_, SqlitePool>,
     input: CreateSpecies,
 ) -> Result<Species, String> {
-    repository::create_species(&pool, input).await.map_err(message)
+    repository::create_species(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -152,7 +154,9 @@ pub async fn create_colony(
     pool: State<'_, SqlitePool>,
     input: CreateColony,
 ) -> Result<Colony, String> {
-    repository::create_colony(&pool, input).await.map_err(message)
+    repository::create_colony(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -165,7 +169,9 @@ pub async fn place_colony(
     pool: State<'_, SqlitePool>,
     input: PlaceColony,
 ) -> Result<ColonyBoxOccupancy, String> {
-    repository::place_colony(&pool, input).await.map_err(message)
+    repository::place_colony(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -210,7 +216,10 @@ pub async fn import_inspection_photo(
     pool: State<'_, SqlitePool>,
     input: ImportInspectionPhoto,
 ) -> Result<InspectionPhoto, String> {
-    let data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
     media::import_photo(&pool, &data_dir, input)
         .await
         .map_err(message)
@@ -242,7 +251,10 @@ pub async fn delete_inspection_photo(
     pool: State<'_, SqlitePool>,
     photo_id: String,
 ) -> Result<(), String> {
-    let data_dir = app.path().app_data_dir().map_err(|error| error.to_string())?;
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| error.to_string())?;
     media::delete_photo(&pool, &data_dir, &photo_id)
         .await
         .map_err(message)

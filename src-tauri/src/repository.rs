@@ -281,9 +281,11 @@ pub async fn place_colony(
 
     let started_at = match optional(&input.started_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(&mut *tx)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(&mut *tx)
+                .await?
+        }
     };
 
     if let Some(active_box) = current_box {
@@ -457,13 +459,12 @@ mod tests {
         .await
         .unwrap();
 
-        let history_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM colony_box_occupancies WHERE colony_id = ?",
-        )
-        .bind(&colony.id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let history_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM colony_box_occupancies WHERE colony_id = ?")
+                .bind(&colony.id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(history_count, 2);
 
         let colonies = list_colonies(&pool).await.unwrap();

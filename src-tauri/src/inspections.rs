@@ -86,12 +86,11 @@ pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspec
     let colony_id = required(&input.colony_id, "Colônia")?;
     let inspection_strength = strength(&input.strength)?;
 
-    let colony_exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
-    )
-    .bind(&colony_id)
-    .fetch_one(pool)
-    .await?;
+    let colony_exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+            .bind(&colony_id)
+            .fetch_one(pool)
+            .await?;
 
     if !colony_exists {
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
@@ -99,9 +98,11 @@ pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspec
 
     let inspected_at = match optional(&input.inspected_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
 
     let box_id: Option<String> = sqlx::query_scalar::<_, String>(
@@ -298,13 +299,12 @@ mod tests {
         let pool = test_pool().await;
         let (colony_id, first_box_id) = seeded_colony(&pool).await;
 
-        let meliponary_id: String = sqlx::query_scalar(
-            "SELECT meliponary_id FROM colonies WHERE id = ?",
-        )
-        .bind(&colony_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let meliponary_id: String =
+            sqlx::query_scalar("SELECT meliponary_id FROM colonies WHERE id = ?")
+                .bind(&colony_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
 
         let second_box = repository::create_box(
             &pool,

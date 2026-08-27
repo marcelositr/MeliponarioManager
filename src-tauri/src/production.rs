@@ -73,12 +73,12 @@ fn quantity(value: f64) -> Result<f64, AppError> {
 }
 
 async fn colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<bool, AppError> {
-    Ok(sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+            .bind(colony_id)
+            .fetch_one(pool)
+            .await?,
     )
-    .bind(colony_id)
-    .fetch_one(pool)
-    .await?)
 }
 
 async fn box_at(
@@ -132,9 +132,11 @@ pub async fn create(
 
     let harvested_at = match optional(&input.harvested_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
 
     let box_id = box_at(pool, &colony_id, &harvested_at).await?;
@@ -186,9 +188,11 @@ pub async fn list_by_colony(
 }
 
 pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
-    Ok(sqlx::query_scalar("SELECT COUNT(*) FROM production_records")
-        .fetch_one(pool)
-        .await?)
+    Ok(
+        sqlx::query_scalar("SELECT COUNT(*) FROM production_records")
+            .fetch_one(pool)
+            .await?,
+    )
 }
 
 #[cfg(test)]
@@ -396,7 +400,11 @@ mod tests {
         .await
         .unwrap();
 
-        let timeline = history::timeline_by_colony(&pool, &colony_id).await.unwrap();
-        assert!(timeline.iter().any(|entry| entry.source_type == "production"));
+        let timeline = history::timeline_by_colony(&pool, &colony_id)
+            .await
+            .unwrap();
+        assert!(timeline
+            .iter()
+            .any(|entry| entry.source_type == "production"));
     }
 }

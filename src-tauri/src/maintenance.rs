@@ -70,10 +70,12 @@ fn validate_cost(cost: Option<f64>) -> Result<Option<f64>, AppError> {
 }
 
 async fn box_exists(pool: &SqlitePool, box_id: &str) -> Result<bool, AppError> {
-    Ok(sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM boxes WHERE id = ?)")
-        .bind(box_id)
-        .fetch_one(pool)
-        .await?)
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM boxes WHERE id = ?)")
+            .bind(box_id)
+            .fetch_one(pool)
+            .await?,
+    )
 }
 
 async fn colony_in_box_at(
@@ -134,9 +136,11 @@ pub async fn create(
 
     let maintained_at = match optional(&input.maintained_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
 
     let next_maintenance_at = optional(&input.next_maintenance_at);
@@ -173,10 +177,7 @@ pub async fn create(
     get(pool, &id).await
 }
 
-pub async fn list_by_box(
-    pool: &SqlitePool,
-    box_id: &str,
-) -> Result<Vec<BoxMaintenance>, AppError> {
+pub async fn list_by_box(pool: &SqlitePool, box_id: &str) -> Result<Vec<BoxMaintenance>, AppError> {
     let box_id = required(box_id, "Caixa")?;
     if !box_exists(pool, &box_id).await? {
         return Err(AppError::NotFound("Caixa não encontrada.".to_owned()));
@@ -231,9 +232,11 @@ pub async fn timeline_entries_by_colony(
 }
 
 pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
-    Ok(sqlx::query_scalar("SELECT COUNT(*) FROM box_maintenance_records")
-        .fetch_one(pool)
-        .await?)
+    Ok(
+        sqlx::query_scalar("SELECT COUNT(*) FROM box_maintenance_records")
+            .fetch_one(pool)
+            .await?,
+    )
 }
 
 #[cfg(test)]

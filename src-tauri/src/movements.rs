@@ -122,10 +122,7 @@ async fn historical_box(
     .await?)
 }
 
-pub async fn create(
-    pool: &SqlitePool,
-    input: CreateMovement,
-) -> Result<ColonyMovement, AppError> {
+pub async fn create(pool: &SqlitePool, input: CreateMovement) -> Result<ColonyMovement, AppError> {
     let colony_id = required(&input.colony_id, "Colônia")?;
     let movement_type = movement_type(&input.movement_type)?;
     let to_meliponary_id = optional(&input.to_meliponary_id);
@@ -136,18 +133,19 @@ pub async fn create(
 
     let moved_at = match optional(&input.moved_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(pool)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(pool)
+                .await?
+        }
     };
 
     if movement_type == "transport" {
-        let colony: Option<(String, String)> = sqlx::query_as(
-            "SELECT meliponary_id, status FROM colonies WHERE id = ?",
-        )
-        .bind(&colony_id)
-        .fetch_optional(pool)
-        .await?;
+        let colony: Option<(String, String)> =
+            sqlx::query_as("SELECT meliponary_id, status FROM colonies WHERE id = ?")
+                .bind(&colony_id)
+                .fetch_optional(pool)
+                .await?;
         let (from_meliponary_id, status) =
             colony.ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
 
@@ -161,9 +159,8 @@ pub async fn create(
                 "Transporte temporário não altera meliponário nem caixa de destino.".to_owned(),
             ));
         }
-        let destination = destination.ok_or_else(|| {
-            AppError::Validation("Informe o destino do transporte.".to_owned())
-        })?;
+        let destination = destination
+            .ok_or_else(|| AppError::Validation("Informe o destino do transporte.".to_owned()))?;
         let from_box_id = historical_box(pool, &colony_id, &moved_at).await?;
         let id = Uuid::new_v4().to_string();
 
@@ -190,12 +187,11 @@ pub async fn create(
 
     let mut tx = pool.begin().await?;
 
-    let colony: Option<(String, String, String)> = sqlx::query_as(
-        "SELECT meliponary_id, status, code FROM colonies WHERE id = ?",
-    )
-    .bind(&colony_id)
-    .fetch_optional(&mut *tx)
-    .await?;
+    let colony: Option<(String, String, String)> =
+        sqlx::query_as("SELECT meliponary_id, status, code FROM colonies WHERE id = ?")
+            .bind(&colony_id)
+            .fetch_optional(&mut *tx)
+            .await?;
     let (from_meliponary_id, status, colony_code) =
         colony.ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
 
@@ -223,7 +219,9 @@ pub async fn create(
         }
     }
 
-    let from_box_id = active_occupancy.as_ref().map(|(_, box_id, _)| box_id.clone());
+    let from_box_id = active_occupancy
+        .as_ref()
+        .map(|(_, box_id, _)| box_id.clone());
     let id = Uuid::new_v4().to_string();
 
     match movement_type.as_str() {
@@ -243,12 +241,11 @@ pub async fn create(
                 ));
             }
 
-            let target_exists: bool = sqlx::query_scalar(
-                "SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id = ?)",
-            )
-            .bind(&target_meliponary_id)
-            .fetch_one(&mut *tx)
-            .await?;
+            let target_exists: bool =
+                sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id = ?)")
+                    .bind(&target_meliponary_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
             if !target_exists {
                 return Err(AppError::NotFound(
                     "Meliponário de destino não encontrado.".to_owned(),
@@ -273,18 +270,19 @@ pub async fn create(
             }
 
             if let Some(target_box_id) = &to_box_id {
-                let target_box: Option<(String, String)> = sqlx::query_as(
-                    "SELECT meliponary_id, status FROM boxes WHERE id = ?",
-                )
-                .bind(target_box_id)
-                .fetch_optional(&mut *tx)
-                .await?;
-                let (box_meliponary_id, box_status) = target_box
-                    .ok_or_else(|| AppError::NotFound("Caixa de destino não encontrada.".to_owned()))?;
+                let target_box: Option<(String, String)> =
+                    sqlx::query_as("SELECT meliponary_id, status FROM boxes WHERE id = ?")
+                        .bind(target_box_id)
+                        .fetch_optional(&mut *tx)
+                        .await?;
+                let (box_meliponary_id, box_status) = target_box.ok_or_else(|| {
+                    AppError::NotFound("Caixa de destino não encontrada.".to_owned())
+                })?;
 
                 if box_meliponary_id != target_meliponary_id {
                     return Err(AppError::Validation(
-                        "A caixa de destino precisa pertencer ao meliponário de destino.".to_owned(),
+                        "A caixa de destino precisa pertencer ao meliponário de destino."
+                            .to_owned(),
                     ));
                 }
                 if box_status != "active" {
@@ -624,8 +622,14 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(movement.from_box_id.as_deref(), Some(seed.source_box_id.as_str()));
-        assert_eq!(movement.to_box_id.as_deref(), Some(seed.target_box_id.as_str()));
+        assert_eq!(
+            movement.from_box_id.as_deref(),
+            Some(seed.source_box_id.as_str())
+        );
+        assert_eq!(
+            movement.to_box_id.as_deref(),
+            Some(seed.target_box_id.as_str())
+        );
 
         let colony_state: (String, String) =
             sqlx::query_as("SELECT meliponary_id, status FROM colonies WHERE id = ?")
@@ -646,13 +650,12 @@ mod tests {
         .unwrap();
         assert_eq!(active_box, seed.target_box_id);
 
-        let history_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*) FROM colony_box_occupancies WHERE colony_id = ?",
-        )
-        .bind(&seed.colony_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let history_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM colony_box_occupancies WHERE colony_id = ?")
+                .bind(&seed.colony_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(history_count, 2);
     }
 
@@ -751,7 +754,10 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(movement.destination.as_deref(), Some("Meliponário parceiro"));
+        assert_eq!(
+            movement.destination.as_deref(),
+            Some("Meliponário parceiro")
+        );
 
         let status: String = sqlx::query_scalar("SELECT status FROM colonies WHERE id = ?")
             .bind(&seed.colony_id)
@@ -792,7 +798,10 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(movement.from_box_id.as_deref(), Some(seed.source_box_id.as_str()));
+        assert_eq!(
+            movement.from_box_id.as_deref(),
+            Some(seed.source_box_id.as_str())
+        );
 
         let colony_state: (String, String) =
             sqlx::query_as("SELECT meliponary_id, status FROM colonies WHERE id = ?")

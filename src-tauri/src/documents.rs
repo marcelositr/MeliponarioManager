@@ -103,21 +103,21 @@ fn document_type(value: &str) -> Result<String, AppError> {
 }
 
 async fn movement_exists(pool: &SqlitePool, movement_id: &str) -> Result<bool, AppError> {
-    Ok(sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colony_movements WHERE id = ?)",
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colony_movements WHERE id = ?)")
+            .bind(movement_id)
+            .fetch_one(pool)
+            .await?,
     )
-    .bind(movement_id)
-    .fetch_one(pool)
-    .await?)
 }
 
 async fn colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<bool, AppError> {
-    Ok(sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)",
+    Ok(
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+            .bind(colony_id)
+            .fetch_one(pool)
+            .await?,
     )
-    .bind(colony_id)
-    .fetch_one(pool)
-    .await?)
 }
 
 async fn get(pool: &SqlitePool, id: &str) -> Result<MovementDocument, AppError> {
@@ -348,9 +348,11 @@ pub async fn traceability(
 }
 
 pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
-    Ok(sqlx::query_scalar("SELECT COUNT(*) FROM movement_documents")
-        .fetch_one(pool)
-        .await?)
+    Ok(
+        sqlx::query_scalar("SELECT COUNT(*) FROM movement_documents")
+            .fetch_one(pool)
+            .await?,
+    )
 }
 
 #[cfg(test)]
@@ -558,13 +560,12 @@ mod tests {
         let pool = test_pool().await;
         let (movement_id, _) = seed_movement(&pool, Some("REF-LEGADO-42")).await;
 
-        let legacy_column: Option<String> = sqlx::query_scalar(
-            "SELECT document_reference FROM colony_movements WHERE id = ?",
-        )
-        .bind(&movement_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let legacy_column: Option<String> =
+            sqlx::query_scalar("SELECT document_reference FROM colony_movements WHERE id = ?")
+                .bind(&movement_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert!(legacy_column.is_none());
 
         let documents = list_by_movement(&pool, &movement_id).await.unwrap();

@@ -93,10 +93,7 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<ColonyDivision, AppError> {
     .await?)
 }
 
-pub async fn create(
-    pool: &SqlitePool,
-    input: CreateDivision,
-) -> Result<ColonyDivision, AppError> {
+pub async fn create(pool: &SqlitePool, input: CreateDivision) -> Result<ColonyDivision, AppError> {
     let parent_colony_id = required(&input.parent_colony_id, "Colônia mãe")?;
     let result = division_result(&input.result)?;
     let mut tx = pool.begin().await?;
@@ -110,8 +107,8 @@ pub async fn create(
     .fetch_optional(&mut *tx)
     .await?;
 
-    let (meliponary_id, species_id, parent_code, parent_status) = parent
-        .ok_or_else(|| AppError::NotFound("Colônia mãe não encontrada.".to_owned()))?;
+    let (meliponary_id, species_id, parent_code, parent_status) =
+        parent.ok_or_else(|| AppError::NotFound("Colônia mãe não encontrada.".to_owned()))?;
 
     if matches!(parent_status.as_str(), "lost" | "inactive" | "transferred") {
         return Err(AppError::Validation(
@@ -121,9 +118,11 @@ pub async fn create(
 
     let performed_at = match optional(&input.performed_at) {
         Some(value) => value,
-        None => sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-            .fetch_one(&mut *tx)
-            .await?,
+        None => {
+            sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
+                .fetch_one(&mut *tx)
+                .await?
+        }
     };
 
     let source_box_id: Option<String> = sqlx::query_scalar(
@@ -150,9 +149,9 @@ pub async fn create(
         }
         None
     } else {
-        let daughter_code = daughter_code
-            .as_deref()
-            .ok_or_else(|| AppError::Validation("Identificação da colônia filha é obrigatória.".to_owned()))?;
+        let daughter_code = daughter_code.as_deref().ok_or_else(|| {
+            AppError::Validation("Identificação da colônia filha é obrigatória.".to_owned())
+        })?;
 
         let duplicate: bool = sqlx::query_scalar(
             "SELECT EXISTS(

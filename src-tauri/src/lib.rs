@@ -25,12 +25,12 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
-            data_management::apply_pending_restore(&data_dir)
-                .map_err(std::io::Error::other)?;
+            data_management::apply_pending_restore(&data_dir).map_err(std::io::Error::other)?;
             std::fs::create_dir_all(data_dir.join("media").join("inspections"))?;
 
             let database_path = data_dir.join("meliponario.db");
-            let pool: SqlitePool = tauri::async_runtime::block_on(database::initialize(&database_path))?;
+            let pool: SqlitePool =
+                tauri::async_runtime::block_on(database::initialize(&database_path))?;
             app.manage(pool);
 
             Ok(())

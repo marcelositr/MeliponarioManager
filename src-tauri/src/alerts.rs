@@ -230,7 +230,9 @@ mod tests {
         .unwrap();
 
         let alerts = list(&pool).await.unwrap();
-        assert!(alerts.iter().any(|alert| alert.alert_type == "inspection_due"));
+        assert!(alerts
+            .iter()
+            .any(|alert| alert.alert_type == "inspection_due"));
     }
 
     #[tokio::test]
@@ -277,7 +279,9 @@ mod tests {
         .unwrap();
 
         let alerts = list(&pool).await.unwrap();
-        assert!(!alerts.iter().any(|alert| alert.alert_type == "inspection_due"));
+        assert!(!alerts
+            .iter()
+            .any(|alert| alert.alert_type == "inspection_due"));
     }
 
     #[tokio::test]
