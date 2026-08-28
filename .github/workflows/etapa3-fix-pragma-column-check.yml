@@ -1,0 +1,61 @@
+name: Apply Etapa 3 pragma column check fix
+
+on:
+  push:
+    branches:
+      - feat/v0.8-operational-actions
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/v0.8-operational-actions
+          fetch-depth: 0
+
+      - name: Replace only dynamic pragma SQL
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src-tauri/src/migration_tests.rs')
+          text = path.read_text()
+          old = '''        let count: i64 = sqlx::query_scalar(&format!(
+            "SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'"
+        ))
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+'''
+          new = '''        let count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?",
+        )
+        .bind(table)
+        .bind(column)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+'''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one dynamic pragma query, found {count}')
+          path.write_text(text.replace(old, new, 1))
+          Path('.github/workflows/etapa3-fix-pragma-column-check.yml').unlink()
+          PY
+          cargo fmt --all -- --check
+          git diff --check
+          git diff -- src-tauri/src/migration_tests.rs
+
+      - name: Commit focused fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/src/migration_tests.rs .github/workflows/etapa3-fix-pragma-column-check.yml
+          git commit -m "fix: bind migration pragma column checks"
+          git push origin HEAD:feat/v0.8-operational-actions
