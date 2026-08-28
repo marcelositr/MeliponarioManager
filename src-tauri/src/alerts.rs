@@ -120,7 +120,7 @@ pub async fn count(pool: &SqlitePool) -> Result<i64, AppError> {
 mod tests {
     use super::*;
     use crate::{
-        agenda::{self, CreateTask, TaskReason},
+        agenda::{self, CreateTask},
         domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
         inspections::{self, CreateInspection},
         record_corrections::{self, VoidRecord},
