@@ -92,14 +92,18 @@ pub async fn list_for(
             WHERE c.status IN('active','weak','recovering')
               AND li.strength='weak'
               AND (? IS NULL OR c.meliponary_id=?)
+         ), all_alerts AS (
+            SELECT alert_key,meliponary_id,colony_id,colony_code,box_id,box_code,task_id,
+                   alert_type,severity,due_at,title,details,recommended_action
+            FROM task_alerts
+            UNION ALL
+            SELECT alert_key,meliponary_id,colony_id,colony_code,box_id,box_code,task_id,
+                   alert_type,severity,due_at,title,details,recommended_action
+            FROM weak_alerts
          )
          SELECT alert_key,meliponary_id,colony_id,colony_code,box_id,box_code,task_id,
                 alert_type,severity,due_at,title,details,recommended_action
-         FROM task_alerts
-         UNION ALL
-         SELECT alert_key,meliponary_id,colony_id,colony_code,box_id,box_code,task_id,
-                alert_type,severity,due_at,title,details,recommended_action
-         FROM weak_alerts
+         FROM all_alerts
          ORDER BY CASE severity WHEN 'critical' THEN 0 ELSE 1 END,
                   COALESCE(due_at,'9999-12-31 23:59:59'),alert_key",
     )
