@@ -89,7 +89,14 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
             .await?
         }
         "movement" => {
-            let s:Option<(Option<String>,Option<String>,Option<String>,Option<String>,Option<String>)>=sqlx::query_as("SELECT corrected_at,voided_at,void_reason,reversed_at,reversal_reason FROM colony_movements WHERE id=?").bind(&e.source_id).fetch_optional(p).await?;
+            type MovementDecorationRow = (
+                Option<String>,
+                Option<String>,
+                Option<String>,
+                Option<String>,
+                Option<String>,
+            );
+            let s: Option<MovementDecorationRow> = sqlx::query_as("SELECT corrected_at,voided_at,void_reason,reversed_at,reversal_reason FROM colony_movements WHERE id=?").bind(&e.source_id).fetch_optional(p).await?;
             if let Some((c, v, vr, r, rr)) = s {
                 if r.is_some() {
                     e.title = "Movimentação revertida".into();
