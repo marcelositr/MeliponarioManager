@@ -1,0 +1,151 @@
+name: Wire Etapa 4 agenda synchronization
+
+on:
+  push:
+    branches: [feat/v0.8-agenda-record-centers]
+    paths: [.github/workflows/etapa4-wire-agenda-sync.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/v0.8-agenda-record-centers
+          fetch-depth: 0
+      - name: Wire fact creation and corrections to Agenda
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          commands = Path('src-tauri/src/commands.rs')
+          text = commands.read_text()
+          text = text.replace('    operational,\n', '    agenda, operational,\n', 1)
+          text = text.replace(
+              ') -> Result<BoxMaintenance, String> {\n    let maintained_at =',
+              ') -> Result<BoxMaintenance, String> {\n    let box_id = input.box_id.clone();\n    let maintained_at =',
+              1,
+          )
+          text = text.replace(
+              '    maintenance::create(&pool, input).await.map_err(message)\n}',
+              '    let record = maintenance::create(&pool, input).await.map_err(message)?;\n    agenda::reconcile_maintenance(&pool, &box_id).await.map_err(message)?;\n    Ok(record)\n}',
+              1,
+          )
+          text = text.replace(
+              ') -> Result<Inspection, String> {\n    let inspected_at =',
+              ') -> Result<Inspection, String> {\n    let colony_id = input.colony_id.clone();\n    let inspected_at =',
+              1,
+          )
+          text = text.replace(
+              '    inspections::create(&pool, input).await.map_err(message)\n}',
+              '    let record = inspections::create(&pool, input).await.map_err(message)?;\n    agenda::reconcile_inspection(&pool, &colony_id).await.map_err(message)?;\n    Ok(record)\n}',
+              1,
+          )
+          text = text.replace(
+              ') -> Result<Feeding, String> {\n    let fed_at =',
+              ') -> Result<Feeding, String> {\n    let colony_id = input.colony_id.clone();\n    let fed_at =',
+              1,
+          )
+          text = text.replace(
+              '    feeding::create(&pool, input).await.map_err(message)\n}',
+              '    let record = feeding::create(&pool, input).await.map_err(message)?;\n    agenda::reconcile_feeding(&pool, &colony_id).await.map_err(message)?;\n    Ok(record)\n}',
+              1,
+          )
+          commands.write_text(text)
+
+          admin = Path('src-tauri/src/admin_commands.rs')
+          text = admin.read_text()
+          text = text.replace('use crate::{\n', 'use crate::{\n    agenda,\n', 1)
+
+          def replace_fn(name, replacement):
+              global text
+              marker = f'pub async fn {name}'
+              start = text.index(marker)
+              attr = text.rfind('#[tauri::command]', 0, start)
+              next_attr = text.find('#[tauri::command]', start + len(marker))
+              if next_attr == -1:
+                  next_attr = len(text)
+              text = text[:attr] + replacement.rstrip() + '\n\n' + text[next_attr:]
+
+          replace_fn('correct_inspection', '''#[tauri::command]
+          pub async fn correct_inspection(
+              pool: State<'_, SqlitePool>,
+              input: CorrectInspection,
+          ) -> Result<(), String> {
+              let id = input.id.clone();
+              record_corrections::correct_inspection(&pool, input).await.map_err(message)?;
+              let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
+                  .bind(id).fetch_one(&*pool).await.map_err(repository::AppError::from).map_err(message)?;
+              agenda::reconcile_inspection(&pool, &colony_id).await.map_err(message)
+          }''')
+          replace_fn('void_inspection', '''#[tauri::command]
+          pub async fn void_inspection(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
+              let id = input.id.clone();
+              record_corrections::void_inspection(&pool, input).await.map_err(message)?;
+              let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
+                  .bind(id).fetch_one(&*pool).await.map_err(repository::AppError::from).map_err(message)?;
+              agenda::reconcile_inspection(&pool, &colony_id).await.map_err(message)
+          }''')
+          replace_fn('correct_feeding', '''#[tauri::command]
+          pub async fn correct_feeding(
+              pool: State<'_, SqlitePool>,
+              input: CorrectFeeding,
+          ) -> Result<(), String> {
+              let id = input.id.clone();
+              record_corrections::correct_feeding(&pool, input).await.map_err(message)?;
+              let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM feedings WHERE id=?")
+                  .bind(id).fetch_one(&*pool).await.map_err(repository::AppError::from).map_err(message)?;
+              agenda::reconcile_feeding(&pool, &colony_id).await.map_err(message)
+          }''')
+          replace_fn('void_feeding', '''#[tauri::command]
+          pub async fn void_feeding(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
+              let id = input.id.clone();
+              record_corrections::void_feeding(&pool, input).await.map_err(message)?;
+              let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM feedings WHERE id=?")
+                  .bind(id).fetch_one(&*pool).await.map_err(repository::AppError::from).map_err(message)?;
+              agenda::reconcile_feeding(&pool, &colony_id).await.map_err(message)
+          }''')
+          replace_fn('correct_box_maintenance', '''#[tauri::command]
+          pub async fn correct_box_maintenance(
+              pool: State<'_, SqlitePool>,
+              input: CorrectMaintenance,
+          ) -> Result<(), String> {
+              let id = input.id.clone();
+              let new_box_id = input.box_id.clone();
+              let old_box_id: String = sqlx::query_scalar("SELECT box_id FROM box_maintenance_records WHERE id=?")
+                  .bind(&id).fetch_one(&*pool).await.map_err(repository::AppError::from).map_err(message)?;
+              record_corrections::correct_maintenance(&pool, input).await.map_err(message)?;
+              agenda::reconcile_maintenance(&pool, &old_box_id).await.map_err(message)?;
+              if new_box_id != old_box_id {
+                  agenda::reconcile_maintenance(&pool, &new_box_id).await.map_err(message)?;
+              }
+              Ok(())
+          }''')
+          replace_fn('void_box_maintenance', '''#[tauri::command]
+          pub async fn void_box_maintenance(
+              pool: State<'_, SqlitePool>,
+              input: VoidRecord,
+          ) -> Result<(), String> {
+              let id = input.id.clone();
+              record_corrections::void_maintenance(&pool, input).await.map_err(message)?;
+              let box_id: String = sqlx::query_scalar("SELECT box_id FROM box_maintenance_records WHERE id=?")
+                  .bind(id).fetch_one(&*pool).await.map_err(repository::AppError::from).map_err(message)?;
+              agenda::reconcile_maintenance(&pool, &box_id).await.map_err(message)
+          }''')
+          admin.write_text(text)
+          PY
+          cd src-tauri
+          cargo fmt --all
+          cd ..
+          git diff --check
+      - name: Commit synchronization wiring
+        run: |
+          git rm .github/workflows/etapa4-wire-agenda-sync.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src-tauri/src/commands.rs src-tauri/src/admin_commands.rs
+          git commit -m 'feat: synchronize facts with operational agenda'
+          git push origin HEAD:feat/v0.8-agenda-record-centers
