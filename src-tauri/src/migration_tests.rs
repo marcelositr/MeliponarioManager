@@ -417,12 +417,13 @@ async fn stage2_upgrade_to_0014_preserves_full_realistic_history() {
         ("colony_lifecycle_records", "reversed_at"),
         ("colony_box_occupancies", "corrected_at"),
     ] {
-        let count: i64 = sqlx::query_scalar(&format!(
-            "SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'"
-        ))
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+        let count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?")
+                .bind(table)
+                .bind(column)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(count, 1, "campo {table}.{column} não foi criado");
     }
 
