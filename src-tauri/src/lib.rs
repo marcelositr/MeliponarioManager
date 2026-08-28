@@ -1,4 +1,6 @@
 mod admin_commands;
+mod agenda;
+mod agenda_commands;
 mod alerts;
 mod audit;
 mod box_states;
@@ -25,6 +27,8 @@ mod record_corrections;
 mod record_states;
 mod repository;
 mod reversals;
+#[cfg(test)]
+mod stage4_migration_tests;
 mod time;
 mod timeline;
 
@@ -135,6 +139,15 @@ pub fn run() {
             admin_commands::reverse_colony_lifecycle,
             admin_commands::reverse_colony_movement,
             record_states::list_record_admin_states,
+            agenda_commands::create_task,
+            agenda_commands::list_tasks,
+            agenda_commands::get_task,
+            agenda_commands::get_agenda_summary,
+            agenda_commands::reschedule_task,
+            agenda_commands::cancel_task,
+            agenda_commands::skip_task,
+            agenda_commands::complete_generic_task,
+            agenda_commands::duplicate_task,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MeliponarioManager");
