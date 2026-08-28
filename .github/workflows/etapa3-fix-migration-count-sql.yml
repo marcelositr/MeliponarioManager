@@ -1,0 +1,115 @@
+name: Apply Etapa 3 migration count SQL fix
+
+on:
+  push:
+    branches:
+      - feat/v0.8-operational-actions
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/v0.8-operational-actions
+          fetch-depth: 0
+
+      - name: Replace only dynamic migration table count SQL
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src-tauri/src/migration_tests.rs')
+          text = path.read_text()
+          old = '''    for table in [
+        "meliponaries",
+        "species",
+        "boxes",
+        "colonies",
+        "colony_box_occupancies",
+        "inspections",
+        "feedings",
+        "production_records",
+        "box_maintenance_records",
+        "colony_events",
+        "colony_movements",
+        "movement_documents",
+        "colony_lifecycle_records",
+        "colony_divisions",
+        "inspection_photos",
+    ] {
+        let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table}"))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(count > 0, "{table} perdeu dados durante o upgrade");
+    }
+'''
+          new = '''    for (table, sql) in [
+        ("meliponaries", "SELECT COUNT(*) FROM meliponaries"),
+        ("species", "SELECT COUNT(*) FROM species"),
+        ("boxes", "SELECT COUNT(*) FROM boxes"),
+        ("colonies", "SELECT COUNT(*) FROM colonies"),
+        (
+            "colony_box_occupancies",
+            "SELECT COUNT(*) FROM colony_box_occupancies",
+        ),
+        ("inspections", "SELECT COUNT(*) FROM inspections"),
+        ("feedings", "SELECT COUNT(*) FROM feedings"),
+        (
+            "production_records",
+            "SELECT COUNT(*) FROM production_records",
+        ),
+        (
+            "box_maintenance_records",
+            "SELECT COUNT(*) FROM box_maintenance_records",
+        ),
+        ("colony_events", "SELECT COUNT(*) FROM colony_events"),
+        (
+            "colony_movements",
+            "SELECT COUNT(*) FROM colony_movements",
+        ),
+        (
+            "movement_documents",
+            "SELECT COUNT(*) FROM movement_documents",
+        ),
+        (
+            "colony_lifecycle_records",
+            "SELECT COUNT(*) FROM colony_lifecycle_records",
+        ),
+        (
+            "colony_divisions",
+            "SELECT COUNT(*) FROM colony_divisions",
+        ),
+        (
+            "inspection_photos",
+            "SELECT COUNT(*) FROM inspection_photos",
+        ),
+    ] {
+        let count: i64 = sqlx::query_scalar(sql)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(count > 0, "{table} perdeu dados durante o upgrade");
+    }
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one migration count block, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          Path('.github/workflows/etapa3-fix-migration-count-sql.yml').unlink()
+          PY
+          git diff --check
+          git diff -- src-tauri/src/migration_tests.rs
+
+      - name: Commit focused fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/src/migration_tests.rs .github/workflows/etapa3-fix-migration-count-sql.yml
+          git commit -m "fix: use static SQL in migration data checks"
+          git push origin HEAD:feat/v0.8-operational-actions
