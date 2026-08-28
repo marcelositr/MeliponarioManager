@@ -1,38 +1,77 @@
-export type View = "dashboard" | "meliponaries" | "species" | "colonies" | "boxes" | "inspections" | "feeding" | "production" | "history" | "alerts" | "genealogy" | "movements" | "assets" | "lifecycle" | "data";
-export type CoreSummary = { meliponaries: number; species: number; colonies: number; boxes: number; };
-export type Meliponary = { id: string; name: string; responsibleName?: string | null; location?: string | null; notes?: string | null; createdAt: string; };
-export type Species = { id: string; commonName: string; scientificName?: string | null; genus?: string | null; notes?: string | null; createdAt: string; };
-export type HiveBox = { id: string; meliponaryId: string; code: string; model?: string | null; material?: string | null; locationNote?: string | null; status: string; notes?: string | null; currentColonyCode?: string | null; createdAt: string; };
-export type Colony = { id: string; meliponaryId: string; speciesId: string; code: string; originType: string; originNotes?: string | null; installedAt?: string | null; status: string; motherColonyId?: string | null; notes?: string | null; currentBoxCode?: string | null; createdAt: string; };
-export type Inspection = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; inspectedAt: string; strength: string; queenPresent?: boolean | null; layingStatus?: string | null; foodReserves?: string | null; broodStatus?: string | null; pestsNotes?: string | null; observations?: string | null; actionsTaken?: string | null; nextInspectionAt?: string | null; createdAt: string; };
-export type InspectionPhoto = { id: string; inspectionId: string; colonyId: string; colonyCode: string; relativePath: string; originalName: string; mimeType: string; byteSize: number; capturedAt: string; notes?: string | null; createdAt: string; };
-export type Feeding = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; fedAt: string; foodType: string; quantity?: number | null; unit?: string | null; responseNotes?: string | null; notes?: string | null; nextFeedingAt?: string | null; createdAt: string; };
-export type ProductionRecord = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; harvestedAt: string; productType: string; quantity: number; unit: string; purpose?: string | null; notes?: string | null; createdAt: string; };
-export type ColonyEvent = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; eventType: string; occurredAt: string; title?: string | null; details?: string | null; severity: string; createdAt: string; };
-export type TimelineEntry = { sourceType: string; sourceId: string; occurredAt: string; title: string; details?: string | null; boxCode?: string | null; severity: string; };
-export type Alert = { alertKey: string; colonyId: string; colonyCode: string; alertType: string; severity: string; dueAt?: string | null; title: string; details?: string | null; };
-export type ColonyDivision = { id: string; parentColonyId: string; parentColonyCode: string; daughterColonyId?: string | null; daughterColonyCode?: string | null; sourceBoxId?: string | null; sourceBoxCode?: string | null; performedAt: string; result: string; notes?: string | null; createdAt: string; };
-export type GenealogyNode = { colonyId: string; code: string; motherColonyId?: string | null; motherColonyCode?: string | null; generation: number; };
-export type ColonyMovement = { id: string; colonyId: string; colonyCode: string; movementType: string; movedAt: string; fromMeliponaryId: string; fromMeliponaryName: string; toMeliponaryId?: string | null; toMeliponaryName?: string | null; fromBoxId?: string | null; fromBoxCode?: string | null; toBoxId?: string | null; toBoxCode?: string | null; destination?: string | null; documentReference?: string | null; notes?: string | null; createdAt: string; };
-export type MovementDocument = { id: string; movementId: string; colonyId: string; colonyCode: string; movementType: string; movedAt: string; documentType: string; referenceNumber: string; sourceSystem?: string | null; issuer?: string | null; issuedAt?: string | null; validUntil?: string | null; filePath?: string | null; notes?: string | null; createdAt: string; };
-export type BoxMaintenance = { id: string; boxId: string; boxCode: string; colonyId?: string | null; colonyCode?: string | null; maintainedAt: string; maintenanceType: string; description?: string | null; performedBy?: string | null; cost?: number | null; nextMaintenanceAt?: string | null; createdAt: string; };
-export type BoxStateRecord = { id: string; boxId: string; boxCode: string; occurredAt: string; previousStatus: string; newStatus: string; reason?: string | null; notes?: string | null; createdAt: string; };
-export type ColonyLifecycleRecord = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; action: string; occurredAt: string; previousStatus: string; newStatus: string; reason?: string | null; notes?: string | null; createdAt: string; };
-export type DashboardStats = CoreSummary & { inspections: number; photos: number; events: number; divisions: number; feedings: number; production: number; movements: number; documents: number; maintenance: number; lifecycle: number; alerts: number; };
-export type CoreData = { meliponaries: Meliponary[]; species: Species[]; colonies: Colony[]; boxes: HiveBox[]; };
-export type CreateMeliponaryInput = { name: string; responsibleName?: string; location?: string; notes?: string; };
-export type CreateSpeciesInput = { commonName: string; scientificName?: string; genus?: string; notes?: string; };
-export type CreateBoxInput = { meliponaryId: string; code: string; model?: string; material?: string; locationNote?: string; notes?: string; };
-export type ChangeBoxStateInput = { boxId: string; newStatus: string; occurredAt?: string; reason?: string; notes?: string; };
-export type CreateColonyInput = { meliponaryId: string; speciesId: string; code: string; originType?: string; originNotes?: string; installedAt?: string; motherColonyId?: string; notes?: string; };
-export type PlaceColonyInput = { colonyId: string; boxId: string; startedAt?: string; reason?: string; notes?: string; };
-export type CreateInspectionInput = { colonyId: string; inspectedAt?: string; strength?: string; queenPresent?: boolean | null; layingStatus?: string; foodReserves?: string; broodStatus?: string; pestsNotes?: string; observations?: string; actionsTaken?: string; nextInspectionAt?: string; };
-export type ImportInspectionPhotoInput = { inspectionId: string; sourcePath: string; capturedAt?: string; notes?: string; };
-export type CreateFeedingInput = { colonyId: string; fedAt?: string; foodType: string; quantity?: number; unit?: string; responseNotes?: string; notes?: string; nextFeedingAt?: string; };
-export type CreateProductionInput = { colonyId: string; harvestedAt?: string; productType: string; quantity: number; unit: string; purpose?: string; notes?: string; };
-export type CreateColonyEventInput = { colonyId: string; eventType: string; occurredAt?: string; title?: string; details?: string; severity?: string; };
-export type CreateDivisionInput = { parentColonyId: string; daughterCode?: string; daughterNotes?: string; performedAt?: string; result?: string; notes?: string; };
-export type CreateMovementInput = { colonyId: string; movementType: string; movedAt?: string; toMeliponaryId?: string; toBoxId?: string; destination?: string; documentReference?: string; notes?: string; };
-export type CreateMovementDocumentInput = { movementId: string; documentType: string; referenceNumber: string; sourceSystem?: string; issuer?: string; issuedAt?: string; validUntil?: string; filePath?: string; notes?: string; };
-export type CreateBoxMaintenanceInput = { boxId: string; maintainedAt?: string; maintenanceType: string; description?: string; performedBy?: string; cost?: number; nextMaintenanceAt?: string; };
-export type ChangeColonyLifecycleInput = { colonyId: string; action: string; occurredAt?: string; reason?: string; notes?: string; };
+export type View =
+  | "dashboard"
+  | "meliponaries"
+  | "species"
+  | "colonies"
+  | "boxes"
+  | "inspections"
+  | "feeding"
+  | "production"
+  | "history"
+  | "alerts"
+  | "genealogy"
+  | "movements"
+  | "assets"
+  | "lifecycle"
+  | "data";
+
+export type CoreSummary = { meliponaries: number; species: number; colonies: number; boxes: number };
+export type Meliponary = { id: string; name: string; responsibleName?: string | null; location?: string | null; notes?: string | null; archivedAt?: string | null; archiveReason?: string | null; createdAt: string };
+export type Species = { id: string; commonName: string; scientificName?: string | null; genus?: string | null; notes?: string | null; archivedAt?: string | null; archiveReason?: string | null; createdAt: string };
+export type HiveBox = { id: string; meliponaryId: string; code: string; model?: string | null; material?: string | null; locationNote?: string | null; status: string; notes?: string | null; currentColonyCode?: string | null; createdAt: string };
+export type Colony = { id: string; meliponaryId: string; speciesId: string; code: string; originType: string; originNotes?: string | null; installedAt?: string | null; status: string; motherColonyId?: string | null; notes?: string | null; currentBoxCode?: string | null; createdAt: string };
+export type ColonyBoxOccupancy = { id: string; colonyId: string; boxId: string; startedAt: string; endedAt?: string | null; reason?: string | null; notes?: string | null };
+export type Inspection = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; inspectedAt: string; strength: string; queenPresent?: boolean | null; layingStatus?: string | null; foodReserves?: string | null; broodStatus?: string | null; pestsNotes?: string | null; observations?: string | null; actionsTaken?: string | null; nextInspectionAt?: string | null; createdAt: string };
+export type InspectionPhoto = { id: string; inspectionId: string; colonyId: string; colonyCode: string; relativePath: string; originalName: string; mimeType: string; byteSize: number; capturedAt: string; notes?: string | null; createdAt: string };
+export type Feeding = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; fedAt: string; foodType: string; quantity?: number | null; unit?: string | null; responseNotes?: string | null; notes?: string | null; nextFeedingAt?: string | null; createdAt: string };
+export type ProductionRecord = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; harvestedAt: string; productType: string; quantity: number; unit: string; purpose?: string | null; notes?: string | null; createdAt: string };
+export type ColonyEvent = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; eventType: string; occurredAt: string; title?: string | null; details?: string | null; severity: string; createdAt: string };
+export type TimelineEntry = { sourceType: string; sourceId: string; occurredAt: string; title: string; details?: string | null; boxCode?: string | null; severity: string };
+export type Alert = { alertKey: string; colonyId: string; colonyCode: string; alertType: string; severity: string; dueAt?: string | null; title: string; details?: string | null };
+export type ColonyDivision = { id: string; parentColonyId: string; parentColonyCode: string; daughterColonyId?: string | null; daughterColonyCode?: string | null; sourceBoxId?: string | null; sourceBoxCode?: string | null; performedAt: string; result: string; notes?: string | null; createdAt: string };
+export type GenealogyNode = { colonyId: string; code: string; motherColonyId?: string | null; motherColonyCode?: string | null; generation: number };
+export type ColonyMovement = { id: string; colonyId: string; colonyCode: string; movementType: string; movedAt: string; fromMeliponaryId: string; fromMeliponaryName: string; toMeliponaryId?: string | null; toMeliponaryName?: string | null; fromBoxId?: string | null; fromBoxCode?: string | null; toBoxId?: string | null; toBoxCode?: string | null; destination?: string | null; documentReference?: string | null; notes?: string | null; createdAt: string };
+export type MovementDocument = { id: string; movementId: string; colonyId: string; colonyCode: string; movementType: string; movedAt: string; documentType: string; referenceNumber: string; sourceSystem?: string | null; issuer?: string | null; issuedAt?: string | null; validUntil?: string | null; filePath?: string | null; notes?: string | null; createdAt: string };
+export type BoxMaintenance = { id: string; boxId: string; boxCode: string; colonyId?: string | null; colonyCode?: string | null; maintainedAt: string; maintenanceType: string; description?: string | null; performedBy?: string | null; cost?: number | null; nextMaintenanceAt?: string | null; createdAt: string };
+export type BoxStateRecord = { id: string; boxId: string; boxCode: string; occurredAt: string; previousStatus: string; newStatus: string; reason?: string | null; notes?: string | null; createdAt: string };
+export type ColonyLifecycleRecord = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; action: string; occurredAt: string; previousStatus: string; newStatus: string; reason?: string | null; notes?: string | null; createdAt: string };
+export type AuditRecord = { id: string; entityType: string; entityId: string; action: string; changedAt: string; reason: string; actor?: string | null; beforeJson?: string | null; afterJson?: string | null; createdAt: string };
+export type RecordAdminState = { entityType: string; entityId: string; correctedAt?: string | null; voidedAt?: string | null; voidReason?: string | null; reversedAt?: string | null; reversalReason?: string | null };
+
+export type DashboardStats = CoreSummary & { inspections: number; photos: number; events: number; divisions: number; feedings: number; production: number; movements: number; documents: number; maintenance: number; lifecycle: number; alerts: number };
+export type CoreData = { meliponaries: Meliponary[]; species: Species[]; colonies: Colony[]; boxes: HiveBox[] };
+
+export type CreateMeliponaryInput = { name: string; responsibleName?: string; location?: string; notes?: string };
+export type CreateSpeciesInput = { commonName: string; scientificName?: string; genus?: string; notes?: string };
+export type CreateBoxInput = { meliponaryId: string; code: string; model?: string; material?: string; locationNote?: string; notes?: string };
+export type ChangeBoxStateInput = { boxId: string; newStatus: string; occurredAt?: string; reason?: string; notes?: string };
+export type CreateColonyInput = { meliponaryId: string; speciesId: string; code: string; originType?: string; originNotes?: string; installedAt?: string; motherColonyId?: string; notes?: string };
+export type PlaceColonyInput = { colonyId: string; boxId: string; startedAt?: string; reason?: string; notes?: string };
+export type CreateInspectionInput = { colonyId: string; inspectedAt?: string; strength?: string; queenPresent?: boolean | null; layingStatus?: string; foodReserves?: string; broodStatus?: string; pestsNotes?: string; observations?: string; actionsTaken?: string; nextInspectionAt?: string };
+export type ImportInspectionPhotoInput = { inspectionId: string; sourcePath: string; capturedAt?: string; notes?: string };
+export type CreateFeedingInput = { colonyId: string; fedAt?: string; foodType: string; quantity?: number; unit?: string; responseNotes?: string; notes?: string; nextFeedingAt?: string };
+export type CreateProductionInput = { colonyId: string; harvestedAt?: string; productType: string; quantity: number; unit: string; purpose?: string; notes?: string };
+export type CreateColonyEventInput = { colonyId: string; eventType: string; occurredAt?: string; title?: string; details?: string; severity?: string };
+export type CreateDivisionInput = { parentColonyId: string; daughterCode?: string; daughterNotes?: string; performedAt?: string; result?: string; notes?: string };
+export type CreateMovementInput = { colonyId: string; movementType: string; movedAt?: string; toMeliponaryId?: string; toBoxId?: string; destination?: string; documentReference?: string; notes?: string };
+export type CreateMovementDocumentInput = { movementId: string; documentType: string; referenceNumber: string; sourceSystem?: string; issuer?: string; issuedAt?: string; validUntil?: string; filePath?: string; notes?: string };
+export type CreateBoxMaintenanceInput = { boxId: string; maintainedAt?: string; maintenanceType: string; description?: string; performedBy?: string; cost?: number; nextMaintenanceAt?: string };
+export type ChangeColonyLifecycleInput = { colonyId: string; action: string; occurredAt?: string; reason?: string; notes?: string };
+
+export type EntityActionInput = { id: string; reason: string };
+export type EditMeliponaryInput = EntityActionInput & { name: string; responsibleName?: string; location?: string; notes?: string };
+export type EditSpeciesInput = EntityActionInput & { commonName: string; scientificName?: string; genus?: string; notes?: string };
+export type EditBoxInput = EntityActionInput & { code: string; model?: string; material?: string; locationNote?: string; notes?: string };
+export type EditColonyInput = EntityActionInput & { code: string; originNotes?: string; notes?: string };
+export type VoidRecordInput = EntityActionInput;
+export type ReverseRecordInput = EntityActionInput;
+export type CorrectInspectionInput = EntityActionInput & { inspectedAt: string; strength: string; queenPresent?: boolean | null; layingStatus?: string; foodReserves?: string; broodStatus?: string; pestsNotes?: string; observations?: string; actionsTaken?: string; nextInspectionAt?: string };
+export type CorrectFeedingInput = EntityActionInput & { fedAt: string; foodType: string; quantity?: number; unit?: string; responseNotes?: string; notes?: string; nextFeedingAt?: string };
+export type CorrectProductionInput = EntityActionInput & { harvestedAt: string; productType: string; quantity: number; unit: string; purpose?: string; notes?: string };
+export type CorrectMaintenanceInput = EntityActionInput & { boxId: string; maintainedAt: string; maintenanceType: string; description?: string; performedBy?: string; cost?: number; nextMaintenanceAt?: string };
+export type CorrectEventInput = EntityActionInput & { eventType: string; occurredAt: string; title?: string; details?: string; severity: string };
+export type CorrectMovementDetailsInput = EntityActionInput & { destination?: string; notes?: string };
+export type UpdateMovementDocumentInput = EntityActionInput & { documentType: string; referenceNumber: string; sourceSystem?: string; issuer?: string; issuedAt?: string; validUntil?: string; filePath?: string; notes?: string };
+export type CorrectDivisionInput = EntityActionInput & { notes?: string };
+export type VoidDivisionInput = EntityActionInput & { daughterDisposition?: "keep" | "deactivate" };
+export type CorrectOccupancyInput = EntityActionInput & { startedAt: string; endedAt?: string; occupancyReason?: string; notes?: string };
