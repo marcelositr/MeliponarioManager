@@ -1,5 +1,6 @@
 use crate::{
     agenda::{self, AgendaSummary, CreateTask, DuplicateTask, RescheduleTask, ScheduledTask, TaskQuery, TaskReason},
+    agenda_execution::{self, CompleteFeedingTask, CompleteInspectionTask, CompleteMaintenanceTask, TaskCompletion},
     repository::AppError,
 };
 use sqlx::SqlitePool;
@@ -81,4 +82,34 @@ pub async fn duplicate_task(
     input: DuplicateTask,
 ) -> Result<ScheduledTask, String> {
     agenda::duplicate(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn complete_inspection_task(
+    pool: State<'_, SqlitePool>,
+    input: CompleteInspectionTask,
+) -> Result<TaskCompletion, String> {
+    agenda_execution::complete_inspection(&pool, input)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn complete_feeding_task(
+    pool: State<'_, SqlitePool>,
+    input: CompleteFeedingTask,
+) -> Result<TaskCompletion, String> {
+    agenda_execution::complete_feeding(&pool, input)
+        .await
+        .map_err(message)
+}
+
+#[tauri::command]
+pub async fn complete_maintenance_task(
+    pool: State<'_, SqlitePool>,
+    input: CompleteMaintenanceTask,
+) -> Result<TaskCompletion, String> {
+    agenda_execution::complete_maintenance(&pool, input)
+        .await
+        .map_err(message)
 }

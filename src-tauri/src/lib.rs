@@ -1,6 +1,7 @@
 mod admin_commands;
 mod agenda;
 mod agenda_commands;
+mod agenda_execution;
 mod alerts;
 mod audit;
 mod box_states;
@@ -23,6 +24,7 @@ mod migration_tests;
 mod movements;
 mod operational;
 mod production;
+mod record_centers;
 mod record_corrections;
 mod record_states;
 mod repository;
@@ -148,6 +150,14 @@ pub fn run() {
             agenda_commands::skip_task,
             agenda_commands::complete_generic_task,
             agenda_commands::duplicate_task,
+            agenda_commands::complete_inspection_task,
+            agenda_commands::complete_feeding_task,
+            agenda_commands::complete_maintenance_task,
+            record_centers::get_colony_record_center,
+            record_centers::get_box_record_center,
+            record_centers::get_meliponary_record_center,
+            record_centers::list_box_occupancies,
+            record_centers::list_box_context_photos,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MeliponarioManager");
