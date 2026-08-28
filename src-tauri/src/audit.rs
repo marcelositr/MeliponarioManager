@@ -29,7 +29,9 @@ fn required(value: &str, field: &str) -> Result<String, AppError> {
 
 pub fn value<T: Serialize>(value: &T) -> Result<Value, AppError> {
     serde_json::to_value(value).map_err(|error| {
-        AppError::Validation(format!("Não foi possível preparar a trilha de auditoria: {error}"))
+        AppError::Validation(format!(
+            "Não foi possível preparar a trilha de auditoria: {error}"
+        ))
     })
 }
 
@@ -46,11 +48,10 @@ pub async fn record_tx(
     let entity_id = required(entity_id, "Identificador da entidade")?;
     let action = required(action, "Ação de auditoria")?;
     let reason = required(reason, "Motivo")?;
-    let changed_at: String = sqlx::query_scalar(
-        "SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')",
-    )
-    .fetch_one(&mut **tx)
-    .await?;
+    let changed_at: String =
+        sqlx::query_scalar("SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')")
+            .fetch_one(&mut **tx)
+            .await?;
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -128,7 +129,11 @@ mod tests {
         assert_eq!(records[0].action, "edit");
         assert_eq!(records[0].reason, "Correção administrativa");
         assert!(records[0].changed_at.len() == 19);
-        assert!(records[0].before_json.as_deref().unwrap().contains("Antigo"));
+        assert!(records[0]
+            .before_json
+            .as_deref()
+            .unwrap()
+            .contains("Antigo"));
         assert!(records[0].after_json.as_deref().unwrap().contains("Novo"));
         assert_eq!(records[0].actor, "local_user");
     }

@@ -3,9 +3,9 @@ use crate::{
     domain::{Colony, HiveBox, Meliponary, Species},
     master_data::{self, EditBox, EditColony, EditMeliponary, EditSpecies, EntityAction},
     record_corrections::{
-        self, CorrectDivision, CorrectEvent, CorrectFeeding, CorrectInspection,
-        CorrectMaintenance, CorrectMovementDetails, CorrectOccupancy, CorrectProduction,
-        UpdateMovementDocument, VoidDivision, VoidRecord,
+        self, CorrectDivision, CorrectEvent, CorrectFeeding, CorrectInspection, CorrectMaintenance,
+        CorrectMovementDetails, CorrectOccupancy, CorrectProduction, UpdateMovementDocument,
+        VoidDivision, VoidRecord,
     },
     repository,
     reversals::{self, ReverseRecord},
@@ -22,7 +22,9 @@ pub async fn edit_meliponary(
     pool: State<'_, SqlitePool>,
     input: EditMeliponary,
 ) -> Result<Meliponary, String> {
-    master_data::edit_meliponary(&pool, input).await.map_err(message)
+    master_data::edit_meliponary(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -60,7 +62,9 @@ pub async fn edit_species(
     pool: State<'_, SqlitePool>,
     input: EditSpecies,
 ) -> Result<Species, String> {
-    master_data::edit_species(&pool, input).await.map_err(message)
+    master_data::edit_species(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -88,39 +92,33 @@ pub async fn delete_species(
     pool: State<'_, SqlitePool>,
     input: EntityAction,
 ) -> Result<(), String> {
-    master_data::delete_species(&pool, input).await.map_err(message)
+    master_data::delete_species(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
-pub async fn edit_box(
-    pool: State<'_, SqlitePool>,
-    input: EditBox,
-) -> Result<HiveBox, String> {
+pub async fn edit_box(pool: State<'_, SqlitePool>, input: EditBox) -> Result<HiveBox, String> {
     master_data::edit_box(&pool, input).await.map_err(message)
 }
 
 #[tauri::command]
-pub async fn delete_box(
-    pool: State<'_, SqlitePool>,
-    input: EntityAction,
-) -> Result<(), String> {
+pub async fn delete_box(pool: State<'_, SqlitePool>, input: EntityAction) -> Result<(), String> {
     master_data::delete_box(&pool, input).await.map_err(message)
 }
 
 #[tauri::command]
-pub async fn edit_colony(
-    pool: State<'_, SqlitePool>,
-    input: EditColony,
-) -> Result<Colony, String> {
-    master_data::edit_colony(&pool, input).await.map_err(message)
+pub async fn edit_colony(pool: State<'_, SqlitePool>, input: EditColony) -> Result<Colony, String> {
+    master_data::edit_colony(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
-pub async fn delete_colony(
-    pool: State<'_, SqlitePool>,
-    input: EntityAction,
-) -> Result<(), String> {
-    master_data::delete_colony(&pool, input).await.map_err(message)
+pub async fn delete_colony(pool: State<'_, SqlitePool>, input: EntityAction) -> Result<(), String> {
+    master_data::delete_colony(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -145,10 +143,7 @@ pub async fn correct_inspection(
 }
 
 #[tauri::command]
-pub async fn void_inspection(
-    pool: State<'_, SqlitePool>,
-    input: VoidRecord,
-) -> Result<(), String> {
+pub async fn void_inspection(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
     record_corrections::void_inspection(&pool, input)
         .await
         .map_err(message)
@@ -165,10 +160,7 @@ pub async fn correct_feeding(
 }
 
 #[tauri::command]
-pub async fn void_feeding(
-    pool: State<'_, SqlitePool>,
-    input: VoidRecord,
-) -> Result<(), String> {
+pub async fn void_feeding(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
     record_corrections::void_feeding(&pool, input)
         .await
         .map_err(message)
@@ -245,10 +237,7 @@ pub async fn correct_movement_details(
 }
 
 #[tauri::command]
-pub async fn void_transport(
-    pool: State<'_, SqlitePool>,
-    input: VoidRecord,
-) -> Result<(), String> {
+pub async fn void_transport(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
     record_corrections::void_transport(&pool, input)
         .await
         .map_err(message)
@@ -309,7 +298,9 @@ pub async fn reverse_colony_lifecycle(
     pool: State<'_, SqlitePool>,
     input: ReverseRecord,
 ) -> Result<(), String> {
-    reversals::reverse_lifecycle(&pool, input).await.map_err(message)
+    reversals::reverse_lifecycle(&pool, input)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -317,5 +308,7 @@ pub async fn reverse_colony_movement(
     pool: State<'_, SqlitePool>,
     input: ReverseRecord,
 ) -> Result<(), String> {
-    reversals::reverse_movement(&pool, input).await.map_err(message)
+    reversals::reverse_movement(&pool, input)
+        .await
+        .map_err(message)
 }

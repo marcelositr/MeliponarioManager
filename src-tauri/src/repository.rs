@@ -294,8 +294,8 @@ pub async fn place_colony(
     .bind(&colony_id)
     .fetch_optional(&mut *tx)
     .await?;
-    let (colony_meliponary, colony_meliponary_archived) = colony_context
-        .ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
+    let (colony_meliponary, colony_meliponary_archived) =
+        colony_context.ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
     if colony_meliponary_archived.is_some() {
         return Err(AppError::Validation(
             "O meliponário da colônia está arquivado e não aceita nova ocupação.".to_owned(),
@@ -360,15 +360,17 @@ pub async fn place_colony(
         ));
     }
 
-    let before = current_occupancy.as_ref().map(|(id, current_box, current_started_at)| {
-        json!({
-            "occupancy_id": id,
-            "colony_id": colony_id,
-            "box_id": current_box,
-            "started_at": current_started_at,
-            "ended_at": null
-        })
-    });
+    let before = current_occupancy
+        .as_ref()
+        .map(|(id, current_box, current_started_at)| {
+            json!({
+                "occupancy_id": id,
+                "colony_id": colony_id,
+                "box_id": current_box,
+                "started_at": current_started_at,
+                "ended_at": null
+            })
+        });
 
     if let Some((occupancy_id, _, current_started_at)) = &current_occupancy {
         if started_at < *current_started_at {
@@ -402,8 +404,8 @@ pub async fn place_colony(
     .execute(&mut *tx)
     .await?;
 
-    let audit_reason = optional(&input.reason)
-        .unwrap_or_else(|| "Alteração de ocupação de caixa".to_owned());
+    let audit_reason =
+        optional(&input.reason).unwrap_or_else(|| "Alteração de ocupação de caixa".to_owned());
     audit::record_tx(
         &mut tx,
         "box_occupancy",
@@ -661,11 +663,13 @@ mod tests {
         )
         .await
         .unwrap();
-        sqlx::query("UPDATE meliponaries SET archived_at = datetime('now','localtime') WHERE id = ?")
-            .bind(&mel.id)
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "UPDATE meliponaries SET archived_at = datetime('now','localtime') WHERE id = ?",
+        )
+        .bind(&mel.id)
+        .execute(&pool)
+        .await
+        .unwrap();
         sqlx::query("UPDATE species SET archived_at = datetime('now','localtime') WHERE id = ?")
             .bind(&species.id)
             .execute(&pool)
