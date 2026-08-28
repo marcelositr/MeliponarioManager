@@ -355,9 +355,15 @@ pub async fn generate_management_report(
         overview.alerts.len()
     ));
     for alert in overview.alerts.iter().take(20) {
+        let context = if let Some(colony_code) = alert.colony_code.as_deref() {
+            format!("Colônia {colony_code}")
+        } else if let Some(box_code) = alert.box_code.as_deref() {
+            format!("Caixa {box_code}")
+        } else {
+            "Meliponário".to_owned()
+        };
         report.push_str(&format!(
-            "- {}: {}{}\n",
-            alert.colony_code,
+            "- {context}: {}{}\n",
             alert.title,
             alert
                 .due_at
