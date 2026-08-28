@@ -1500,19 +1500,26 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        assert!(
-            pending_for(&pool, Some(colony_id.clone()), None, "inspection")
-                .await
-                .is_empty()
-        );
+        let pending_before: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM scheduled_tasks
+             WHERE task_type='inspection' AND colony_id=? AND status='pending'",
+        )
+        .bind(&colony_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(pending_before, 0);
         reconcile_all(&pool).await.unwrap();
         reconcile_all(&pool).await.unwrap();
-        assert_eq!(
-            pending_for(&pool, Some(colony_id), None, "inspection")
-                .await
-                .len(),
-            1
-        );
+        let pending_after: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM scheduled_tasks
+             WHERE task_type='inspection' AND colony_id=? AND status='pending'",
+        )
+        .bind(&colony_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(pending_after, 1);
     }
 
     #[tokio::test]
