@@ -33,8 +33,8 @@ export function WorkspaceRouter({ activeView, data, stats, busy, actions, record
   if (activeView === "colonies") return <ColoniesPage items={data.colonies} meliponaries={data.meliponaries} species={data.species} boxes={data.boxes} busy={busy} onCreate={actions.createColony} onPlace={actions.placeColony} onEdit={actions.editColony} onDelete={actions.deleteColony} />;
   if (activeView === "boxes") return <BoxesPage items={data.boxes} meliponaries={data.meliponaries} busy={busy} onCreate={actions.createBox} onEdit={actions.editBox} onChangeState={actions.changeBoxState} onDelete={actions.deleteBox} />;
   if (activeView === "inspections") return <InspectionsPage colonies={data.colonies} busy={busy} onCreate={actions.createInspection} recordStateMap={recordStateMap} onCorrect={actions.correctInspection} onVoid={actions.voidInspection} />;
-  if (activeView === "feeding") return <FeedingPage colonies={data.colonies} busy={busy} onCreate={actions.createFeeding} />;
-  if (activeView === "production") return <ProductionPage colonies={data.colonies} busy={busy} onCreate={actions.createProduction} />;
+  if (activeView === "feeding") return <FeedingPage colonies={data.colonies} busy={busy} onCreate={actions.createFeeding} recordStateMap={recordStateMap} onCorrect={actions.correctFeeding} onVoid={actions.voidFeeding} />;
+  if (activeView === "production") return <ProductionPage colonies={data.colonies} busy={busy} onCreate={actions.createProduction} recordStateMap={recordStateMap} onCorrect={actions.correctProduction} onVoid={actions.voidProduction} />;
   if (activeView === "history") return <EventsTimelinePage colonies={data.colonies} busy={busy} onCreate={actions.createEvent} />;
   if (activeView === "alerts") return <AlertsPage />;
   if (activeView === "genealogy") return <DivisionsPage colonies={data.colonies} busy={busy} onCreate={actions.createDivision} />;
