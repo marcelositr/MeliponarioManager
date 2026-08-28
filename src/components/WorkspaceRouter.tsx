@@ -35,7 +35,7 @@ export function WorkspaceRouter({ activeView, data, stats, busy, actions, record
   if (activeView === "inspections") return <InspectionsPage colonies={data.colonies} busy={busy} onCreate={actions.createInspection} recordStateMap={recordStateMap} onCorrect={actions.correctInspection} onVoid={actions.voidInspection} />;
   if (activeView === "feeding") return <FeedingPage colonies={data.colonies} busy={busy} onCreate={actions.createFeeding} recordStateMap={recordStateMap} onCorrect={actions.correctFeeding} onVoid={actions.voidFeeding} />;
   if (activeView === "production") return <ProductionPage colonies={data.colonies} busy={busy} onCreate={actions.createProduction} recordStateMap={recordStateMap} onCorrect={actions.correctProduction} onVoid={actions.voidProduction} />;
-  if (activeView === "history") return <EventsTimelinePage colonies={data.colonies} busy={busy} onCreate={actions.createEvent} />;
+  if (activeView === "history") return <EventsTimelinePage colonies={data.colonies} busy={busy} onCreate={actions.createEvent} recordStateMap={recordStateMap} onCorrect={actions.correctEvent} onVoid={actions.voidEvent} />;
   if (activeView === "alerts") return <AlertsPage />;
   if (activeView === "genealogy") return <DivisionsPage colonies={data.colonies} busy={busy} onCreate={actions.createDivision} />;
   if (activeView === "movements") return <MovementsPage colonies={data.colonies} meliponaries={data.meliponaries} boxes={data.boxes} busy={busy} onCreateMovement={actions.createMovement} onCreateDocument={actions.createMovementDocument} />;
