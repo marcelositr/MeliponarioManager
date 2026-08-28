@@ -979,7 +979,7 @@ async fn void_fact(
     input: VoidRecord,
     entity_type: &str,
     table: &str,
-    snapshot_sql: &str,
+    snapshot_sql: &'static str,
 ) -> Result<(), AppError> {
     let id = required(&input.id, "Registro")?;
     let reason = required(&input.reason, "Motivo da anulação")?;
