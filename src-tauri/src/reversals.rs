@@ -152,7 +152,17 @@ pub async fn reverse_lifecycle(p: &SqlitePool, input: ReverseRecord) -> Result<(
 pub async fn reverse_movement(p: &SqlitePool, input: ReverseRecord) -> Result<(), AppError> {
     let id = req(&input.id, "Movimentação")?;
     let reason = req(&input.reason, "Motivo da reversão")?;
-    let row:Option<(String,String,String,String,Option<String>,Option<String>,Option<String>,Option<String>)>=sqlx::query_as("SELECT colony_id,movement_type,moved_at,from_meliponary_id,to_meliponary_id,from_box_id,to_box_id,reversed_at FROM colony_movements WHERE id=? AND voided_at IS NULL").bind(&id).fetch_optional(p).await?;
+    type MovementReversalRow = (
+        String,
+        String,
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    );
+    let row: Option<MovementReversalRow> = sqlx::query_as("SELECT colony_id,movement_type,moved_at,from_meliponary_id,to_meliponary_id,from_box_id,to_box_id,reversed_at FROM colony_movements WHERE id=? AND voided_at IS NULL").bind(&id).fetch_optional(p).await?;
     let (c, kind, at, from_m, to_m, from_b, to_b, reversed) =
         row.ok_or_else(|| AppError::NotFound("Movimentação não encontrada.".into()))?;
     if reversed.is_some() {
