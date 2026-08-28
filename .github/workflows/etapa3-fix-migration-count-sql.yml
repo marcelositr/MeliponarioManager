@@ -17,91 +17,10 @@ jobs:
           ref: feat/v0.8-operational-actions
           fetch-depth: 0
 
-      - name: Replace only dynamic migration table count SQL
+      - name: Apply focused static SQL patch
         shell: bash
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('src-tauri/src/migration_tests.rs')
-          text = path.read_text()
-          old = '''    for table in [
-        "meliponaries",
-        "species",
-        "boxes",
-        "colonies",
-        "colony_box_occupancies",
-        "inspections",
-        "feedings",
-        "production_records",
-        "box_maintenance_records",
-        "colony_events",
-        "colony_movements",
-        "movement_documents",
-        "colony_lifecycle_records",
-        "colony_divisions",
-        "inspection_photos",
-    ] {
-        let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table}"))
-            .fetch_one(&pool)
-            .await
-            .unwrap();
-        assert!(count > 0, "{table} perdeu dados durante o upgrade");
-    }
-'''
-          new = '''    for (table, sql) in [
-        ("meliponaries", "SELECT COUNT(*) FROM meliponaries"),
-        ("species", "SELECT COUNT(*) FROM species"),
-        ("boxes", "SELECT COUNT(*) FROM boxes"),
-        ("colonies", "SELECT COUNT(*) FROM colonies"),
-        (
-            "colony_box_occupancies",
-            "SELECT COUNT(*) FROM colony_box_occupancies",
-        ),
-        ("inspections", "SELECT COUNT(*) FROM inspections"),
-        ("feedings", "SELECT COUNT(*) FROM feedings"),
-        (
-            "production_records",
-            "SELECT COUNT(*) FROM production_records",
-        ),
-        (
-            "box_maintenance_records",
-            "SELECT COUNT(*) FROM box_maintenance_records",
-        ),
-        ("colony_events", "SELECT COUNT(*) FROM colony_events"),
-        (
-            "colony_movements",
-            "SELECT COUNT(*) FROM colony_movements",
-        ),
-        (
-            "movement_documents",
-            "SELECT COUNT(*) FROM movement_documents",
-        ),
-        (
-            "colony_lifecycle_records",
-            "SELECT COUNT(*) FROM colony_lifecycle_records",
-        ),
-        (
-            "colony_divisions",
-            "SELECT COUNT(*) FROM colony_divisions",
-        ),
-        (
-            "inspection_photos",
-            "SELECT COUNT(*) FROM inspection_photos",
-        ),
-    ] {
-        let count: i64 = sqlx::query_scalar(sql)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
-        assert!(count > 0, "{table} perdeu dados durante o upgrade");
-    }
-'''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected exactly one migration count block, found {text.count(old)}')
-          path.write_text(text.replace(old, new, 1))
-          Path('.github/workflows/etapa3-fix-migration-count-sql.yml').unlink()
-          PY
+          python3 -c "from pathlib import Path; import base64; p=Path('src-tauri/src/migration_tests.rs'); s=p.read_text(); old=base64.b64decode('ICAgIGZvciB0YWJsZSBpbiBbCiAgICAgICAgIm1lbGlwb25hcmllcyIsCiAgICAgICAgInNwZWNpZXMiLAogICAgICAgICJib3hlcyIsCiAgICAgICAgImNvbG9uaWVzIiwKICAgICAgICAiY29sb255X2JveF9vY2N1cGFuY2llcyIsCiAgICAgICAgImluc3BlY3Rpb25zIiwKICAgICAgICAiZmVlZGluZ3MiLAogICAgICAgICJwcm9kdWN0aW9uX3JlY29yZHMiLAogICAgICAgICJib3hfbWFpbnRlbmFuY2VfcmVjb3JkcyIsCiAgICAgICAgImNvbG9ueV9ldmVudHMiLAogICAgICAgICJjb2xvbnlfbW92ZW1lbnRzIiwKICAgICAgICAibW92ZW1lbnRfZG9jdW1lbnRzIiwKICAgICAgICAiY29sb255X2xpZmVjeWNsZV9yZWNvcmRzIiwKICAgICAgICAiY29sb255X2RpdmlzaW9ucyIsCiAgICAgICAgImluc3BlY3Rpb25fcGhvdG9zIiwKICAgIF0gewogICAgICAgIGxldCBjb3VudDogaTY0ID0gc3FseDo6cXVlcnlfc2NhbGFyKCZmb3JtYXQhKCJTRUxFQ1QgQ09VTlQoKikgRlJPTSB7dGFibGV9IikpCiAgICAgICAgICAgIC5mZXRjaF9vbmUoJnBvb2wpCiAgICAgICAgICAgIC5hd2FpdAogICAgICAgICAgICAudW53cmFwKCk7CiAgICAgICAgYXNzZXJ0IShjb3VudCA+IDAsICJ7dGFibGV9IHBlcmRldSBkYWRvcyBkdXJhbnRlIG8gdXBncmFkZSIpOwogICAgfQo=').decode(); new=base64.b64decode('ICAgIGZvciAodGFibGUsIHNxbCkgaW4gWwogICAgICAgICgibWVsaXBvbmFyaWVzIiwgIlNFTEVDVCBDT1VOVCgqKSBGUk9NIG1lbGlwb25hcmllcyIpLAogICAgICAgICgic3BlY2llcyIsICJTRUxFQ1QgQ09VTlQoKikgRlJPTSBzcGVjaWVzIiksCiAgICAgICAgKCJib3hlcyIsICJTRUxFQ1QgQ09VTlQoKikgRlJPTSBib3hlcyIpLAogICAgICAgICgiY29sb25pZXMiLCAiU0VMRUNUIENPVU5UKCopIEZST00gY29sb25pZXMiKSwKICAgICAgICAoCiAgICAgICAgICAgICJjb2xvbnlfYm94X29jY3VwYW5jaWVzIiwKICAgICAgICAgICAgIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGNvbG9ueV9ib3hfb2NjdXBhbmNpZXMiLAogICAgICAgICksCiAgICAgICAgKCJpbnNwZWN0aW9ucyIsICJTRUxFQ1QgQ09VTlQoKikgRlJPTSBpbnNwZWN0aW9ucyIpLAogICAgICAgICgiZmVlZGluZ3MiLCAiU0VMRUNUIENPVU5UKCopIEZST00gZmVlZGluZ3MiKSwKICAgICAgICAoCiAgICAgICAgICAgICJwcm9kdWN0aW9uX3JlY29yZHMiLAogICAgICAgICAgICAiU0VMRUNUIENPVU5UKCopIEZST00gcHJvZHVjdGlvbl9yZWNvcmRzIiwKICAgICAgICApLAogICAgICAgICgKICAgICAgICAgICAgImJveF9tYWludGVuYW5jZV9yZWNvcmRzIiwKICAgICAgICAgICAgIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGJveF9tYWludGVuYW5jZV9yZWNvcmRzIiwKICAgICAgICApLAogICAgICAgICgiY29sb255X2V2ZW50cyIsICJTRUxFQ1QgQ09VTlQoKikgRlJPTSBjb2xvbnlfZXZlbnRzIiksCiAgICAgICAgKAogICAgICAgICAgICAiY29sb255X21vdmVtZW50cyIsCiAgICAgICAgICAgICJTRUxFQ1QgQ09VTlQoKikgRlJPTSBjb2xvbnlfbW92ZW1lbnRzIiwKICAgICAgICApLAogICAgICAgICgKICAgICAgICAgICAgIm1vdmVtZW50X2RvY3VtZW50cyIsCiAgICAgICAgICAgICJTRUxFQ1QgQ09VTlQoKikgRlJPTSBtb3ZlbWVudF9kb2N1bWVudHMiLAogICAgICAgICksCiAgICAgICAgKAogICAgICAgICAgICAiY29sb255X2xpZmVjeWNsZV9yZWNvcmRzIiwKICAgICAgICAgICAgIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGNvbG9ueV9saWZlY3ljbGVfcmVjb3JkcyIsCiAgICAgICAgKSwKICAgICAgICAoCiAgICAgICAgICAgICJjb2xvbnlfZGl2aXNpb25zIiwKICAgICAgICAgICAgIlNFTEVDVCBDT1VOVCgqKSBGUk9NIGNvbG9ueV9kaXZpc2lvbnMiLAogICAgICAgICksCiAgICAgICAgKAogICAgICAgICAgICAiaW5zcGVjdGlvbl9waG90b3MiLAogICAgICAgICAgICAiU0VMRUNUIENPVU5UKCopIEZST00gaW5zcGVjdGlvbl9waG90b3MiLAogICAgICAgICksCiAgICBdIHsKICAgICAgICBsZXQgY291bnQ6IGk2NCA9IHNxbHg6OnF1ZXJ5X3NjYWxhcihzcWwpCiAgICAgICAgICAgIC5mZXRjaF9vbmUoJnBvb2wpCiAgICAgICAgICAgIC5hd2FpdAogICAgICAgICAgICAudW53cmFwKCk7CiAgICAgICAgYXNzZXJ0IShjb3VudCA+IDAsICJ7dGFibGV9IHBlcmRldSBkYWRvcyBkdXJhbnRlIG8gdXBncmFkZSIpOwogICAgfQo=').decode(); assert s.count(old)==1, s.count(old); p.write_text(s.replace(old,new,1)); Path('.github/workflows/etapa3-fix-migration-count-sql.yml').unlink()"
           git diff --check
           git diff -- src-tauri/src/migration_tests.rs
 
