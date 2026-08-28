@@ -1,5 +1,6 @@
 name: Apply Etapa 3 pragma column check fix
 
+# Re-save after registration so the push workflow is active.
 on:
   push:
     branches:
