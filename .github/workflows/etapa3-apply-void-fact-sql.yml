@@ -26,26 +26,11 @@ jobs:
 
           path = Path('src-tauri/src/record_corrections.rs')
           text = path.read_text()
-          old = '''    let current_void: Option<String> =
-              sqlx::query_scalar(&format!("SELECT voided_at FROM {table} WHERE id=?"))
-                  .bind(&id)
-                  .fetch_one(&mut *tx)
-                  .await?;
-          if current_void.is_some() {
-              return Err(AppError::Validation(
-                  "O registro já está anulado.".to_owned(),
-              ));
-          }
-          let voided_at = now_tx(&mut tx).await?;
-          sqlx::query(&format!(
-              "UPDATE {table} SET voided_at=?, void_reason=? WHERE id=?"
-          ))
-          .bind(voided_at)
-          .bind(&reason)
-          .bind(&id)
-          .execute(&mut *tx)
-          .await?;
-          '''
+          function_start = text.index('async fn void_fact(')
+          start_marker = '    let current_void: Option<String> =\n'
+          end_marker = '    let after = snapshot_tx(&mut tx, snapshot_sql, &id, "Registro não encontrado.").await?;\n'
+          start = text.index(start_marker, function_start)
+          end = text.index(end_marker, start)
           new = '''    let (current_void_sql, void_sql) = match table {
               "inspections" => (
                   "SELECT voided_at FROM inspections WHERE id=?",
@@ -98,9 +83,7 @@ jobs:
               .execute(&mut *tx)
               .await?;
           '''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected exactly one target block, found {text.count(old)}')
-          path.write_text(text.replace(old, new, 1))
+          path.write_text(text[:start] + new + text[end:])
           Path('.github/workflows/etapa3-apply-void-fact-sql.yml').unlink()
           PY
 
