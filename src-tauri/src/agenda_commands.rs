@@ -28,6 +28,7 @@ pub async fn list_tasks(
     pool: State<'_, SqlitePool>,
     query: TaskQuery,
 ) -> Result<Vec<ScheduledTask>, String> {
+    agenda::reconcile_all(&pool).await.map_err(message)?;
     agenda::list(&pool, query).await.map_err(message)
 }
 
@@ -44,6 +45,7 @@ pub async fn get_agenda_summary(
     pool: State<'_, SqlitePool>,
     meliponary_id: Option<String>,
 ) -> Result<AgendaSummary, String> {
+    agenda::reconcile_all(&pool).await.map_err(message)?;
     agenda::summary(&pool, meliponary_id.as_deref())
         .await
         .map_err(message)
