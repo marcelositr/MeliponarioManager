@@ -1,0 +1,43 @@
+name: Apply Etapa 3 master_data import fix
+
+on:
+  push:
+    branches:
+      - feat/v0.8-operational-actions
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feat/v0.8-operational-actions
+          fetch-depth: 0
+
+      - name: Remove exactly one unused import
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src-tauri/src/master_data.rs')
+          s = p.read_text()
+          needle = 'use serde_json::json;\n'
+          if s.count(needle) != 1:
+              raise SystemExit(f'expected exactly one unused import, found {s.count(needle)}')
+          p.write_text(s.replace(needle, '', 1))
+          Path('.github/workflows/etapa3-fix-master-import.yml').unlink()
+          PY
+          git diff --check
+          git diff -- src-tauri/src/master_data.rs
+
+      - name: Commit focused fix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/src/master_data.rs .github/workflows/etapa3-fix-master-import.yml
+          git commit -m "fix: remove unused master data import"
+          git push origin HEAD:feat/v0.8-operational-actions
