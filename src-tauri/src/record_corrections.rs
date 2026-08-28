@@ -986,56 +986,56 @@ async fn void_fact(
     let mut tx = pool.begin().await?;
     let before = snapshot_tx(&mut tx, snapshot_sql, &id, "Registro não encontrado.").await?;
     let (current_void_sql, void_sql) = match table {
-    "inspections" => (
-        "SELECT voided_at FROM inspections WHERE id=?",
-        "UPDATE inspections SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    "feedings" => (
-        "SELECT voided_at FROM feedings WHERE id=?",
-        "UPDATE feedings SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    "production_records" => (
-        "SELECT voided_at FROM production_records WHERE id=?",
-        "UPDATE production_records SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    "box_maintenance_records" => (
-        "SELECT voided_at FROM box_maintenance_records WHERE id=?",
-        "UPDATE box_maintenance_records SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    "colony_events" => (
-        "SELECT voided_at FROM colony_events WHERE id=?",
-        "UPDATE colony_events SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    "colony_movements" => (
-        "SELECT voided_at FROM colony_movements WHERE id=?",
-        "UPDATE colony_movements SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    "movement_documents" => (
-        "SELECT voided_at FROM movement_documents WHERE id=?",
-        "UPDATE movement_documents SET voided_at=?, void_reason=? WHERE id=?",
-    ),
-    _ => {
+        "inspections" => (
+            "SELECT voided_at FROM inspections WHERE id=?",
+            "UPDATE inspections SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        "feedings" => (
+            "SELECT voided_at FROM feedings WHERE id=?",
+            "UPDATE feedings SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        "production_records" => (
+            "SELECT voided_at FROM production_records WHERE id=?",
+            "UPDATE production_records SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        "box_maintenance_records" => (
+            "SELECT voided_at FROM box_maintenance_records WHERE id=?",
+            "UPDATE box_maintenance_records SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        "colony_events" => (
+            "SELECT voided_at FROM colony_events WHERE id=?",
+            "UPDATE colony_events SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        "colony_movements" => (
+            "SELECT voided_at FROM colony_movements WHERE id=?",
+            "UPDATE colony_movements SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        "movement_documents" => (
+            "SELECT voided_at FROM movement_documents WHERE id=?",
+            "UPDATE movement_documents SET voided_at=?, void_reason=? WHERE id=?",
+        ),
+        _ => {
+            return Err(AppError::Validation(
+                "Tipo de registro inválido para anulação.".to_owned(),
+            ))
+        }
+    };
+    let current_void: Option<String> = sqlx::query_scalar(current_void_sql)
+        .bind(&id)
+        .fetch_one(&mut *tx)
+        .await?;
+    if current_void.is_some() {
         return Err(AppError::Validation(
-            "Tipo de registro inválido para anulação.".to_owned(),
-        ))
+            "O registro já está anulado.".to_owned(),
+        ));
     }
-};
-let current_void: Option<String> = sqlx::query_scalar(current_void_sql)
-    .bind(&id)
-    .fetch_one(&mut *tx)
-    .await?;
-if current_void.is_some() {
-    return Err(AppError::Validation(
-        "O registro já está anulado.".to_owned(),
-    ));
-}
-let voided_at = now_tx(&mut tx).await?;
-sqlx::query(void_sql)
-    .bind(voided_at)
-    .bind(&reason)
-    .bind(&id)
-    .execute(&mut *tx)
-    .await?;
+    let voided_at = now_tx(&mut tx).await?;
+    sqlx::query(void_sql)
+        .bind(voided_at)
+        .bind(&reason)
+        .bind(&id)
+        .execute(&mut *tx)
+        .await?;
     let after = snapshot_tx(&mut tx, snapshot_sql, &id, "Registro não encontrado.").await?;
     audit::record_tx(
         &mut tx,
