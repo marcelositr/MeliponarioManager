@@ -1,4 +1,5 @@
 use crate::{
+    agenda,
     audit::{self, AuditRecord},
     domain::{Colony, HiveBox, Meliponary, Species},
     master_data::{self, EditBox, EditColony, EditMeliponary, EditSpecies, EntityAction},
@@ -137,14 +138,34 @@ pub async fn correct_inspection(
     pool: State<'_, SqlitePool>,
     input: CorrectInspection,
 ) -> Result<(), String> {
+    let id = input.id.clone();
     record_corrections::correct_inspection(&pool, input)
+        .await
+        .map_err(message)?;
+    let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
+        .bind(id)
+        .fetch_one(&*pool)
+        .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    agenda::reconcile_inspection(&pool, &colony_id)
         .await
         .map_err(message)
 }
 
 #[tauri::command]
 pub async fn void_inspection(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
+    let id = input.id.clone();
     record_corrections::void_inspection(&pool, input)
+        .await
+        .map_err(message)?;
+    let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
+        .bind(id)
+        .fetch_one(&*pool)
+        .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    agenda::reconcile_inspection(&pool, &colony_id)
         .await
         .map_err(message)
 }
@@ -154,14 +175,34 @@ pub async fn correct_feeding(
     pool: State<'_, SqlitePool>,
     input: CorrectFeeding,
 ) -> Result<(), String> {
+    let id = input.id.clone();
     record_corrections::correct_feeding(&pool, input)
+        .await
+        .map_err(message)?;
+    let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM feedings WHERE id=?")
+        .bind(id)
+        .fetch_one(&*pool)
+        .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    agenda::reconcile_feeding(&pool, &colony_id)
         .await
         .map_err(message)
 }
 
 #[tauri::command]
 pub async fn void_feeding(pool: State<'_, SqlitePool>, input: VoidRecord) -> Result<(), String> {
+    let id = input.id.clone();
     record_corrections::void_feeding(&pool, input)
+        .await
+        .map_err(message)?;
+    let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM feedings WHERE id=?")
+        .bind(id)
+        .fetch_one(&*pool)
+        .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    agenda::reconcile_feeding(&pool, &colony_id)
         .await
         .map_err(message)
 }
@@ -191,9 +232,27 @@ pub async fn correct_box_maintenance(
     pool: State<'_, SqlitePool>,
     input: CorrectMaintenance,
 ) -> Result<(), String> {
+    let id = input.id.clone();
+    let new_box_id = input.box_id.clone();
+    let old_box_id: String =
+        sqlx::query_scalar("SELECT box_id FROM box_maintenance_records WHERE id=?")
+            .bind(&id)
+            .fetch_one(&*pool)
+            .await
+            .map_err(repository::AppError::from)
+            .map_err(message)?;
     record_corrections::correct_maintenance(&pool, input)
         .await
-        .map_err(message)
+        .map_err(message)?;
+    agenda::reconcile_maintenance(&pool, &old_box_id)
+        .await
+        .map_err(message)?;
+    if new_box_id != old_box_id {
+        agenda::reconcile_maintenance(&pool, &new_box_id)
+            .await
+            .map_err(message)?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -201,7 +260,18 @@ pub async fn void_box_maintenance(
     pool: State<'_, SqlitePool>,
     input: VoidRecord,
 ) -> Result<(), String> {
+    let id = input.id.clone();
     record_corrections::void_maintenance(&pool, input)
+        .await
+        .map_err(message)?;
+    let box_id: String =
+        sqlx::query_scalar("SELECT box_id FROM box_maintenance_records WHERE id=?")
+            .bind(id)
+            .fetch_one(&*pool)
+            .await
+            .map_err(repository::AppError::from)
+            .map_err(message)?;
+    agenda::reconcile_maintenance(&pool, &box_id)
         .await
         .map_err(message)
 }

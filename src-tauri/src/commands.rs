@@ -1,4 +1,5 @@
 use crate::{
+    agenda,
     alerts::{self, Alert},
     box_states::{self, BoxStateRecord, ChangeBoxState},
     divisions::{self, ColonyDivision, CreateDivision, GenealogyNode},
@@ -156,6 +157,7 @@ pub async fn create_box_maintenance(
     pool: State<'_, SqlitePool>,
     mut input: CreateBoxMaintenance,
 ) -> Result<BoxMaintenance, String> {
+    let box_id = input.box_id.clone();
     let maintained_at = time::normalize_or_now(&pool, &input.maintained_at, false)
         .await
         .map_err(message)?;
@@ -168,7 +170,11 @@ pub async fn create_box_maintenance(
     .map_err(message)?;
     input.maintained_at = Some(maintained_at);
     input.next_maintenance_at = next;
-    maintenance::create(&pool, input).await.map_err(message)
+    let record = maintenance::create(&pool, input).await.map_err(message)?;
+    agenda::reconcile_maintenance(&pool, &box_id)
+        .await
+        .map_err(message)?;
+    Ok(record)
 }
 
 #[tauri::command]
@@ -254,6 +260,7 @@ pub async fn create_inspection(
     pool: State<'_, SqlitePool>,
     mut input: CreateInspection,
 ) -> Result<Inspection, String> {
+    let colony_id = input.colony_id.clone();
     let inspected_at = time::normalize_or_now(&pool, &input.inspected_at, false)
         .await
         .map_err(message)?;
@@ -269,7 +276,11 @@ pub async fn create_inspection(
         .map_err(message)?;
     input.inspected_at = Some(inspected_at);
     input.next_inspection_at = next;
-    inspections::create(&pool, input).await.map_err(message)
+    let record = inspections::create(&pool, input).await.map_err(message)?;
+    agenda::reconcile_inspection(&pool, &colony_id)
+        .await
+        .map_err(message)?;
+    Ok(record)
 }
 
 #[tauri::command]
@@ -404,6 +415,7 @@ pub async fn create_feeding(
     pool: State<'_, SqlitePool>,
     mut input: CreateFeeding,
 ) -> Result<Feeding, String> {
+    let colony_id = input.colony_id.clone();
     let fed_at = time::normalize_or_now(&pool, &input.fed_at, false)
         .await
         .map_err(message)?;
@@ -419,7 +431,11 @@ pub async fn create_feeding(
         .map_err(message)?;
     input.fed_at = Some(fed_at);
     input.next_feeding_at = next;
-    feeding::create(&pool, input).await.map_err(message)
+    let record = feeding::create(&pool, input).await.map_err(message)?;
+    agenda::reconcile_feeding(&pool, &colony_id)
+        .await
+        .map_err(message)?;
+    Ok(record)
 }
 
 #[tauri::command]
