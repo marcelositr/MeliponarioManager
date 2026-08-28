@@ -32,7 +32,7 @@ jobs:
           path.write_text(text.replace(old, new, 1))
           Path(".github/workflows/etapa3-fix-pragma-column-check.yml").unlink()
           PY
-          cargo fmt --all -- --check
+          cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
           git diff --check
           git diff -- src-tauri/src/migration_tests.rs
 
