@@ -339,10 +339,7 @@ async fn stage2_upgrade_to_0014_preserves_full_realistic_history() {
             "SELECT COUNT(*) FROM box_maintenance_records",
         ),
         ("colony_events", "SELECT COUNT(*) FROM colony_events"),
-        (
-            "colony_movements",
-            "SELECT COUNT(*) FROM colony_movements",
-        ),
+        ("colony_movements", "SELECT COUNT(*) FROM colony_movements"),
         (
             "movement_documents",
             "SELECT COUNT(*) FROM movement_documents",
@@ -351,19 +348,13 @@ async fn stage2_upgrade_to_0014_preserves_full_realistic_history() {
             "colony_lifecycle_records",
             "SELECT COUNT(*) FROM colony_lifecycle_records",
         ),
-        (
-            "colony_divisions",
-            "SELECT COUNT(*) FROM colony_divisions",
-        ),
+        ("colony_divisions", "SELECT COUNT(*) FROM colony_divisions"),
         (
             "inspection_photos",
             "SELECT COUNT(*) FROM inspection_photos",
         ),
     ] {
-        let count: i64 = sqlx::query_scalar(sql)
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+        let count: i64 = sqlx::query_scalar(sql).fetch_one(&pool).await.unwrap();
         assert!(count > 0, "{table} perdeu dados durante o upgrade");
     }
 
