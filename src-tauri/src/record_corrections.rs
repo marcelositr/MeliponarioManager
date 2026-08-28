@@ -549,13 +549,13 @@ pub async fn correct_event(pool: &SqlitePool, input: CorrectEvent) -> Result<(),
     let box_id = historical_box_for_colony(pool, &colony_id, &occurred_at).await?;
     let mut tx = pool.begin().await?;
     let snapshot_sql = "SELECT json_object('id',id,'colony_id',colony_id,'box_id',box_id,'event_type',event_type,'occurred_at',occurred_at,'title',title,'details',details,'severity',severity,'voided_at',voided_at) FROM colony_events WHERE id=?";
-    let before = snapshot_tx(&mut tx, snapshot_sql, &id, "Evento não encontrada.").await?;
+    let before = snapshot_tx(&mut tx, snapshot_sql, &id, "Evento não encontrado.").await?;
     let corrected_at = now_tx(&mut tx).await?;
     sqlx::query("UPDATE colony_events SET box_id=?, event_type=?, occurred_at=?, title=?, details=?, severity=?, corrected_at=? WHERE id=? AND voided_at IS NULL")
         .bind(box_id).bind(event_type).bind(&occurred_at).bind(optional(&input.title))
         .bind(optional(&input.details)).bind(severity).bind(corrected_at).bind(&id)
         .execute(&mut *tx).await?;
-    let after = snapshot_tx(&mut tx, snapshot_sql, &id, "Evento não encontrada.").await?;
+    let after = snapshot_tx(&mut tx, snapshot_sql, &id, "Evento não encontrado.").await?;
     audit::record_tx(
         &mut tx,
         "colony_event",
