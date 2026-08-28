@@ -62,7 +62,16 @@ async fn restore_box(
 pub async fn reverse_lifecycle(p: &SqlitePool, input: ReverseRecord) -> Result<(), AppError> {
     let id = req(&input.id, "Transição")?;
     let reason = req(&input.reason, "Motivo da reversão")?;
-    let row:Option<(String,String,String,String,String,Option<String>,Option<String>)>=sqlx::query_as("SELECT colony_id,action,occurred_at,previous_status,new_status,box_id,reversed_at FROM colony_lifecycle_records WHERE id=?").bind(&id).fetch_optional(p).await?;
+    type LifecycleReversalRow = (
+        String,
+        String,
+        String,
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+    );
+    let row: Option<LifecycleReversalRow> = sqlx::query_as("SELECT colony_id,action,occurred_at,previous_status,new_status,box_id,reversed_at FROM colony_lifecycle_records WHERE id=?").bind(&id).fetch_optional(p).await?;
     let (c, action, at, previous, new_status, box_id, reversed) =
         row.ok_or_else(|| AppError::NotFound("Transição não encontrada.".into()))?;
     if reversed.is_some() {
