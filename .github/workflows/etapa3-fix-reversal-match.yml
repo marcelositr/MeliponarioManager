@@ -12,49 +12,28 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout target branch
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
         with:
           ref: feat/v0.8-operational-actions
           fetch-depth: 0
 
-      - name: Apply one-token match arm fix
-        shell: bash
+      - name: Patch exactly one match arm
         run: |
-          python - <<'PY'
+          python3 - <<'PY'
           from pathlib import Path
-
-          path = Path('src-tauri/src/reversals.rs')
-          text = path.read_text()
-          old = '''            sqlx::query("UPDATE colonies SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
-                .bind(&previous)
-                .bind(&c)
-                .execute(&mut *tx)
-                .await?
-        }
-'''
-          new = '''            sqlx::query("UPDATE colonies SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
-                .bind(&previous)
-                .bind(&c)
-                .execute(&mut *tx)
-                .await?;
-        }
-'''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected exactly one target block, found {text.count(old)}')
-          path.write_text(text.replace(old, new, 1))
-          Path('.github/workflows/etapa3-fix-reversal-match.yml').unlink()
+          p = Path("src-tauri/src/reversals.rs")
+          s = p.read_text()
+          needle = ".execute(&mut *tx)\n                .await?\n        }\n        _ => {"
+          replacement = ".execute(&mut *tx)\n                .await?;\n        }\n        _ => {"
+          if s.count(needle) != 1:
+              raise SystemExit(f"target count: {s.count(needle)}")
+          p.write_text(s.replace(needle, replacement, 1))
+          Path(".github/workflows/etapa3-fix-reversal-match.yml").unlink()
           PY
-
-      - name: Verify focused diff
-        shell: bash
-        run: |
           git diff --check
           git diff -- src-tauri/src/reversals.rs
-          test "$(git diff --numstat -- src-tauri/src/reversals.rs | awk '{print $1+$2}')" = "2"
 
-      - name: Commit focused fix
-        shell: bash
+      - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
