@@ -1,0 +1,45 @@
+name: Apply Etapa 3 rustfmt artifact
+
+on:
+  push:
+    branches:
+      - feat/v0.8-operational-actions
+    paths:
+      - .github/workflows/apply-rustfmt-etapa3.yml
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout operational actions branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/v0.8-operational-actions
+
+      - name: Download official rustfmt artifact from CI run 115
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/9696139401/zip" > /tmp/rustfmt-etapa3.zip
+          mkdir -p /tmp/rustfmt-etapa3
+          unzip -q /tmp/rustfmt-etapa3.zip -d /tmp/rustfmt-etapa3
+
+      - name: Apply only official formatted Rust sources
+        run: |
+          for source in /tmp/rustfmt-etapa3/*.rs; do
+            cp "$source" "src-tauri/src/$(basename "$source")"
+          done
+          rm .github/workflows/apply-rustfmt-etapa3.yml
+          git diff --check
+
+      - name: Commit official formatting result
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/src .github/workflows/apply-rustfmt-etapa3.yml
+          git commit -m "style: apply official rustfmt artifact"
+          git push origin HEAD:feat/v0.8-operational-actions
