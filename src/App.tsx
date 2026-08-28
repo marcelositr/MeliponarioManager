@@ -15,7 +15,7 @@ const viewTitles: Record<View, string> = {
 };
 
 function App() {
-  const { data, stats, connectionStatus, busy, feedback, setFeedback, refresh, actions } = useAppData();
+  const { data, stats, recordStateMap, connectionStatus, busy, feedback, setFeedback, refresh, actions } = useAppData();
   const [activeView, setActiveView] = useState<View>("dashboard");
   const [appVersion, setAppVersion] = useState("...");
   const [theme, setTheme] = useState<ThemeMode>(() => normalizeTheme(localStorage.getItem(UI_STORAGE.theme)));
@@ -75,7 +75,7 @@ function App() {
           </div>
         </header>
         {feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button className="icon-button" type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso"><Icon name="close" /></button></div>}
-        <div className="workspace-content"><WorkspaceRouter activeView={activeView} data={data} stats={stats} busy={busy} actions={actions} onNavigate={setActiveView} /></div>
+        <div className="workspace-content"><WorkspaceRouter activeView={activeView} data={data} stats={stats} busy={busy} actions={actions} recordStateMap={recordStateMap} onNavigate={setActiveView} /></div>
       </main>
     </div>
     <StatusBar connectionStatus={connectionStatus} activeMeliponaryLabel={activeMeliponaryLabel} appVersion={appVersion} />
