@@ -25,7 +25,7 @@ jobs:
           path = Path("src-tauri/src/migration_tests.rs")
           text = path.read_text()
           old = "        let count: i64 = sqlx::query_scalar(&format!(\n            \"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name='{column}'\"\n        ))\n        .fetch_one(&pool)\n        .await\n        .unwrap();\n"
-          new = "        let count: i64 = sqlx::query_scalar(\n            \"SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?\",\n        )\n        .bind(table)\n        .bind(column)\n        .fetch_one(&pool)\n        .await\n        .unwrap();\n"
+          new = "        let count: i64 =\n            sqlx::query_scalar(\"SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?\")\n                .bind(table)\n                .bind(column)\n                .fetch_one(&pool)\n                .await\n                .unwrap();\n"
           count = text.count(old)
           if count != 1:
               raise SystemExit(f"expected exactly one dynamic pragma query, found {count}")
