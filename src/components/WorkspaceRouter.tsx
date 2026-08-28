@@ -37,9 +37,9 @@ export function WorkspaceRouter({ activeView, data, stats, busy, actions, record
   if (activeView === "production") return <ProductionPage colonies={data.colonies} busy={busy} onCreate={actions.createProduction} recordStateMap={recordStateMap} onCorrect={actions.correctProduction} onVoid={actions.voidProduction} />;
   if (activeView === "history") return <EventsTimelinePage colonies={data.colonies} busy={busy} onCreate={actions.createEvent} recordStateMap={recordStateMap} onCorrect={actions.correctEvent} onVoid={actions.voidEvent} />;
   if (activeView === "alerts") return <AlertsPage />;
-  if (activeView === "genealogy") return <DivisionsPage colonies={data.colonies} busy={busy} onCreate={actions.createDivision} />;
-  if (activeView === "movements") return <MovementsPage colonies={data.colonies} meliponaries={data.meliponaries} boxes={data.boxes} busy={busy} onCreateMovement={actions.createMovement} onCreateDocument={actions.createMovementDocument} />;
-  if (activeView === "assets") return <AssetsPage colonies={data.colonies} boxes={data.boxes} busy={busy} onImportPhoto={actions.importInspectionPhoto} onDeletePhoto={actions.deleteInspectionPhoto} onCreateMaintenance={actions.createBoxMaintenance} />;
-  if (activeView === "lifecycle") return <LifecyclePage colonies={data.colonies} busy={busy} onChange={actions.changeLifecycle} />;
+  if (activeView === "genealogy") return <DivisionsPage colonies={data.colonies} busy={busy} onCreate={actions.createDivision} recordStateMap={recordStateMap} onCorrect={actions.correctDivision} onVoid={actions.voidDivision} />;
+  if (activeView === "movements") return <MovementsPage colonies={data.colonies} meliponaries={data.meliponaries} boxes={data.boxes} busy={busy} recordStateMap={recordStateMap} onCreateMovement={actions.createMovement} onCreateDocument={actions.createMovementDocument} onCorrectMovement={actions.correctMovement} onVoidTransport={actions.voidTransport} onReverseMovement={actions.reverseMovement} onUpdateDocument={actions.updateMovementDocument} onVoidDocument={actions.voidMovementDocument} />;
+  if (activeView === "assets") return <AssetsPage colonies={data.colonies} boxes={data.boxes} busy={busy} recordStateMap={recordStateMap} onImportPhoto={actions.importInspectionPhoto} onDeletePhoto={actions.deleteInspectionPhoto} onCreateMaintenance={actions.createBoxMaintenance} onCorrectMaintenance={actions.correctMaintenance} onVoidMaintenance={actions.voidMaintenance} />;
+  if (activeView === "lifecycle") return <LifecyclePage colonies={data.colonies} busy={busy} recordStateMap={recordStateMap} onChange={actions.changeLifecycle} onReverse={actions.reverseLifecycle} />;
   return <DataManagementPage />;
 }
