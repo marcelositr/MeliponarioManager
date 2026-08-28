@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, feat/v0.8-foundation-integrity]
+    branches: [main, feat/v0.8-foundation-integrity, feat/v0.8-enterprise-shell]
   push:
     branches: [main]
 
