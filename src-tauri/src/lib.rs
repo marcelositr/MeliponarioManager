@@ -48,6 +48,8 @@ pub fn run() {
             let database_path = data_dir.join("meliponario.db");
             let pool: SqlitePool =
                 tauri::async_runtime::block_on(database::initialize(&database_path))?;
+            tauri::async_runtime::block_on(agenda::reconcile_all(&pool))
+                .map_err(std::io::Error::other)?;
             app.manage(pool);
 
             Ok(())
