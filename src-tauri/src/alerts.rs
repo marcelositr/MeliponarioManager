@@ -135,79 +135,209 @@ mod tests {
             .await
             .unwrap();
         sqlx::migrate!("../migrations").run(&pool).await.unwrap();
-        let mel = repository::create_meliponary(&pool, CreateMeliponary {
-            name: "Principal".into(), responsible_name: None, location: None, notes: None,
-        }).await.unwrap();
-        let species = repository::create_species(&pool, CreateSpecies {
-            common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None,
-        }).await.unwrap();
-        let box_record = repository::create_box(&pool, CreateHiveBox {
-            meliponary_id: mel.id.clone(), code: "CX-001".into(), model: None,
-            material: None, location_note: None, notes: None,
-        }).await.unwrap();
-        let colony = repository::create_colony(&pool, CreateColony {
-            meliponary_id: mel.id.clone(), species_id: species.id, code: "JAT-001".into(),
-            origin_type: None, origin_notes: None,
-            installed_at: Some("2026-01-01 09:00:00".into()), mother_colony_id: None, notes: None,
-        }).await.unwrap();
-        repository::place_colony(&pool, PlaceColony {
-            colony_id: colony.id.clone(), box_id: box_record.id.clone(),
-            started_at: Some("2026-01-01 09:00:00".into()), reason: None, notes: None,
-        }).await.unwrap();
+        let mel = repository::create_meliponary(
+            &pool,
+            CreateMeliponary {
+                name: "Principal".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let species = repository::create_species(
+            &pool,
+            CreateSpecies {
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let box_record = repository::create_box(
+            &pool,
+            CreateHiveBox {
+                meliponary_id: mel.id.clone(),
+                code: "CX-001".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let colony = repository::create_colony(
+            &pool,
+            CreateColony {
+                meliponary_id: mel.id.clone(),
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: Some("2026-01-01 09:00:00".into()),
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        repository::place_colony(
+            &pool,
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: box_record.id.clone(),
+                started_at: Some("2026-01-01 09:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         (pool, mel.id, colony.id, box_record.id)
     }
 
     #[tokio::test]
     async fn overdue_task_is_the_single_due_alert_source() {
         let (pool, meliponary_id, colony_id, _) = seeded().await;
-        inspections::create(&pool, CreateInspection {
-            colony_id: colony_id.clone(), inspected_at: Some("2026-01-10 10:00:00".into()),
-            strength: Some("medium".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: Some("2026-01-11 10:00:00".into()),
-        }).await.unwrap();
-        assert!(list(&pool).await.unwrap().iter().all(|item| item.alert_type != "inspection_due"));
-        agenda::reconcile_inspection(&pool, &colony_id).await.unwrap();
+        inspections::create(
+            &pool,
+            CreateInspection {
+                colony_id: colony_id.clone(),
+                inspected_at: Some("2026-01-10 10:00:00".into()),
+                strength: Some("medium".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: Some("2026-01-11 10:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
+        assert!(list(&pool)
+            .await
+            .unwrap()
+            .iter()
+            .all(|item| item.alert_type != "inspection_due"));
+        agenda::reconcile_inspection(&pool, &colony_id)
+            .await
+            .unwrap();
         let alerts = list(&pool).await.unwrap();
-        assert_eq!(alerts.iter().filter(|item| item.alert_type == "inspection_due").count(), 1);
-        assert_eq!(alerts.iter().find(|item| item.alert_type == "inspection_due").unwrap().meliponary_id, meliponary_id);
+        assert_eq!(
+            alerts
+                .iter()
+                .filter(|item| item.alert_type == "inspection_due")
+                .count(),
+            1
+        );
+        assert_eq!(
+            alerts
+                .iter()
+                .find(|item| item.alert_type == "inspection_due")
+                .unwrap()
+                .meliponary_id,
+            meliponary_id
+        );
     }
 
     #[tokio::test]
     async fn completed_or_cancelled_task_does_not_alert() {
         let (pool, meliponary_id, colony_id, _) = seeded().await;
         let old = "2026-01-10 10:00:00".to_owned();
-        let completed = agenda::create_manual(&pool, CreateTask {
-            meliponary_id: meliponary_id.clone(), colony_id: Some(colony_id.clone()), box_id: None,
-            task_type: "inspection".into(), title: "Inspecionar".into(), description: None,
-            scheduled_for: old.clone(), priority: None,
-        }).await;
-        assert!(completed.is_err(), "manual past guard should reject distant history");
+        let completed = agenda::create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id: meliponary_id.clone(),
+                colony_id: Some(colony_id.clone()),
+                box_id: None,
+                task_type: "inspection".into(),
+                title: "Inspecionar".into(),
+                description: None,
+                scheduled_for: old.clone(),
+                priority: None,
+            },
+        )
+        .await;
+        assert!(
+            completed.is_err(),
+            "manual past guard should reject distant history"
+        );
         sqlx::query("INSERT INTO scheduled_tasks(id,meliponary_id,colony_id,task_type,title,scheduled_for,status,completed_at) VALUES('t1',?,?,'inspection','Inspecionar',?,'completed',?)")
             .bind(&meliponary_id).bind(&colony_id).bind(&old).bind(&old).execute(&pool).await.unwrap();
         sqlx::query("INSERT INTO scheduled_tasks(id,meliponary_id,colony_id,task_type,title,scheduled_for,status,cancelled_at,cancellation_reason) VALUES('t2',?,?,'inspection','Inspecionar',?,'cancelled',?,'Sem necessidade')")
             .bind(&meliponary_id).bind(&colony_id).bind(&old).bind(&old).execute(&pool).await.unwrap();
-        assert!(list(&pool).await.unwrap().iter().all(|item| item.task_id.is_none()));
+        assert!(list(&pool)
+            .await
+            .unwrap()
+            .iter()
+            .all(|item| item.task_id.is_none()));
     }
 
     #[tokio::test]
     async fn weak_colony_remains_derived_from_latest_valid_inspection() {
         let (pool, _, colony_id, _) = seeded().await;
-        let old = inspections::create(&pool, CreateInspection {
-            colony_id: colony_id.clone(), inspected_at: Some("2026-01-10 10:00:00".into()),
-            strength: Some("weak".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: None,
-        }).await.unwrap();
-        inspections::create(&pool, CreateInspection {
-            colony_id: colony_id.clone(), inspected_at: Some("2026-02-10 10:00:00".into()),
-            strength: Some("strong".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: None,
-        }).await.unwrap();
-        assert!(list(&pool).await.unwrap().iter().all(|item| item.alert_type != "weak_colony"));
-        record_corrections::void_inspection(&pool, VoidRecord { id: old.id, reason: "Registro antigo inválido".into() }).await.unwrap();
-        assert!(list(&pool).await.unwrap().iter().all(|item| item.alert_type != "weak_colony"));
+        let old = inspections::create(
+            &pool,
+            CreateInspection {
+                colony_id: colony_id.clone(),
+                inspected_at: Some("2026-01-10 10:00:00".into()),
+                strength: Some("weak".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: None,
+            },
+        )
+        .await
+        .unwrap();
+        inspections::create(
+            &pool,
+            CreateInspection {
+                colony_id: colony_id.clone(),
+                inspected_at: Some("2026-02-10 10:00:00".into()),
+                strength: Some("strong".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: None,
+            },
+        )
+        .await
+        .unwrap();
+        assert!(list(&pool)
+            .await
+            .unwrap()
+            .iter()
+            .all(|item| item.alert_type != "weak_colony"));
+        record_corrections::void_inspection(
+            &pool,
+            VoidRecord {
+                id: old.id,
+                reason: "Registro antigo inválido".into(),
+            },
+        )
+        .await
+        .unwrap();
+        assert!(list(&pool)
+            .await
+            .unwrap()
+            .iter()
+            .all(|item| item.alert_type != "weak_colony"));
     }
 
     #[tokio::test]
@@ -215,7 +345,10 @@ mod tests {
         let (pool, meliponary_id, colony_id, _) = seeded().await;
         sqlx::query("INSERT INTO scheduled_tasks(id,meliponary_id,colony_id,task_type,title,scheduled_for) VALUES('t1',?,?,'inspection','Inspecionar','2026-01-01 10:00:00')")
             .bind(&meliponary_id).bind(&colony_id).execute(&pool).await.unwrap();
-        assert_eq!(list_for(&pool, Some(&meliponary_id)).await.unwrap().len(), 1);
+        assert_eq!(
+            list_for(&pool, Some(&meliponary_id)).await.unwrap().len(),
+            1
+        );
         assert!(list_for(&pool, Some("missing")).await.unwrap().is_empty());
     }
 }

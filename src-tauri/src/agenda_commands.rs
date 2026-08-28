@@ -1,6 +1,11 @@
 use crate::{
-    agenda::{self, AgendaSummary, CreateTask, DuplicateTask, RescheduleTask, ScheduledTask, TaskQuery, TaskReason},
-    agenda_execution::{self, CompleteFeedingTask, CompleteInspectionTask, CompleteMaintenanceTask, TaskCompletion},
+    agenda::{
+        self, AgendaSummary, CreateTask, DuplicateTask, RescheduleTask, ScheduledTask, TaskQuery,
+        TaskReason,
+    },
+    agenda_execution::{
+        self, CompleteFeedingTask, CompleteInspectionTask, CompleteMaintenanceTask, TaskCompletion,
+    },
     repository::AppError,
 };
 use sqlx::SqlitePool;
@@ -73,7 +78,9 @@ pub async fn complete_generic_task(
     pool: State<'_, SqlitePool>,
     task_id: String,
 ) -> Result<ScheduledTask, String> {
-    agenda::complete_generic(&pool, &task_id).await.map_err(message)
+    agenda::complete_generic(&pool, &task_id)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]

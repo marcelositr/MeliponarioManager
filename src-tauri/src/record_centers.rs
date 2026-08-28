@@ -73,10 +73,7 @@ pub struct BoxOccupancyHistory {
     pub corrected_at: Option<String>,
 }
 
-pub async fn colony(
-    pool: &SqlitePool,
-    colony_id: &str,
-) -> Result<ColonyRecordCenter, AppError> {
+pub async fn colony(pool: &SqlitePool, colony_id: &str) -> Result<ColonyRecordCenter, AppError> {
     let now = time::local_now(pool).await?;
     Ok(sqlx::query_as::<_, ColonyRecordCenter>(
         "WITH latest_inspection AS (
@@ -193,10 +190,7 @@ pub async fn box_occupancies(
     .await?)
 }
 
-pub async fn box_photos(
-    pool: &SqlitePool,
-    box_id: &str,
-) -> Result<Vec<InspectionPhoto>, AppError> {
+pub async fn box_photos(pool: &SqlitePool, box_id: &str) -> Result<Vec<InspectionPhoto>, AppError> {
     Ok(sqlx::query_as::<_, InspectionPhoto>(
         "SELECT p.id,p.inspection_id,i.colony_id,c.code colony_code,p.relative_path,
                 p.original_name,p.mime_type,p.byte_size,p.captured_at,p.notes,p.created_at
@@ -216,7 +210,9 @@ pub async fn get_colony_record_center(
     pool: State<'_, SqlitePool>,
     colony_id: String,
 ) -> Result<ColonyRecordCenter, String> {
-    colony(&pool, &colony_id).await.map_err(|error| error.to_string())
+    colony(&pool, &colony_id)
+        .await
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -224,7 +220,9 @@ pub async fn get_box_record_center(
     pool: State<'_, SqlitePool>,
     box_id: String,
 ) -> Result<BoxRecordCenter, String> {
-    box_center(&pool, &box_id).await.map_err(|error| error.to_string())
+    box_center(&pool, &box_id)
+        .await
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -268,35 +266,95 @@ mod tests {
     use sqlx::sqlite::SqlitePoolOptions;
 
     async fn seeded() -> (SqlitePool, String, String, String) {
-        let pool = SqlitePoolOptions::new().max_connections(1).connect("sqlite::memory:").await.unwrap();
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
         sqlx::migrate!("../migrations").run(&pool).await.unwrap();
-        let mel = repository::create_meliponary(&pool, CreateMeliponary {
-            name: "Principal".into(), responsible_name: Some("Responsável".into()), location: Some("Sítio".into()), notes: None,
-        }).await.unwrap();
-        let species = repository::create_species(&pool, CreateSpecies {
-            common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None,
-        }).await.unwrap();
-        let box_record = repository::create_box(&pool, CreateHiveBox {
-            meliponary_id: mel.id.clone(), code: "CX-001".into(), model: Some("INPA".into()), material: Some("Madeira".into()), location_note: Some("Setor A".into()), notes: None,
-        }).await.unwrap();
-        let colony = repository::create_colony(&pool, CreateColony {
-            meliponary_id: mel.id.clone(), species_id: species.id, code: "JAT-001".into(), origin_type: None,
-            origin_notes: Some("Origem conhecida".into()), installed_at: Some("2026-01-01 09:00:00".into()), mother_colony_id: None, notes: None,
-        }).await.unwrap();
-        repository::place_colony(&pool, PlaceColony {
-            colony_id: colony.id.clone(), box_id: box_record.id.clone(), started_at: Some("2026-01-01 09:00:00".into()), reason: Some("Instalação".into()), notes: None,
-        }).await.unwrap();
+        let mel = repository::create_meliponary(
+            &pool,
+            CreateMeliponary {
+                name: "Principal".into(),
+                responsible_name: Some("Responsável".into()),
+                location: Some("Sítio".into()),
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let species = repository::create_species(
+            &pool,
+            CreateSpecies {
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let box_record = repository::create_box(
+            &pool,
+            CreateHiveBox {
+                meliponary_id: mel.id.clone(),
+                code: "CX-001".into(),
+                model: Some("INPA".into()),
+                material: Some("Madeira".into()),
+                location_note: Some("Setor A".into()),
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let colony = repository::create_colony(
+            &pool,
+            CreateColony {
+                meliponary_id: mel.id.clone(),
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: Some("Origem conhecida".into()),
+                installed_at: Some("2026-01-01 09:00:00".into()),
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        repository::place_colony(
+            &pool,
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: box_record.id.clone(),
+                started_at: Some("2026-01-01 09:00:00".into()),
+                reason: Some("Instalação".into()),
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         (pool, mel.id, colony.id, box_record.id)
     }
 
     #[tokio::test]
     async fn record_centers_derive_context_without_new_fact_tables() {
         let (pool, meliponary_id, colony_id, box_id) = seeded().await;
-        agenda::create_manual(&pool, CreateTask {
-            meliponary_id: meliponary_id.clone(), colony_id: Some(colony_id.clone()), box_id: None,
-            task_type: "inspection".into(), title: "Inspecionar JAT-001".into(), description: None,
-            scheduled_for: time::local_now(&pool).await.unwrap(), priority: None,
-        }).await.unwrap();
+        agenda::create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id: meliponary_id.clone(),
+                colony_id: Some(colony_id.clone()),
+                box_id: None,
+                task_type: "inspection".into(),
+                title: "Inspecionar JAT-001".into(),
+                description: None,
+                scheduled_for: time::local_now(&pool).await.unwrap(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
         let colony_record = colony(&pool, &colony_id).await.unwrap();
         assert_eq!(colony_record.code, "JAT-001");
         assert_eq!(colony_record.current_box_code.as_deref(), Some("CX-001"));

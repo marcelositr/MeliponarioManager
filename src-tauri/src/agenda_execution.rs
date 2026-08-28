@@ -126,10 +126,9 @@ pub async fn complete_inspection(
             "A tarefa não está disponível para registrar inspeção.".to_owned(),
         ));
     }
-    let colony_id = task
-        .colony_id
-        .clone()
-        .ok_or_else(|| AppError::Validation("A tarefa de inspeção não possui colônia.".to_owned()))?;
+    let colony_id = task.colony_id.clone().ok_or_else(|| {
+        AppError::Validation("A tarefa de inspeção não possui colônia.".to_owned())
+    })?;
     let inspected_at = time::normalize_or_now(pool, &input.inspected_at, false).await?;
     let next = time::normalize_optional(&input.next_inspection_at, false)?;
     time::ensure_not_before(
@@ -173,14 +172,8 @@ pub async fn complete_inspection(
     .bind(next)
     .execute(&mut *tx)
     .await?;
-    agenda::mark_completed_by_fact_tx(
-        &mut tx,
-        &task.id,
-        "inspection",
-        "inspection",
-        &fact_id,
-    )
-    .await?;
+    agenda::mark_completed_by_fact_tx(&mut tx, &task.id, "inspection", "inspection", &fact_id)
+        .await?;
     tx.commit().await?;
     agenda::reconcile_inspection(pool, &colony_id).await?;
     Ok(TaskCompletion {
@@ -200,10 +193,9 @@ pub async fn complete_feeding(
             "A tarefa não está disponível para registrar alimentação.".to_owned(),
         ));
     }
-    let colony_id = task
-        .colony_id
-        .clone()
-        .ok_or_else(|| AppError::Validation("A tarefa de alimentação não possui colônia.".to_owned()))?;
+    let colony_id = task.colony_id.clone().ok_or_else(|| {
+        AppError::Validation("A tarefa de alimentação não possui colônia.".to_owned())
+    })?;
     let fed_at = time::normalize_or_now(pool, &input.fed_at, false).await?;
     let next = time::normalize_optional(&input.next_feeding_at, false)?;
     time::ensure_not_before(
@@ -264,10 +256,9 @@ pub async fn complete_maintenance(
             "A tarefa não está disponível para registrar manutenção.".to_owned(),
         ));
     }
-    let box_id = task
-        .box_id
-        .clone()
-        .ok_or_else(|| AppError::Validation("A tarefa de manutenção não possui caixa.".to_owned()))?;
+    let box_id = task.box_id.clone().ok_or_else(|| {
+        AppError::Validation("A tarefa de manutenção não possui caixa.".to_owned())
+    })?;
     let maintained_at = time::normalize_or_now(pool, &input.maintained_at, false).await?;
     let next = time::normalize_optional(&input.next_maintenance_at, false)?;
     time::ensure_not_before(
@@ -277,14 +268,17 @@ pub async fn complete_maintenance(
     )?;
     let maintenance_type = required(&input.maintenance_type, "Tipo de manutenção")?;
     if !MAINTENANCE_TYPES.contains(&maintenance_type.as_str()) {
-        return Err(AppError::Validation("Tipo de manutenção inválido.".to_owned()));
+        return Err(AppError::Validation(
+            "Tipo de manutenção inválido.".to_owned(),
+        ));
     }
     let cost = maintenance_cost(input.cost)?;
     let box_status: Option<String> = sqlx::query_scalar("SELECT status FROM boxes WHERE id=?")
         .bind(&box_id)
         .fetch_optional(pool)
         .await?;
-    let box_status = box_status.ok_or_else(|| AppError::NotFound("Caixa não encontrada.".to_owned()))?;
+    let box_status =
+        box_status.ok_or_else(|| AppError::NotFound("Caixa não encontrada.".to_owned()))?;
     if box_status == "retired" {
         return Err(AppError::Validation(
             "Caixa aposentada não pode receber nova manutenção operacional.".to_owned(),
@@ -319,14 +313,8 @@ pub async fn complete_maintenance(
     .bind(next)
     .execute(&mut *tx)
     .await?;
-    agenda::mark_completed_by_fact_tx(
-        &mut tx,
-        &task.id,
-        "maintenance",
-        "maintenance",
-        &fact_id,
-    )
-    .await?;
+    agenda::mark_completed_by_fact_tx(&mut tx, &task.id, "maintenance", "maintenance", &fact_id)
+        .await?;
     tx.commit().await?;
     agenda::reconcile_maintenance(pool, &box_id).await?;
     Ok(TaskCompletion {
@@ -353,77 +341,194 @@ mod tests {
             .await
             .unwrap();
         sqlx::migrate!("../migrations").run(&pool).await.unwrap();
-        let mel = repository::create_meliponary(&pool, CreateMeliponary {
-            name: "Principal".into(), responsible_name: None, location: None, notes: None,
-        }).await.unwrap();
-        let species = repository::create_species(&pool, CreateSpecies {
-            common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None,
-        }).await.unwrap();
-        let box_record = repository::create_box(&pool, CreateHiveBox {
-            meliponary_id: mel.id.clone(), code: "CX-001".into(), model: None,
-            material: None, location_note: None, notes: None,
-        }).await.unwrap();
-        let colony = repository::create_colony(&pool, CreateColony {
-            meliponary_id: mel.id.clone(), species_id: species.id, code: "JAT-001".into(),
-            origin_type: None, origin_notes: None, installed_at: Some("2026-01-01 09:00:00".into()),
-            mother_colony_id: None, notes: None,
-        }).await.unwrap();
-        repository::place_colony(&pool, PlaceColony {
-            colony_id: colony.id.clone(), box_id: box_record.id.clone(),
-            started_at: Some("2026-01-01 09:00:00".into()), reason: None, notes: None,
-        }).await.unwrap();
+        let mel = repository::create_meliponary(
+            &pool,
+            CreateMeliponary {
+                name: "Principal".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let species = repository::create_species(
+            &pool,
+            CreateSpecies {
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let box_record = repository::create_box(
+            &pool,
+            CreateHiveBox {
+                meliponary_id: mel.id.clone(),
+                code: "CX-001".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let colony = repository::create_colony(
+            &pool,
+            CreateColony {
+                meliponary_id: mel.id.clone(),
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: Some("2026-01-01 09:00:00".into()),
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        repository::place_colony(
+            &pool,
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: box_record.id.clone(),
+                started_at: Some("2026-01-01 09:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
         (pool, mel.id, colony.id, box_record.id)
     }
 
     #[tokio::test]
     async fn inspection_completion_is_atomic_and_links_fact() {
         let (pool, meliponary_id, colony_id, _) = seeded().await;
-        let task = agenda::create_manual(&pool, CreateTask {
-            meliponary_id, colony_id: Some(colony_id), box_id: None,
-            task_type: "inspection".into(), title: "Inspecionar JAT-001".into(),
-            description: None, scheduled_for: time::local_now(&pool).await.unwrap(), priority: None,
-        }).await.unwrap();
-        let result = complete_inspection(&pool, CompleteInspectionTask {
-            task_id: task.id.clone(), inspected_at: Some("2026-03-01 10:00:00".into()),
-            strength: Some("strong".into()), queen_present: Some(true), laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: Some("2026-03-08 10:00:00".into()),
-        }).await.unwrap();
+        let task = agenda::create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id,
+                colony_id: Some(colony_id),
+                box_id: None,
+                task_type: "inspection".into(),
+                title: "Inspecionar JAT-001".into(),
+                description: None,
+                scheduled_for: time::local_now(&pool).await.unwrap(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+        let result = complete_inspection(
+            &pool,
+            CompleteInspectionTask {
+                task_id: task.id.clone(),
+                inspected_at: Some("2026-03-01 10:00:00".into()),
+                strength: Some("strong".into()),
+                queen_present: Some(true),
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: Some("2026-03-08 10:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(result.task.status, "completed");
-        assert_eq!(result.task.completed_by_id.as_deref(), Some(result.fact_id.as_str()));
+        assert_eq!(
+            result.task.completed_by_id.as_deref(),
+            Some(result.fact_id.as_str())
+        );
         let facts: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM inspections WHERE id=?")
-            .bind(&result.fact_id).fetch_one(&pool).await.unwrap();
+            .bind(&result.fact_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(facts, 1);
-        let pending = agenda::list(&pool, TaskQuery {
-            view: Some("pending".into()), task_type: Some("inspection".into()), ..Default::default()
-        }).await.unwrap();
+        let pending = agenda::list(
+            &pool,
+            TaskQuery {
+                view: Some("pending".into()),
+                task_type: Some("inspection".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(pending.len(), 1);
     }
 
     #[tokio::test]
     async fn feeding_and_maintenance_completion_link_real_facts() {
         let (pool, meliponary_id, colony_id, box_id) = seeded().await;
-        let feeding_task = agenda::create_manual(&pool, CreateTask {
-            meliponary_id: meliponary_id.clone(), colony_id: Some(colony_id), box_id: None,
-            task_type: "feeding".into(), title: "Alimentar JAT-001".into(), description: None,
-            scheduled_for: time::local_now(&pool).await.unwrap(), priority: None,
-        }).await.unwrap();
-        let feeding = complete_feeding(&pool, CompleteFeedingTask {
-            task_id: feeding_task.id, fed_at: Some("2026-03-01 11:00:00".into()),
-            food_type: "Xarope".into(), quantity: Some(20.0), unit: Some("ml".into()),
-            response_notes: None, notes: None, next_feeding_at: None,
-        }).await.unwrap();
+        let feeding_task = agenda::create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id: meliponary_id.clone(),
+                colony_id: Some(colony_id),
+                box_id: None,
+                task_type: "feeding".into(),
+                title: "Alimentar JAT-001".into(),
+                description: None,
+                scheduled_for: time::local_now(&pool).await.unwrap(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+        let feeding = complete_feeding(
+            &pool,
+            CompleteFeedingTask {
+                task_id: feeding_task.id,
+                fed_at: Some("2026-03-01 11:00:00".into()),
+                food_type: "Xarope".into(),
+                quantity: Some(20.0),
+                unit: Some("ml".into()),
+                response_notes: None,
+                notes: None,
+                next_feeding_at: None,
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(feeding.task.status, "completed");
-        let maintenance_task = agenda::create_manual(&pool, CreateTask {
-            meliponary_id, colony_id: None, box_id: Some(box_id),
-            task_type: "maintenance".into(), title: "Revisar caixa CX-001".into(), description: None,
-            scheduled_for: time::local_now(&pool).await.unwrap(), priority: None,
-        }).await.unwrap();
-        let maintenance = complete_maintenance(&pool, CompleteMaintenanceTask {
-            task_id: maintenance_task.id, maintained_at: Some("2026-03-02 10:00:00".into()),
-            maintenance_type: "inspection".into(), description: None, performed_by: None,
-            cost: None, next_maintenance_at: None,
-        }).await.unwrap();
+        let maintenance_task = agenda::create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id,
+                colony_id: None,
+                box_id: Some(box_id),
+                task_type: "maintenance".into(),
+                title: "Revisar caixa CX-001".into(),
+                description: None,
+                scheduled_for: time::local_now(&pool).await.unwrap(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+        let maintenance = complete_maintenance(
+            &pool,
+            CompleteMaintenanceTask {
+                task_id: maintenance_task.id,
+                maintained_at: Some("2026-03-02 10:00:00".into()),
+                maintenance_type: "inspection".into(),
+                description: None,
+                performed_by: None,
+                cost: None,
+                next_maintenance_at: None,
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(maintenance.task.status, "completed");
         assert_eq!(maintenance.fact_type, "maintenance");
     }

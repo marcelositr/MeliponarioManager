@@ -159,17 +159,14 @@ fn valid_priority(value: &str) -> Result<(), AppError> {
 }
 
 async fn now_tx(tx: &mut Transaction<'_, Sqlite>) -> Result<String, AppError> {
-    Ok(sqlx::query_scalar(
-        "SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')",
+    Ok(
+        sqlx::query_scalar("SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')")
+            .fetch_one(&mut **tx)
+            .await?,
     )
-    .fetch_one(&mut **tx)
-    .await?)
 }
 
-async fn task_snapshot_tx(
-    tx: &mut Transaction<'_, Sqlite>,
-    id: &str,
-) -> Result<Value, AppError> {
+async fn task_snapshot_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Value, AppError> {
     let raw: Option<String> = sqlx::query_scalar(
         "SELECT json_object(
             'id', id, 'meliponary_id', meliponary_id, 'colony_id', colony_id,
@@ -188,7 +185,9 @@ async fn task_snapshot_tx(
     .await?;
     let raw = raw.ok_or_else(|| AppError::NotFound("Tarefa não encontrada.".to_owned()))?;
     serde_json::from_str(&raw).map_err(|error| {
-        AppError::Validation(format!("Não foi possível preparar a auditoria da Agenda: {error}"))
+        AppError::Validation(format!(
+            "Não foi possível preparar a auditoria da Agenda: {error}"
+        ))
     })
 }
 
@@ -216,12 +215,11 @@ async fn validate_manual_context(
     }
 
     if let Some(colony_id) = colony_id {
-        let row: Option<(String, String)> = sqlx::query_as(
-            "SELECT meliponary_id, status FROM colonies WHERE id = ?",
-        )
-        .bind(colony_id)
-        .fetch_optional(pool)
-        .await?;
+        let row: Option<(String, String)> =
+            sqlx::query_as("SELECT meliponary_id, status FROM colonies WHERE id = ?")
+                .bind(colony_id)
+                .fetch_optional(pool)
+                .await?;
         let (colony_meliponary, status) =
             row.ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
         if colony_meliponary != meliponary_id {
@@ -268,11 +266,10 @@ async fn validate_manual_context(
 }
 
 async fn validate_manual_date(pool: &SqlitePool, scheduled_for: &str) -> Result<(), AppError> {
-    let oldest_allowed: String = sqlx::query_scalar(
-        "SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime', '-7 days')",
-    )
-    .fetch_one(pool)
-    .await?;
+    let oldest_allowed: String =
+        sqlx::query_scalar("SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime', '-7 days')")
+            .fetch_one(pool)
+            .await?;
     if scheduled_for < oldest_allowed.as_str() {
         return Err(AppError::Validation(
             "Uma tarefa pendente não pode ser criada mais de 7 dias no passado. Para fatos antigos, use o registro histórico correspondente."
@@ -282,11 +279,7 @@ async fn validate_manual_date(pool: &SqlitePool, scheduled_for: &str) -> Result<
     Ok(())
 }
 
-async fn get_with_time(
-    pool: &SqlitePool,
-    id: &str,
-    now: &str,
-) -> Result<ScheduledTask, AppError> {
+async fn get_with_time(pool: &SqlitePool, id: &str, now: &str) -> Result<ScheduledTask, AppError> {
     let today = &now[..10];
     Ok(sqlx::query_as::<_, ScheduledTask>(
         "SELECT t.id, t.meliponary_id, m.name AS meliponary_name,
@@ -320,7 +313,9 @@ pub async fn get(pool: &SqlitePool, id: &str) -> Result<ScheduledTask, AppError>
 pub async fn list(pool: &SqlitePool, query: TaskQuery) -> Result<Vec<ScheduledTask>, AppError> {
     let view = optional(&query.view).unwrap_or_else(|| "pending".to_owned());
     if !VIEWS.contains(&view.as_str()) {
-        return Err(AppError::Validation("Visualização da Agenda inválida.".to_owned()));
+        return Err(AppError::Validation(
+            "Visualização da Agenda inválida.".to_owned(),
+        ));
     }
     if let Some(value) = query.task_type.as_deref() {
         valid_task_type(value)?;
@@ -428,10 +423,10 @@ pub async fn summary(
             .await?;
     Ok(sqlx::query_as::<_, AgendaSummary>(
         "SELECT
-           SUM(CASE WHEN status='pending' AND scheduled_for < ? THEN 1 ELSE 0 END) overdue,
-           SUM(CASE WHEN status='pending' AND substr(scheduled_for,1,10)=? THEN 1 ELSE 0 END) today,
-           SUM(CASE WHEN status='pending' AND scheduled_for >= ? AND scheduled_for <= ? THEN 1 ELSE 0 END) next_seven_days,
-           SUM(CASE WHEN status='pending' AND scheduled_for > ? THEN 1 ELSE 0 END) future
+           COALESCE(SUM(CASE WHEN status='pending' AND scheduled_for < ? THEN 1 ELSE 0 END),0) overdue,
+           COALESCE(SUM(CASE WHEN status='pending' AND substr(scheduled_for,1,10)=? THEN 1 ELSE 0 END),0) today,
+           COALESCE(SUM(CASE WHEN status='pending' AND scheduled_for >= ? AND scheduled_for <= ? THEN 1 ELSE 0 END),0) next_seven_days,
+           COALESCE(SUM(CASE WHEN status='pending' AND scheduled_for > ? THEN 1 ELSE 0 END),0) future
          FROM scheduled_tasks
          WHERE (? IS NULL OR meliponary_id=?)",
     )
@@ -505,15 +500,37 @@ pub async fn reschedule(
     let reason = optional(&input.reason).unwrap_or_else(|| "Reagendamento da Agenda.".to_owned());
     let mut tx = pool.begin().await?;
     let before = task_snapshot_tx(&mut tx, &id).await?;
-    let current: Option<(String, String, Option<String>, Option<String>, String, String, Option<String>, String, Option<String>, Option<String>)> = sqlx::query_as(
+    type RescheduleRow = (
+        String,
+        String,
+        Option<String>,
+        Option<String>,
+        String,
+        String,
+        Option<String>,
+        String,
+        Option<String>,
+        Option<String>,
+    );
+    let current: Option<RescheduleRow> = sqlx::query_as(
         "SELECT meliponary_id,task_type,colony_id,box_id,title,priority,description,status,source_type,source_id
          FROM scheduled_tasks WHERE id=?",
     )
     .bind(&id)
     .fetch_optional(&mut *tx)
     .await?;
-    let (meliponary_id, task_type, colony_id, box_id, title, priority, description, status, source_type, source_id) =
-        current.ok_or_else(|| AppError::NotFound("Tarefa não encontrada.".to_owned()))?;
+    let (
+        meliponary_id,
+        task_type,
+        colony_id,
+        box_id,
+        title,
+        priority,
+        description,
+        status,
+        source_type,
+        source_id,
+    ) = current.ok_or_else(|| AppError::NotFound("Tarefa não encontrada.".to_owned()))?;
     if status != "pending" {
         return Err(AppError::Validation(
             "Somente tarefa pendente pode ser reagendada.".to_owned(),
@@ -667,10 +684,7 @@ pub async fn complete_generic(pool: &SqlitePool, id: &str) -> Result<ScheduledTa
     get(pool, &id).await
 }
 
-pub async fn duplicate(
-    pool: &SqlitePool,
-    input: DuplicateTask,
-) -> Result<ScheduledTask, AppError> {
+pub async fn duplicate(pool: &SqlitePool, input: DuplicateTask) -> Result<ScheduledTask, AppError> {
     let id = required(&input.id, "Tarefa")?;
     let original = get(pool, &id).await?;
     create_manual(
@@ -717,7 +731,11 @@ async fn reconcile_derived(
 
     for current in pending {
         match desired.as_ref() {
-            Some(next) if current.source_id == next.source_id && current.scheduled_for == next.scheduled_for && !kept => {
+            Some(next)
+                if current.source_id == next.source_id
+                    && current.scheduled_for == next.scheduled_for
+                    && !kept =>
+            {
                 sqlx::query(
                     "UPDATE scheduled_tasks SET meliponary_id=?,colony_id=?,box_id=?,title=?,updated_at=? WHERE id=?",
                 )
@@ -784,7 +802,15 @@ async fn reconcile_derived(
 pub async fn reconcile_inspection(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
     let colony_id = required(colony_id, "Colônia")?;
     operational::ensure_colony_exists(pool, &colony_id).await?;
-    type Latest = (String, Option<String>, Option<String>, String, String, Option<String>, String);
+    type Latest = (
+        String,
+        Option<String>,
+        Option<String>,
+        String,
+        String,
+        Option<String>,
+        String,
+    );
     let latest: Option<Latest> = sqlx::query_as(
         "SELECT i.id,i.next_inspection_at,i.box_id,c.meliponary_id,c.code,m.archived_at,c.status
          FROM inspections i
@@ -796,28 +822,39 @@ pub async fn reconcile_inspection(pool: &SqlitePool, colony_id: &str) -> Result<
     .bind(&colony_id)
     .fetch_optional(pool)
     .await?;
-    let desired = latest.and_then(|(source_id, next, box_id, meliponary_id, code, archived_at, status)| {
-        if archived_at.is_some() || !matches!(status.as_str(), "active" | "weak" | "recovering") {
-            return None;
-        }
-        next.map(|scheduled_for| DerivedTask {
-            source_type: "inspection",
-            source_id,
-            meliponary_id,
-            colony_id: Some(colony_id.clone()),
-            box_id,
-            task_type: "inspection",
-            title: format!("Inspecionar {code}"),
-            scheduled_for,
-        })
-    });
+    let desired = latest.and_then(
+        |(source_id, next, box_id, meliponary_id, code, archived_at, status)| {
+            if archived_at.is_some() || !matches!(status.as_str(), "active" | "weak" | "recovering")
+            {
+                return None;
+            }
+            next.map(|scheduled_for| DerivedTask {
+                source_type: "inspection",
+                source_id,
+                meliponary_id,
+                colony_id: Some(colony_id.clone()),
+                box_id,
+                task_type: "inspection",
+                title: format!("Inspecionar {code}"),
+                scheduled_for,
+            })
+        },
+    );
     reconcile_derived(pool, Some(&colony_id), None, "inspection", desired).await
 }
 
 pub async fn reconcile_feeding(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
     let colony_id = required(colony_id, "Colônia")?;
     operational::ensure_colony_exists(pool, &colony_id).await?;
-    type Latest = (String, Option<String>, Option<String>, String, String, Option<String>, String);
+    type Latest = (
+        String,
+        Option<String>,
+        Option<String>,
+        String,
+        String,
+        Option<String>,
+        String,
+    );
     let latest: Option<Latest> = sqlx::query_as(
         "SELECT f.id,f.next_feeding_at,f.box_id,c.meliponary_id,c.code,m.archived_at,c.status
          FROM feedings f
@@ -829,27 +866,38 @@ pub async fn reconcile_feeding(pool: &SqlitePool, colony_id: &str) -> Result<(),
     .bind(&colony_id)
     .fetch_optional(pool)
     .await?;
-    let desired = latest.and_then(|(source_id, next, box_id, meliponary_id, code, archived_at, status)| {
-        if archived_at.is_some() || !matches!(status.as_str(), "active" | "weak" | "recovering") {
-            return None;
-        }
-        next.map(|scheduled_for| DerivedTask {
-            source_type: "feeding",
-            source_id,
-            meliponary_id,
-            colony_id: Some(colony_id.clone()),
-            box_id,
-            task_type: "feeding",
-            title: format!("Alimentar {code}"),
-            scheduled_for,
-        })
-    });
+    let desired = latest.and_then(
+        |(source_id, next, box_id, meliponary_id, code, archived_at, status)| {
+            if archived_at.is_some() || !matches!(status.as_str(), "active" | "weak" | "recovering")
+            {
+                return None;
+            }
+            next.map(|scheduled_for| DerivedTask {
+                source_type: "feeding",
+                source_id,
+                meliponary_id,
+                colony_id: Some(colony_id.clone()),
+                box_id,
+                task_type: "feeding",
+                title: format!("Alimentar {code}"),
+                scheduled_for,
+            })
+        },
+    );
     reconcile_derived(pool, Some(&colony_id), None, "feeding", desired).await
 }
 
 pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<(), AppError> {
     let box_id = required(box_id, "Caixa")?;
-    type Latest = (String, Option<String>, Option<String>, String, String, Option<String>, String);
+    type Latest = (
+        String,
+        Option<String>,
+        Option<String>,
+        String,
+        String,
+        Option<String>,
+        String,
+    );
     let latest: Option<Latest> = sqlx::query_as(
         "SELECT r.id,r.next_maintenance_at,r.colony_id,b.meliponary_id,b.code,m.archived_at,b.status
          FROM box_maintenance_records r
@@ -861,31 +909,37 @@ pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<()
     .bind(&box_id)
     .fetch_optional(pool)
     .await?;
-    let desired = latest.and_then(|(source_id, next, colony_id, meliponary_id, code, archived_at, status)| {
-        if archived_at.is_some() || status == "retired" {
-            return None;
-        }
-        next.map(|scheduled_for| DerivedTask {
-            source_type: "maintenance",
-            source_id,
-            meliponary_id,
-            colony_id,
-            box_id: Some(box_id.clone()),
-            task_type: "maintenance",
-            title: format!("Revisar caixa {code}"),
-            scheduled_for,
-        })
-    });
+    let desired = latest.and_then(
+        |(source_id, next, colony_id, meliponary_id, code, archived_at, status)| {
+            if archived_at.is_some() || status == "retired" {
+                return None;
+            }
+            next.map(|scheduled_for| DerivedTask {
+                source_type: "maintenance",
+                source_id,
+                meliponary_id,
+                colony_id,
+                box_id: Some(box_id.clone()),
+                task_type: "maintenance",
+                title: format!("Revisar caixa {code}"),
+                scheduled_for,
+            })
+        },
+    );
     reconcile_derived(pool, None, Some(&box_id), "maintenance", desired).await
 }
 
 pub async fn reconcile_all(pool: &SqlitePool) -> Result<(), AppError> {
-    let colonies: Vec<String> = sqlx::query_scalar("SELECT id FROM colonies").fetch_all(pool).await?;
+    let colonies: Vec<String> = sqlx::query_scalar("SELECT id FROM colonies")
+        .fetch_all(pool)
+        .await?;
     for colony_id in colonies {
         reconcile_inspection(pool, &colony_id).await?;
         reconcile_feeding(pool, &colony_id).await?;
     }
-    let boxes: Vec<String> = sqlx::query_scalar("SELECT id FROM boxes").fetch_all(pool).await?;
+    let boxes: Vec<String> = sqlx::query_scalar("SELECT id FROM boxes")
+        .fetch_all(pool)
+        .await?;
     for box_id in boxes {
         reconcile_maintenance(pool, &box_id).await?;
     }
@@ -945,37 +999,65 @@ mod tests {
         let mel = repository::create_meliponary(
             &pool,
             CreateMeliponary {
-                name: "Principal".into(), responsible_name: None, location: None, notes: None,
+                name: "Principal".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
             },
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         let species = repository::create_species(
             &pool,
             CreateSpecies {
-                common_name: "Jataí".into(), scientific_name: None, genus: None, notes: None,
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
             },
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         let box_record = repository::create_box(
             &pool,
             CreateHiveBox {
-                meliponary_id: mel.id.clone(), code: "CX-001".into(), model: None,
-                material: None, location_note: None, notes: None,
+                meliponary_id: mel.id.clone(),
+                code: "CX-001".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
             },
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         let colony = repository::create_colony(
             &pool,
             CreateColony {
-                meliponary_id: mel.id.clone(), species_id: species.id, code: "JAT-001".into(),
-                origin_type: None, origin_notes: None, installed_at: Some("2026-01-01 09:00:00".into()),
-                mother_colony_id: None, notes: None,
+                meliponary_id: mel.id.clone(),
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: Some("2026-01-01 09:00:00".into()),
+                mother_colony_id: None,
+                notes: None,
             },
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         repository::place_colony(
             &pool,
             PlaceColony {
-                colony_id: colony.id.clone(), box_id: box_record.id.clone(),
-                started_at: Some("2026-01-01 09:00:00".into()), reason: None, notes: None,
+                colony_id: colony.id.clone(),
+                box_id: box_record.id.clone(),
+                started_at: Some("2026-01-01 09:00:00".into()),
+                reason: None,
+                notes: None,
             },
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
         (pool, mel.id, colony.id, box_record.id)
     }
 
@@ -983,38 +1065,79 @@ mod tests {
     async fn manual_task_supports_views_and_generic_completion() {
         let (pool, meliponary_id, _, _) = seeded().await;
         let now = time::local_now(&pool).await.unwrap();
-        let task = create_manual(&pool, CreateTask {
-            meliponary_id,
-            colony_id: None,
-            box_id: None,
-            task_type: "generic".into(),
-            title: "Conferir autorização".into(),
-            description: None,
-            scheduled_for: now,
-            priority: Some("attention".into()),
-        }).await.unwrap();
-        assert_eq!(list(&pool, TaskQuery { view: Some("pending".into()), ..Default::default() }).await.unwrap().len(), 1);
+        let task = create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id,
+                colony_id: None,
+                box_id: None,
+                task_type: "generic".into(),
+                title: "Conferir autorização".into(),
+                description: None,
+                scheduled_for: now,
+                priority: Some("attention".into()),
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            list(
+                &pool,
+                TaskQuery {
+                    view: Some("pending".into()),
+                    ..Default::default()
+                }
+            )
+            .await
+            .unwrap()
+            .len(),
+            1
+        );
         complete_generic(&pool, &task.id).await.unwrap();
-        assert_eq!(list(&pool, TaskQuery { view: Some("completed".into()), ..Default::default() }).await.unwrap().len(), 1);
+        assert_eq!(
+            list(
+                &pool,
+                TaskQuery {
+                    view: Some("completed".into()),
+                    ..Default::default()
+                }
+            )
+            .await
+            .unwrap()
+            .len(),
+            1
+        );
     }
 
     #[tokio::test]
     async fn reschedule_preserves_lineage_and_original() {
         let (pool, meliponary_id, _, _) = seeded().await;
         let now = time::local_now(&pool).await.unwrap();
-        let task = create_manual(&pool, CreateTask {
-            meliponary_id,
-            colony_id: None,
-            box_id: None,
-            task_type: "generic".into(),
-            title: "Limpar área".into(),
-            description: None,
-            scheduled_for: now.clone(),
-            priority: None,
-        }).await.unwrap();
-        let next = reschedule(&pool, RescheduleTask {
-            id: task.id.clone(), scheduled_for: now, reason: Some("Chuva".into()),
-        }).await.unwrap();
+        let task = create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id,
+                colony_id: None,
+                box_id: None,
+                task_type: "generic".into(),
+                title: "Limpar área".into(),
+                description: None,
+                scheduled_for: now.clone(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+        let next = reschedule(
+            &pool,
+            RescheduleTask {
+                id: task.id.clone(),
+                scheduled_for: now,
+                reason: Some("Chuva".into()),
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(get(&pool, &task.id).await.unwrap().status, "rescheduled");
         assert_eq!(next.status, "pending");
         assert_eq!(next.rescheduled_from_id.as_deref(), Some(task.id.as_str()));
@@ -1024,45 +1147,147 @@ mod tests {
     async fn cancellation_and_skip_require_reason() {
         let (pool, meliponary_id, _, _) = seeded().await;
         let now = time::local_now(&pool).await.unwrap();
-        let one = create_manual(&pool, CreateTask {
-            meliponary_id: meliponary_id.clone(), colony_id: None, box_id: None,
-            task_type: "generic".into(), title: "Uma".into(), description: None,
-            scheduled_for: now.clone(), priority: None,
-        }).await.unwrap();
-        assert!(cancel(&pool, TaskReason { id: one.id.clone(), reason: " ".into() }).await.is_err());
-        assert_eq!(cancel(&pool, TaskReason { id: one.id, reason: "Sem necessidade".into() }).await.unwrap().status, "cancelled");
-        let two = create_manual(&pool, CreateTask {
-            meliponary_id, colony_id: None, box_id: None,
-            task_type: "generic".into(), title: "Duas".into(), description: None,
-            scheduled_for: now, priority: None,
-        }).await.unwrap();
-        assert_eq!(skip(&pool, TaskReason { id: two.id, reason: "Decisão consciente".into() }).await.unwrap().status, "skipped");
+        let one = create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id: meliponary_id.clone(),
+                colony_id: None,
+                box_id: None,
+                task_type: "generic".into(),
+                title: "Uma".into(),
+                description: None,
+                scheduled_for: now.clone(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+        assert!(cancel(
+            &pool,
+            TaskReason {
+                id: one.id.clone(),
+                reason: " ".into()
+            }
+        )
+        .await
+        .is_err());
+        assert_eq!(
+            cancel(
+                &pool,
+                TaskReason {
+                    id: one.id,
+                    reason: "Sem necessidade".into()
+                }
+            )
+            .await
+            .unwrap()
+            .status,
+            "cancelled"
+        );
+        let two = create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id,
+                colony_id: None,
+                box_id: None,
+                task_type: "generic".into(),
+                title: "Duas".into(),
+                description: None,
+                scheduled_for: now,
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(
+            skip(
+                &pool,
+                TaskReason {
+                    id: two.id,
+                    reason: "Decisão consciente".into()
+                }
+            )
+            .await
+            .unwrap()
+            .status,
+            "skipped"
+        );
     }
 
     #[tokio::test]
     async fn inspection_next_date_reconciles_without_duplicate() {
         let (pool, _, colony_id, _) = seeded().await;
-        let first = inspections::create(&pool, CreateInspection {
-            colony_id: colony_id.clone(), inspected_at: Some("2026-01-10 10:00:00".into()),
-            strength: Some("medium".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: Some("2026-01-17 10:00:00".into()),
-        }).await.unwrap();
+        let first = inspections::create(
+            &pool,
+            CreateInspection {
+                colony_id: colony_id.clone(),
+                inspected_at: Some("2026-01-10 10:00:00".into()),
+                strength: Some("medium".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: Some("2026-01-17 10:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
         reconcile_inspection(&pool, &colony_id).await.unwrap();
         reconcile_inspection(&pool, &colony_id).await.unwrap();
-        let pending = list(&pool, TaskQuery { view: Some("pending".into()), colony_id: Some(colony_id.clone()), ..Default::default() }).await.unwrap();
+        let pending = list(
+            &pool,
+            TaskQuery {
+                view: Some("pending".into()),
+                colony_id: Some(colony_id.clone()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(pending.len(), 1);
         assert_eq!(pending[0].source_id.as_deref(), Some(first.id.as_str()));
-        inspections::create(&pool, CreateInspection {
-            colony_id: colony_id.clone(), inspected_at: Some("2026-01-20 10:00:00".into()),
-            strength: Some("strong".into()), queen_present: None, laying_status: None,
-            food_reserves: None, brood_status: None, pests_notes: None, observations: None,
-            actions_taken: None, next_inspection_at: Some("2026-01-27 10:00:00".into()),
-        }).await.unwrap();
+        inspections::create(
+            &pool,
+            CreateInspection {
+                colony_id: colony_id.clone(),
+                inspected_at: Some("2026-01-20 10:00:00".into()),
+                strength: Some("strong".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: Some("2026-01-27 10:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
         reconcile_inspection(&pool, &colony_id).await.unwrap();
-        let pending = list(&pool, TaskQuery { view: Some("pending".into()), colony_id: Some(colony_id), ..Default::default() }).await.unwrap();
+        let pending = list(
+            &pool,
+            TaskQuery {
+                view: Some("pending".into()),
+                colony_id: Some(colony_id),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(pending.len(), 1);
-        let cancelled = list(&pool, TaskQuery { view: Some("cancelled".into()), ..Default::default() }).await.unwrap();
+        let cancelled = list(
+            &pool,
+            TaskQuery {
+                view: Some("cancelled".into()),
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
         assert_eq!(cancelled.len(), 1);
     }
 }
