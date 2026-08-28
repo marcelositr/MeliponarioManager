@@ -4,7 +4,6 @@ use crate::{
     repository::AppError,
 };
 use serde::Deserialize;
-use serde_json::json;
 use sqlx::{Sqlite, SqlitePool, Transaction};
 
 #[derive(Debug, Deserialize)]
