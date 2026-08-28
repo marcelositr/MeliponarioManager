@@ -112,7 +112,7 @@ pub async fn reverse_lifecycle(p: &SqlitePool, input: ReverseRecord) -> Result<(
                 .bind(&previous)
                 .bind(&c)
                 .execute(&mut *tx)
-                .await?
+                .await?;
         }
         _ => {
             return Err(AppError::Validation(
