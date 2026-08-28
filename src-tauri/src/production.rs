@@ -50,12 +50,10 @@ fn opt(v: &Option<String>) -> Option<String> {
 const SELECT_BY_ID: &str = "SELECT p.id,p.colony_id,c.code AS colony_code,p.box_id,b.code AS box_code,p.harvested_at,p.product_type,p.quantity,p.unit,p.purpose,p.notes,p.corrected_at,p.voided_at,p.void_reason,p.created_at FROM production_records p JOIN colonies c ON c.id=p.colony_id LEFT JOIN boxes b ON b.id=p.box_id WHERE p.id=?";
 const SELECT_BY_COLONY: &str = "SELECT p.id,p.colony_id,c.code AS colony_code,p.box_id,b.code AS box_code,p.harvested_at,p.product_type,p.quantity,p.unit,p.purpose,p.notes,p.corrected_at,p.voided_at,p.void_reason,p.created_at FROM production_records p JOIN colonies c ON c.id=p.colony_id LEFT JOIN boxes b ON b.id=p.box_id WHERE p.colony_id=? ORDER BY p.harvested_at DESC,p.created_at DESC";
 async fn get(p: &SqlitePool, id: &str) -> Result<ProductionRecord, AppError> {
-    Ok(
-        sqlx::query_as::<_, ProductionRecord>(SELECT_BY_ID)
-            .bind(id)
-            .fetch_one(p)
-            .await?,
-    )
+    Ok(sqlx::query_as::<_, ProductionRecord>(SELECT_BY_ID)
+        .bind(id)
+        .fetch_one(p)
+        .await?)
 }
 pub async fn create(
     p: &SqlitePool,
