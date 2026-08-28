@@ -123,7 +123,6 @@ struct DerivedTask {
 struct PendingDerived {
     id: String,
     source_id: String,
-    scheduled_for: String,
     source_baseline: String,
 }
 
@@ -731,7 +730,7 @@ async fn reconcile_derived(
             FROM scheduled_tasks child
             JOIN lineage parent ON child.rescheduled_from_id=parent.id
          )
-         SELECT t.id,t.source_id,t.scheduled_for,
+         SELECT t.id,t.source_id,
                 COALESCE(lineage.root_scheduled_for,t.scheduled_for) source_baseline
          FROM scheduled_tasks t
          LEFT JOIN lineage ON lineage.id=t.id
@@ -1379,11 +1378,13 @@ mod tests {
         assert_eq!(pending[0].scheduled_for, corrected_date);
         assert_ne!(pending[0].id, manual.id);
 
-        sqlx::query("UPDATE inspections SET voided_at=CURRENT_TIMESTAMP,void_reason='teste' WHERE id=?")
-            .bind(&source.id)
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "UPDATE inspections SET voided_at=CURRENT_TIMESTAMP,void_reason='teste' WHERE id=?",
+        )
+        .bind(&source.id)
+        .execute(&pool)
+        .await
+        .unwrap();
         reconcile_inspection(&pool, &colony_id).await.unwrap();
         assert!(pending_for(&pool, Some(colony_id), None, "inspection")
             .await
@@ -1499,9 +1500,11 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        assert!(pending_for(&pool, Some(colony_id.clone()), None, "inspection")
-            .await
-            .is_empty());
+        assert!(
+            pending_for(&pool, Some(colony_id.clone()), None, "inspection")
+                .await
+                .is_empty()
+        );
         reconcile_all(&pool).await.unwrap();
         reconcile_all(&pool).await.unwrap();
         assert_eq!(
@@ -1537,6 +1540,12 @@ mod tests {
         assert_eq!(summary.today, 1);
         assert_eq!(summary.next_seven_days, 1);
         assert_eq!(summary.future, 1);
-        assert_eq!(summary_at(&pool, Some("missing"), "2026-09-10 12:00:00").await.unwrap().overdue, 0);
+        assert_eq!(
+            summary_at(&pool, Some("missing"), "2026-09-10 12:00:00")
+                .await
+                .unwrap()
+                .overdue,
+            0
+        );
     }
 }
