@@ -42,7 +42,7 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
             decorate_voidable(
                 p,
                 e,
-                "feedings",
+                "SELECT corrected_at,voided_at,void_reason FROM feedings WHERE id=?",
                 "Alimentação corrigida",
                 "Registro anulado · Alimentação",
             )
@@ -52,7 +52,7 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
             decorate_voidable(
                 p,
                 e,
-                "production_records",
+                "SELECT corrected_at,voided_at,void_reason FROM production_records WHERE id=?",
                 "Produção corrigida",
                 "Registro anulado · Produção",
             )
@@ -62,7 +62,7 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
             decorate_voidable(
                 p,
                 e,
-                "colony_events",
+                "SELECT corrected_at,voided_at,void_reason FROM colony_events WHERE id=?",
                 "Evento corrigido",
                 "Registro anulado · Evento",
             )
@@ -72,7 +72,7 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
             decorate_voidable(
                 p,
                 e,
-                "box_maintenance_records",
+                "SELECT corrected_at,voided_at,void_reason FROM box_maintenance_records WHERE id=?",
                 "Manutenção corrigida",
                 "Registro anulado · Manutenção",
             )
@@ -82,7 +82,7 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
             decorate_voidable(
                 p,
                 e,
-                "colony_divisions",
+                "SELECT corrected_at,voided_at,void_reason FROM colony_divisions WHERE id=?",
                 "Divisão corrigida",
                 "Registro anulado · Divisão",
             )
@@ -137,12 +137,11 @@ async fn decorate(p: &SqlitePool, e: &mut TimelineEntry) -> Result<(), AppError>
 async fn decorate_voidable(
     p: &SqlitePool,
     e: &mut TimelineEntry,
-    table: &str,
+    sql: &'static str,
     corrected: &str,
     voided: &str,
 ) -> Result<(), AppError> {
-    let sql = format!("SELECT corrected_at,voided_at,void_reason FROM {table} WHERE id=?");
-    let s: Option<(Option<String>, Option<String>, Option<String>)> = sqlx::query_as(&sql)
+    let s: Option<(Option<String>, Option<String>, Option<String>)> = sqlx::query_as(sql)
         .bind(&e.source_id)
         .fetch_optional(p)
         .await?;
