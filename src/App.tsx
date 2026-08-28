@@ -11,7 +11,7 @@ import { normalizeActiveMeliponary, normalizeTheme, readSidebarCollapsed, resolv
 import type { View } from "./types";
 
 const viewTitles: Record<View, string> = {
-  dashboard: "Visão geral", meliponaries: "Meliponários", species: "Espécies", colonies: "Colônias", boxes: "Caixas", inspections: "Inspeções", feeding: "Alimentação", production: "Produção", history: "Histórico", alerts: "Alertas", genealogy: "Divisões e genealogia", movements: "Movimentações", assets: "Manutenção", lifecycle: "Ciclo de vida", data: "Dados e relatórios",
+  dashboard: "Visão geral", agenda: "Agenda", meliponaries: "Meliponários", species: "Espécies", colonies: "Colônias", boxes: "Caixas", inspections: "Inspeções", feeding: "Alimentação", production: "Produção", history: "Histórico", alerts: "Alertas", genealogy: "Divisões e genealogia", movements: "Movimentações", assets: "Manutenção", lifecycle: "Ciclo de vida", data: "Dados e relatórios",
 };
 
 function App() {
@@ -49,6 +49,7 @@ function App() {
 
   const activeMeliponary = useMemo(() => data.meliponaries.find((item) => item.id === activeMeliponaryId) ?? null, [activeMeliponaryId, data.meliponaries]);
   const activeMeliponaryLabel = activeMeliponary?.name ?? "Todos os meliponários";
+  const scopedMeliponaryId = activeMeliponaryId === "all" ? "" : activeMeliponaryId;
   const effectiveCollapsed = sidebarCollapsed || compactViewport;
 
   function changeSidebar() {
@@ -75,7 +76,7 @@ function App() {
           </div>
         </header>
         {feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button className="icon-button" type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso"><Icon name="close" /></button></div>}
-        <div className="workspace-content"><WorkspaceRouter activeView={activeView} data={data} stats={stats} busy={busy} actions={actions} recordStateMap={recordStateMap} onNavigate={setActiveView} /></div>
+        <div className="workspace-content"><WorkspaceRouter activeView={activeView} activeMeliponaryId={scopedMeliponaryId} data={data} stats={stats} busy={busy} actions={actions} recordStateMap={recordStateMap} onNavigate={setActiveView} /></div>
       </main>
     </div>
     <StatusBar connectionStatus={connectionStatus} activeMeliponaryLabel={activeMeliponaryLabel} appVersion={appVersion} />

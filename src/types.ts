@@ -1,5 +1,6 @@
 export type View =
   | "dashboard"
+  | "agenda"
   | "meliponaries"
   | "species"
   | "colonies"
@@ -27,7 +28,7 @@ export type Feeding = { id: string; colonyId: string; colonyCode: string; boxId?
 export type ProductionRecord = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; harvestedAt: string; productType: string; quantity: number; unit: string; purpose?: string | null; notes?: string | null; createdAt: string };
 export type ColonyEvent = { id: string; colonyId: string; colonyCode: string; boxId?: string | null; boxCode?: string | null; eventType: string; occurredAt: string; title?: string | null; details?: string | null; severity: string; createdAt: string };
 export type TimelineEntry = { sourceType: string; sourceId: string; occurredAt: string; title: string; details?: string | null; boxCode?: string | null; severity: string };
-export type Alert = { alertKey: string; colonyId: string; colonyCode: string; alertType: string; severity: string; dueAt?: string | null; title: string; details?: string | null };
+export type Alert = { alertKey: string; meliponaryId: string; colonyId?: string | null; colonyCode?: string | null; boxId?: string | null; boxCode?: string | null; taskId?: string | null; alertType: string; severity: string; dueAt?: string | null; title: string; details?: string | null; recommendedAction: string };
 export type ColonyDivision = { id: string; parentColonyId: string; parentColonyCode: string; daughterColonyId?: string | null; daughterColonyCode?: string | null; sourceBoxId?: string | null; sourceBoxCode?: string | null; performedAt: string; result: string; notes?: string | null; createdAt: string };
 export type GenealogyNode = { colonyId: string; code: string; motherColonyId?: string | null; motherColonyCode?: string | null; generation: number };
 export type ColonyMovement = { id: string; colonyId: string; colonyCode: string; movementType: string; movedAt: string; fromMeliponaryId: string; fromMeliponaryName: string; toMeliponaryId?: string | null; toMeliponaryName?: string | null; fromBoxId?: string | null; fromBoxCode?: string | null; toBoxId?: string | null; toBoxCode?: string | null; destination?: string | null; documentReference?: string | null; notes?: string | null; createdAt: string };

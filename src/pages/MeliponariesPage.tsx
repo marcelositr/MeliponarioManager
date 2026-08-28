@@ -1,9 +1,10 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Dialog } from "../components/Dialog";
+import { MeliponaryOperationalCenter } from "../components/OperationalRecordCenter";
 import { PageToolbar } from "../components/PageToolbar";
 import { ReasonDialog } from "../components/ReasonDialog";
 import { RecordActions } from "../components/RecordActions";
-import type { CreateMeliponaryInput, EditMeliponaryInput, EntityActionInput, Meliponary } from "../types";
+import type { CreateMeliponaryInput, EditMeliponaryInput, EntityActionInput, Meliponary, View } from "../types";
 
 type Props = {
   items: Meliponary[];
@@ -13,12 +14,13 @@ type Props = {
   onArchive: (input: EntityActionInput) => Promise<boolean>;
   onReactivate: (input: EntityActionInput) => Promise<boolean>;
   onDelete: (input: EntityActionInput) => Promise<boolean>;
+  onNavigate: (view: View) => void;
 };
 const initialForm: CreateMeliponaryInput = { name: "", responsibleName: "", location: "", notes: "" };
 
 type ReasonAction = { kind: "archive" | "reactivate" | "delete"; item: Meliponary } | null;
 
-export function MeliponariesPage({ items, busy, onCreate, onEdit, onArchive, onReactivate, onDelete }: Props) {
+export function MeliponariesPage({ items, busy, onCreate, onEdit, onArchive, onReactivate, onDelete, onNavigate }: Props) {
   const [form, setForm] = useState<CreateMeliponaryInput>(initialForm);
   const [createOpen, setCreateOpen] = useState(false);
   const [detail, setDetail] = useState<Meliponary | null>(null);
@@ -66,7 +68,7 @@ export function MeliponariesPage({ items, busy, onCreate, onEdit, onArchive, onR
 
     <Dialog open={createOpen} onClose={() => !busy && setCreateOpen(false)} title="Novo meliponário" description="Somente o nome é obrigatório." size="medium"><form className="form-grid" onSubmit={submitCreate}><label className="field full"><span>Nome</span><input autoFocus required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label><label className="field"><span>Responsável</span><input value={form.responsibleName} onChange={(e) => setForm({ ...form, responsibleName: e.target.value })} /></label><label className="field"><span>Localização</span><input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={() => setCreateOpen(false)} disabled={busy}>Cancelar</button><button type="submit" disabled={busy}>{busy ? "Salvando..." : "Salvar meliponário"}</button></div></form></Dialog>
 
-    <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} title={detail?.name || "Meliponário"} description="Ficha cadastral e estado administrativo." size="medium">{detail && <div className="detail-grid"><div><span>Responsável</span><strong>{detail.responsibleName || "Não informado"}</strong></div><div><span>Localização</span><strong>{detail.location || "Não informada"}</strong></div><div className="full"><span>Observações</span><p>{detail.notes || "Sem observações."}</p></div>{detail.archivedAt && <div className="full consequence-note"><strong>Arquivado em {detail.archivedAt}</strong><p>{detail.archiveReason || "Sem motivo informado."}</p></div>}</div>}</Dialog>
+    <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} title={detail?.name || "Meliponário"} description="Ficha cadastral e centro operacional da unidade." size="large">{detail && <div className="page-stack compact-stack"><div className="detail-grid"><div><span>Responsável</span><strong>{detail.responsibleName || "Não informado"}</strong></div><div><span>Localização</span><strong>{detail.location || "Não informada"}</strong></div><div className="full"><span>Observações</span><p>{detail.notes || "Sem observações."}</p></div>{detail.archivedAt && <div className="full consequence-note"><strong>Arquivado em {detail.archivedAt}</strong><p>{detail.archiveReason || "Sem motivo informado."}</p></div>}</div><MeliponaryOperationalCenter meliponaryId={detail.id} onNavigate={onNavigate} /></div>}</Dialog>
 
     <Dialog open={Boolean(editing && editForm)} onClose={() => { if (!busy) { setEditing(null); setEditForm(null); } }} title="Editar meliponário" description="A alteração fica registrada na auditoria." size="medium">{editForm && <form className="form-grid" onSubmit={submitEdit}><label className="field full"><span>Nome</span><input autoFocus required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} /></label><label className="field"><span>Responsável</span><input value={editForm.responsibleName} onChange={(e) => setEditForm({ ...editForm, responsibleName: e.target.value })} /></label><label className="field"><span>Localização</span><input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></label><label className="field full"><span>Motivo da edição</span><textarea required rows={3} value={editForm.reason} onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={() => { setEditing(null); setEditForm(null); }} disabled={busy}>Cancelar</button><button type="submit" disabled={busy || !editForm.reason.trim()}>Salvar alteração</button></div></form>}</Dialog>
 

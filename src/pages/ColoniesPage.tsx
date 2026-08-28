@@ -1,10 +1,11 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Dialog } from "../components/Dialog";
+import { ColonyOperationalCenter } from "../components/OperationalRecordCenter";
 import { PageToolbar } from "../components/PageToolbar";
 import { ReasonDialog } from "../components/ReasonDialog";
 import { RecordActions } from "../components/RecordActions";
 import { RecordWorkspace } from "../components/RecordWorkspace";
-import type { Colony, CreateColonyInput, EditColonyInput, EntityActionInput, HiveBox, Meliponary, PlaceColonyInput, Species } from "../types";
+import type { Colony, CreateColonyInput, EditColonyInput, EntityActionInput, HiveBox, Meliponary, PlaceColonyInput, Species, View } from "../types";
 
 type Props = {
   items: Colony[]; meliponaries: Meliponary[]; species: Species[]; boxes: HiveBox[]; busy: boolean;
@@ -12,13 +13,14 @@ type Props = {
   onPlace: (input: PlaceColonyInput) => Promise<boolean>;
   onEdit: (input: EditColonyInput) => Promise<boolean>;
   onDelete: (input: EntityActionInput) => Promise<boolean>;
+  onNavigate: (view: View) => void;
 };
 const originOptions = [["acquisition", "Aquisição"], ["multiplication", "Multiplicação"], ["transfer", "Transferência"], ["rescue", "Resgate"], ["authorized_capture", "Captura autorizada"], ["historical", "Registro histórico"], ["other", "Outra origem"]] as const;
 const initialForm: CreateColonyInput = { meliponaryId: "", speciesId: "", code: "", originType: "acquisition", originNotes: "", installedAt: "", motherColonyId: "", notes: "" };
 const initialPlacement: PlaceColonyInput = { colonyId: "", boxId: "", startedAt: "", reason: "", notes: "" };
 const manageableStatuses = new Set(["active", "weak", "recovering"]);
 
-export function ColoniesPage({ items, meliponaries, species, boxes, busy, onCreate, onPlace, onEdit, onDelete }: Props) {
+export function ColoniesPage({ items, meliponaries, species, boxes, busy, onCreate, onPlace, onEdit, onDelete, onNavigate }: Props) {
   const [form, setForm] = useState<CreateColonyInput>(initialForm);
   const [placement, setPlacement] = useState<PlaceColonyInput>(initialPlacement);
   const [newOpen, setNewOpen] = useState(false);
@@ -43,7 +45,7 @@ export function ColoniesPage({ items, meliponaries, species, boxes, busy, onCrea
   function beginEdit(item: Colony) { setEditForm({ id: item.id, code: item.code, originNotes: item.originNotes || "", notes: item.notes || "", reason: "" }); }
   async function submitEdit(event: FormEvent) { event.preventDefault(); if (editForm && await onEdit(editForm)) setEditForm(null); }
 
-  if (detail) return <RecordWorkspace backLabel="Colônias" title={`${detail.code} · ${speciesNames.get(detail.speciesId) || "Espécie"}`} subtitle={meliponaryNames.get(detail.meliponaryId) || "Meliponário"} onBack={() => setDetailId(null)}><div className="workspace-actions"><button type="button" onClick={() => beginEdit(detail)}>Editar dados descritivos</button></div><div className="summary-grid"><Summary label="Situação" value={translateStatus(detail.status)} /><Summary label="Caixa atual" value={detail.currentBoxCode || "Sem caixa"} /><Summary label="Origem" value={originLabel(detail.originType)} /><Summary label="Instalação" value={detail.installedAt || "Não informada"} /><Summary label="Colônia-mãe" value={detail.motherColonyId ? items.find((item) => item.id === detail.motherColonyId)?.code || detail.motherColonyId : "Sem vínculo"} /><Summary label="Detalhes da origem" value={detail.originNotes || "Sem detalhes"} /><Summary label="Observações" value={detail.notes || "Sem observações"} /></div><Dialog open={Boolean(editForm)} onClose={() => !busy && setEditForm(null)} title="Editar colônia" description="Espécie, meliponário, natureza da origem, maternidade e data de entrada não são reescritos por este formulário." size="medium">{editForm && <EditForm form={editForm} setForm={setEditForm} busy={busy} onSubmit={submitEdit} />}</Dialog></RecordWorkspace>;
+  if (detail) return <RecordWorkspace backLabel="Colônias" title={`${detail.code} · ${speciesNames.get(detail.speciesId) || "Espécie"}`} subtitle={meliponaryNames.get(detail.meliponaryId) || "Meliponário"} onBack={() => setDetailId(null)}><div className="workspace-actions"><button type="button" onClick={() => beginEdit(detail)}>Editar dados descritivos</button></div><div className="summary-grid"><Summary label="Situação" value={translateStatus(detail.status)} /><Summary label="Caixa atual" value={detail.currentBoxCode || "Sem caixa"} /><Summary label="Origem" value={originLabel(detail.originType)} /><Summary label="Instalação" value={detail.installedAt || "Não informada"} /><Summary label="Colônia-mãe" value={detail.motherColonyId ? items.find((item) => item.id === detail.motherColonyId)?.code || detail.motherColonyId : "Sem vínculo"} /><Summary label="Detalhes da origem" value={detail.originNotes || "Sem detalhes"} /><Summary label="Observações" value={detail.notes || "Sem observações"} /></div><ColonyOperationalCenter colonyId={detail.id} onNavigate={onNavigate} /><Dialog open={Boolean(editForm)} onClose={() => !busy && setEditForm(null)} title="Editar colônia" description="Espécie, meliponário, natureza da origem, maternidade e data de entrada não são reescritos por este formulário." size="medium">{editForm && <EditForm form={editForm} setForm={setEditForm} busy={busy} onSubmit={submitEdit} />}</Dialog></RecordWorkspace>;
 
   return <div className="page-stack">
     <PageToolbar title="Colônias" description="Identidade biológica, situação atual e localização física." count={`${items.length} cadastradas`} search={{ value: search, onChange: setSearch, placeholder: "Buscar colônia..." }} primaryAction={{ label: "Nova colônia", onClick: () => setNewOpen(true), disabled: busy || activeMeliponaries.length === 0 || activeSpecies.length === 0 }}><button className="button-secondary" type="button" onClick={() => setPlacementOpen(true)} disabled={busy || items.length === 0 || boxes.length === 0}>Colocar / mover em caixa</button></PageToolbar>

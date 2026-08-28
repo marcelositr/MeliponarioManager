@@ -1,7 +1,7 @@
 import type { ReactNode, SVGProps } from "react";
 
 export type IconName =
-  | "dashboard" | "alerts" | "meliponary" | "colony" | "box" | "species"
+  | "dashboard" | "agenda" | "alerts" | "meliponary" | "colony" | "box" | "species"
   | "inspection" | "feeding" | "production" | "maintenance" | "history"
   | "genealogy" | "movement" | "lifecycle" | "data" | "menu" | "chevron"
   | "refresh" | "plus" | "close" | "sun" | "moon" | "system" | "database"
@@ -11,6 +11,7 @@ type IconProps = SVGProps<SVGSVGElement> & { name: IconName };
 
 const paths: Record<IconName, ReactNode> = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
+  agenda: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/><path d="M8 14h3M8 17h8"/></>,
   alerts: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
   meliponary: <><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></>,
   colony: <><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5"/><path d="M12 12v9"/></>,

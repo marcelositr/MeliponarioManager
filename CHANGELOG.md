@@ -14,9 +14,19 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Teste explícito de upgrade a partir de um schema representativo da `v0.7.1`, preservando ocupações, eventos, fotos, documentos e relações ao aplicar a migration nova.
 - Novo shell desktop enterprise com menu superior, barra contextual, sidebar agrupada e recolhível, workspace e status bar.
 - Temas claro, escuro e seguir sistema baseados em tokens compartilhados, com preferência persistida localmente.
-- Contexto visual persistente de meliponário ativo, incluindo visão consolidada sem filtros silenciosos onde o backend ainda não oferece suporte confiável.
+- Contexto visual persistente de meliponário ativo, incluindo visão consolidada e escopo operacional aplicado às telas que possuem contrato confiável.
 - Componentes reutilizáveis para dialogs, confirmações, toolbars, ícones consistentes e fichas internas de registros.
 - Ficha-resumo inicial de colônia como infraestrutura para áreas internas futuras.
+- Migration `0014_audit_and_record_corrections.sql` com auditoria antes/depois, arquivamento administrativo, correção/anulação de fatos e suporte a reversões seguras sem apagar o histórico original.
+- Políticas administrativas específicas para editar, arquivar, reativar ou excluir somente cadastros mestres nunca utilizados, além de correção/anulação para fatos operacionais.
+- Migration `0015_operational_agenda.sql` com tarefas manuais e derivadas, prioridade, estados operacionais, linhagem de origem e histórico de reagendamento, cancelamento e conclusão.
+- Agenda operacional com filtros por vencimento, tipo, prioridade, colônia e meliponário, criação manual, reagendamento, cancelamento, tarefa ignorada, duplicação e execução contextual.
+- Execução transacional de tarefas de inspeção, alimentação e manutenção, registrando o fato real antes de concluir o compromisso correspondente.
+- Reconciliação idempotente de tarefas derivadas de `next_inspection_at`, `next_feeding_at` e `next_maintenance_at`, incluindo recuperação de compromisso ausente sem duplicação.
+- Centros operacionais dedicados de Colônia, Caixa e Meliponário, expondo Agenda, alertas e projeções contextuais sem criar nova fonte de verdade.
+- Integração da Agenda ao shell/sidebar/router e atalhos de navegação entre Agenda, alertas, colônias e caixas.
+- Testes frontend específicos da Etapa 4 para rota da Agenda, contexto ativo, alertas acionáveis, conjunto de ações e consumo dos record centers.
+- Documentação dedicada da Agenda em `docs/AGENDA.md`.
 
 ### Changed
 
@@ -29,12 +39,20 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Meliponários, espécies, caixas, colônias, inspeções, alimentação, produção, histórico, divisões, movimentações, manutenção e ciclo de vida adotam toolbars, tabelas e dialogs no lugar de formulários permanentes nas telas principais.
 - Fotos deixam de ocupar um conceito principal de navegação e permanecem acessíveis como contexto transitório dentro de Manutenção, sem perda de funcionalidade.
 - A interface passa a usar densidade desktop, identidade âmbar/ocre discreta, estados semânticos por texto/forma/cor e comportamento responsivo a partir de aproximadamente `900x600`.
+- Fatos anulados e operações revertidas deixam de participar das projeções operacionais atuais, mas permanecem visíveis em histórico e auditoria.
+- Alertas de inspeção, alimentação e manutenção vencidas passam a usar tarefas pendentes da Agenda como fonte operacional, evitando um segundo vencimento derivado em paralelo.
+- Alertas passam a transportar `task_id`, contexto de meliponário/caixa/colônia e `recommended_action`, permitindo navegação direta para Agenda ou manejo recomendado.
+- O seletor de meliponário ativo passa a filtrar Agenda, alertas, Dashboard, colônias, caixas e fluxos de manejo, preservando catálogos globais apenas onde o domínio exige destinos externos ao contexto, como transferências.
+- Dashboard passa a integrar resumo da Agenda e alertas acionáveis; quando há contexto ativo, indicadores sem contrato de escopo confiável não são misturados silenciosamente com a visão filtrada.
+- Fichas de Colônia, Caixa e Meliponário passam a consumir projeções `record_center` do backend como hubs de leitura e navegação.
 
 ### Fixed
 
 - Nova ocupação é rejeitada explicitamente pelo backend quando a caixa de destino não está ativa.
 - Próxima inspeção, alimentação e manutenção são rejeitadas quando anteriores ao fato que as originou após normalização temporal consistente.
 - Confirmações críticas de ciclo de vida e remoção de fotos deixam de usar diálogos genéricos do navegador e passam a explicar a consequência da operação.
+- Reconciliação da Agenda recupera tarefa derivada artificialmente ausente mantendo idempotência após execuções repetidas.
+- Ordenação combinada dos alertas usa uma consulta externa após o `UNION ALL`, mantendo prioridade/data/chave compatíveis com SQLite.
 
 ## [0.7.1] - 2026-08-27
 
