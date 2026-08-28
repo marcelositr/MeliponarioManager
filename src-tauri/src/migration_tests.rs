@@ -319,24 +319,48 @@ async fn stage2_upgrade_to_0014_preserves_full_realistic_history() {
     )
     .await;
 
-    for table in [
-        "meliponaries",
-        "species",
-        "boxes",
-        "colonies",
-        "colony_box_occupancies",
-        "inspections",
-        "feedings",
-        "production_records",
-        "box_maintenance_records",
-        "colony_events",
-        "colony_movements",
-        "movement_documents",
-        "colony_lifecycle_records",
-        "colony_divisions",
-        "inspection_photos",
+    for (table, sql) in [
+        ("meliponaries", "SELECT COUNT(*) FROM meliponaries"),
+        ("species", "SELECT COUNT(*) FROM species"),
+        ("boxes", "SELECT COUNT(*) FROM boxes"),
+        ("colonies", "SELECT COUNT(*) FROM colonies"),
+        (
+            "colony_box_occupancies",
+            "SELECT COUNT(*) FROM colony_box_occupancies",
+        ),
+        ("inspections", "SELECT COUNT(*) FROM inspections"),
+        ("feedings", "SELECT COUNT(*) FROM feedings"),
+        (
+            "production_records",
+            "SELECT COUNT(*) FROM production_records",
+        ),
+        (
+            "box_maintenance_records",
+            "SELECT COUNT(*) FROM box_maintenance_records",
+        ),
+        ("colony_events", "SELECT COUNT(*) FROM colony_events"),
+        (
+            "colony_movements",
+            "SELECT COUNT(*) FROM colony_movements",
+        ),
+        (
+            "movement_documents",
+            "SELECT COUNT(*) FROM movement_documents",
+        ),
+        (
+            "colony_lifecycle_records",
+            "SELECT COUNT(*) FROM colony_lifecycle_records",
+        ),
+        (
+            "colony_divisions",
+            "SELECT COUNT(*) FROM colony_divisions",
+        ),
+        (
+            "inspection_photos",
+            "SELECT COUNT(*) FROM inspection_photos",
+        ),
     ] {
-        let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table}"))
+        let count: i64 = sqlx::query_scalar(sql)
             .fetch_one(&pool)
             .await
             .unwrap();
