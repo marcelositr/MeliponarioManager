@@ -47,10 +47,11 @@ fn opt(v: &Option<String>) -> Option<String> {
         .filter(|v| !v.is_empty())
         .map(ToOwned::to_owned)
 }
-const SELECT:&str="SELECT p.id,p.colony_id,c.code AS colony_code,p.box_id,b.code AS box_code,p.harvested_at,p.product_type,p.quantity,p.unit,p.purpose,p.notes,p.corrected_at,p.voided_at,p.void_reason,p.created_at FROM production_records p JOIN colonies c ON c.id=p.colony_id LEFT JOIN boxes b ON b.id=p.box_id";
+const SELECT_BY_ID: &str = "SELECT p.id,p.colony_id,c.code AS colony_code,p.box_id,b.code AS box_code,p.harvested_at,p.product_type,p.quantity,p.unit,p.purpose,p.notes,p.corrected_at,p.voided_at,p.void_reason,p.created_at FROM production_records p JOIN colonies c ON c.id=p.colony_id LEFT JOIN boxes b ON b.id=p.box_id WHERE p.id=?";
+const SELECT_BY_COLONY: &str = "SELECT p.id,p.colony_id,c.code AS colony_code,p.box_id,b.code AS box_code,p.harvested_at,p.product_type,p.quantity,p.unit,p.purpose,p.notes,p.corrected_at,p.voided_at,p.void_reason,p.created_at FROM production_records p JOIN colonies c ON c.id=p.colony_id LEFT JOIN boxes b ON b.id=p.box_id WHERE p.colony_id=? ORDER BY p.harvested_at DESC,p.created_at DESC";
 async fn get(p: &SqlitePool, id: &str) -> Result<ProductionRecord, AppError> {
     Ok(
-        sqlx::query_as::<_, ProductionRecord>(&format!("{SELECT} WHERE p.id=?"))
+        sqlx::query_as::<_, ProductionRecord>(SELECT_BY_ID)
             .bind(id)
             .fetch_one(p)
             .await?,
@@ -93,12 +94,10 @@ pub async fn create(
 }
 pub async fn list_by_colony(p: &SqlitePool, c: &str) -> Result<Vec<ProductionRecord>, AppError> {
     let c = req(c, "Colônia")?;
-    Ok(sqlx::query_as::<_, ProductionRecord>(&format!(
-        "{SELECT} WHERE p.colony_id=? ORDER BY p.harvested_at DESC,p.created_at DESC"
-    ))
-    .bind(c)
-    .fetch_all(p)
-    .await?)
+    Ok(sqlx::query_as::<_, ProductionRecord>(SELECT_BY_COLONY)
+        .bind(c)
+        .fetch_all(p)
+        .await?)
 }
 pub async fn count(p: &SqlitePool) -> Result<i64, AppError> {
     Ok(
