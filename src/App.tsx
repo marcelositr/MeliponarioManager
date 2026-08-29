@@ -21,6 +21,8 @@ function App() {
   const [theme, setTheme] = useState<ThemeMode>(() => normalizeTheme(localStorage.getItem(UI_STORAGE.theme)));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readSidebarCollapsed(localStorage.getItem(UI_STORAGE.sidebarCollapsed)));
   const [compactViewport, setCompactViewport] = useState(false);
+  const [compactSidebarOverride, setCompactSidebarOverride] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeMeliponaryId, setActiveMeliponaryId] = useState(() => localStorage.getItem(UI_STORAGE.activeMeliponary) || "all");
   const [aboutOpen, setAboutOpen] = useState(false);
 
@@ -36,7 +38,11 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    const update = () => setCompactViewport(window.innerWidth < 1080);
+    const update = () => {
+      const compact = window.innerWidth < 1080;
+      setCompactViewport(compact);
+      if (!compact) setCompactSidebarOverride(false);
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -50,12 +56,34 @@ function App() {
   const activeMeliponary = useMemo(() => data.meliponaries.find((item) => item.id === activeMeliponaryId) ?? null, [activeMeliponaryId, data.meliponaries]);
   const activeMeliponaryLabel = activeMeliponary?.name ?? "Todos os meliponários";
   const scopedMeliponaryId = activeMeliponaryId === "all" ? "" : activeMeliponaryId;
-  const effectiveCollapsed = sidebarCollapsed || compactViewport;
+  const effectiveCollapsed = sidebarCollapsed || (compactViewport && !compactSidebarOverride);
 
   function changeSidebar() {
-    const next = !sidebarCollapsed;
-    setSidebarCollapsed(next);
-    localStorage.setItem(UI_STORAGE.sidebarCollapsed, next ? "1" : "0");
+    if (effectiveCollapsed) {
+      if (sidebarCollapsed) {
+        setSidebarCollapsed(false);
+        localStorage.setItem(UI_STORAGE.sidebarCollapsed, "0");
+      }
+      if (compactViewport) setCompactSidebarOverride(true);
+      return;
+    }
+
+    setSidebarCollapsed(true);
+    localStorage.setItem(UI_STORAGE.sidebarCollapsed, "1");
+    setCompactSidebarOverride(false);
+  }
+
+  async function handleRefresh() {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await refresh();
+      setFeedback({ kind: "success", text: "Dados atualizados." });
+    } catch {
+      setFeedback({ kind: "error", text: "Não foi possível atualizar os dados. Tente novamente." });
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   function changeMeliponary(value: string) {
@@ -64,7 +92,7 @@ function App() {
   }
 
   return <div className="application-shell">
-    <TopMenu theme={theme} onThemeChange={setTheme} sidebarCollapsed={sidebarCollapsed} onToggleSidebar={changeSidebar} onNavigate={setActiveView} onRefresh={() => { void refresh(); }} onOpenAbout={() => setAboutOpen(true)} />
+    <TopMenu theme={theme} onThemeChange={setTheme} sidebarCollapsed={effectiveCollapsed} onToggleSidebar={changeSidebar} onNavigate={setActiveView} onRefresh={() => { void handleRefresh(); }} refreshDisabled={refreshing} onOpenAbout={() => setAboutOpen(true)} />
     <div className={effectiveCollapsed ? "shell-body sidebar-is-collapsed" : "shell-body"}>
       <Sidebar activeView={activeView} onNavigate={setActiveView} collapsed={effectiveCollapsed} onToggle={changeSidebar} />
       <main className="workspace">
@@ -72,7 +100,7 @@ function App() {
           <div className="context-title"><span className="topbar-context">Operação</span><strong>{viewTitles[activeView]}</strong></div>
           <div className="context-actions">
             <label className="meliponary-selector"><span>Meliponário</span><select value={activeMeliponaryId} onChange={(event) => changeMeliponary(event.target.value)}><option value="all">Todos os meliponários</option>{data.meliponaries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-            <button className="icon-button" type="button" onClick={() => { void refresh(); }} aria-label="Atualizar dados" title="Atualizar"><Icon name="refresh" /></button>
+            <button className="icon-button" type="button" onClick={() => { void handleRefresh(); }} disabled={refreshing} aria-label={refreshing ? "Atualizando dados" : "Atualizar dados"} title={refreshing ? "Atualizando…" : "Atualizar"}><Icon name="refresh" /></button>
           </div>
         </header>
         {feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button className="icon-button" type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso"><Icon name="close" /></button></div>}
