@@ -1,5 +1,8 @@
+import { confirm, open } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
+import { Icon } from "../components/Icon";
 import { createFullBackup, exportPortableJson, generateManagementReport, stageRestore } from "../lib/data-api";
+import { publicError } from "../lib/presentation";
 
 type ResultState = { kind: "success" | "error"; text: string } | null;
 
@@ -14,19 +17,38 @@ export function DataManagementPage() {
       const artifact = kind === "backup" ? await createFullBackup() : kind === "json" ? await exportPortableJson() : await generateManagementReport();
       setResult({ kind: "success", text: `${artifactLabel(kind)} criado em: ${artifact.path}` });
     } catch (error) {
-      setResult({ kind: "error", text: readableError(error) });
+      setResult({ kind: "error", text: publicError(error) });
     } finally { setBusy(""); }
+  }
+
+  async function selectRestoreDirectory() {
+    const selected = await open({ directory: true, multiple: false, title: "Selecionar backup completo" });
+    if (typeof selected === "string") setRestorePath(selected);
+  }
+
+  async function selectRestoreDatabase() {
+    const selected = await open({
+      multiple: false,
+      directory: false,
+      title: "Selecionar banco para restauração",
+      filters: [{ name: "Banco SQLite", extensions: ["db"] }],
+    });
+    if (typeof selected === "string") setRestorePath(selected);
   }
 
   async function prepareRestore() {
     if (!restorePath.trim()) return;
-    if (!window.confirm("Preparar esta restauração? Ela só será aplicada na próxima abertura do aplicativo e o estado atual será salvo antes da troca.")) return;
+    const approved = await confirm(
+      "Preparar esta restauração? Ela só será aplicada na próxima abertura do aplicativo e o estado atual será salvo antes da troca.",
+      { title: "Preparar restauração", kind: "warning" },
+    );
+    if (!approved) return;
     setBusy("restore"); setResult(null);
     try {
       const staged = await stageRestore(restorePath);
       setResult({ kind: "success", text: `${staged.message}${staged.includesMedia ? " O backup inclui a pasta de mídia." : " O backup não inclui mídia; a mídia atual será preservada."}` });
     } catch (error) {
-      setResult({ kind: "error", text: readableError(error) });
+      setResult({ kind: "error", text: publicError(error, "Não foi possível validar e preparar a restauração.") });
     } finally { setBusy(""); }
   }
 
@@ -34,7 +56,7 @@ export function DataManagementPage() {
     <div className="page-stack">
       <section className="page-heading"><div><span className="eyebrow">Dados locais</span><h1>Backup, exportação e relatórios</h1><p>Proteja o banco e a mídia, gere uma exportação legível e prepare restaurações sem substituir um banco que esteja aberto.</p></div></section>
 
-      {result && <div className={`feedback-banner ${result.kind}`} role={result.kind === "error" ? "alert" : "status"}><span>{result.text}</span><button type="button" onClick={() => setResult(null)}>×</button></div>}
+      {result && <div className={`feedback-banner ${result.kind}`} role={result.kind === "error" ? "alert" : "status"}><span>{result.text}</span><button className="icon-button" type="button" onClick={() => setResult(null)} aria-label="Fechar aviso"><Icon name="close" /></button></div>}
 
       <div className="content-grid">
         <section className="panel">
@@ -53,10 +75,14 @@ export function DataManagementPage() {
           <div className="form-actions"><button type="button" onClick={() => void generate("report")} disabled={Boolean(busy)}>{busy === "report" ? "Gerando..." : "Gerar relatório"}</button></div>
         </section>
         <section className="panel form-panel">
-          <div className="panel-heading"><h2>Preparar restauração</h2><p>Informe um diretório de backup completo ou um arquivo meliponario.db. A integridade é validada antes de qualquer troca.</p></div>
+          <div className="panel-heading"><h2>Preparar restauração</h2><p>Selecione uma pasta de backup completo ou um arquivo meliponario.db. A integridade é validada antes de qualquer troca.</p></div>
           <div className="form-grid">
-            <label className="field full"><span>Caminho do backup</span><input value={restorePath} onChange={(e) => setRestorePath(e.target.value)} placeholder="Ex.: /home/usuario/backup-... ou /.../meliponario.db" /></label>
-            <div className="inline-notice field full">A restauração preparada só entra em vigor quando o aplicativo for fechado e aberto novamente. Antes da troca, o estado atual recebe um backup de segurança automático.</div>
+            <label className="field full"><span>Backup selecionado</span><input value={restorePath} readOnly placeholder="Nenhum backup selecionado" /></label>
+            <div className="workspace-actions field full" aria-label="Selecionar origem da restauração">
+              <button type="button" className="button-secondary" onClick={() => void selectRestoreDirectory()} disabled={Boolean(busy)}>Selecionar pasta…</button>
+              <button type="button" className="button-secondary" onClick={() => void selectRestoreDatabase()} disabled={Boolean(busy)}>Selecionar meliponario.db…</button>
+            </div>
+            <div className="inline-notice field full" role="status">A restauração preparada só entra em vigor quando o aplicativo for fechado e aberto novamente. Antes da troca, o estado atual recebe um backup de segurança automático.</div>
             <div className="form-actions full"><button type="button" onClick={() => void prepareRestore()} disabled={Boolean(busy) || !restorePath.trim()}>{busy === "restore" ? "Validando..." : "Validar e preparar restauração"}</button></div>
           </div>
         </section>
@@ -66,4 +92,3 @@ export function DataManagementPage() {
 }
 
 function artifactLabel(kind: "backup" | "json" | "report") { return kind === "backup" ? "Backup" : kind === "json" ? "Exportação" : "Relatório"; }
-function readableError(error: unknown) { if (typeof error === "string" && error.trim()) return error; if (error instanceof Error && error.message) return error.message; return "Não foi possível concluir a operação."; }
