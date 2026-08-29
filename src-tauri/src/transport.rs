@@ -1,7 +1,8 @@
-use crate::{audit, repository::AppError};
+use crate::{audit, repository::AppError, time};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sqlx::{FromRow, SqlitePool};
+use tauri::State;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -24,6 +25,13 @@ pub struct CompleteTransport {
     pub notes: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReopenTransport {
+    pub movement_id: String,
+    pub reason: String,
+}
+
 fn required(value: &str, field: &str) -> Result<String, AppError> {
     let value = value.trim();
     if value.is_empty() {
@@ -38,6 +46,10 @@ fn optional(value: &Option<String>) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn message(error: AppError) -> String {
+    error.to_string()
 }
 
 pub async fn ensure_can_open(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
@@ -282,6 +294,37 @@ async fn get_active_return(
     .bind(movement_id)
     .fetch_optional(pool)
     .await?)
+}
+
+#[tauri::command]
+pub async fn complete_transport(
+    pool: State<'_, SqlitePool>,
+    mut input: CompleteTransport,
+) -> Result<TransportReturn, String> {
+    input.returned_at = Some(
+        time::normalize_or_now(&pool, &input.returned_at, false)
+            .await
+            .map_err(message)?,
+    );
+    complete(&pool, input).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn list_transport_returns(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<TransportReturn>, String> {
+    list_by_colony(&pool, &colony_id).await.map_err(message)
+}
+
+#[tauri::command]
+pub async fn reopen_transport(
+    pool: State<'_, SqlitePool>,
+    input: ReopenTransport,
+) -> Result<(), String> {
+    reopen(&pool, &input.movement_id, &input.reason)
+        .await
+        .map_err(message)
 }
 
 #[cfg(test)]
