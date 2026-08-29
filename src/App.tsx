@@ -7,7 +7,7 @@ import { StatusBar } from "./components/StatusBar";
 import { TopMenu } from "./components/TopMenu";
 import { WorkspaceRouter } from "./components/WorkspaceRouter";
 import { useAppData } from "./hooks/useAppData";
-import { toNavigationIntent, type Navigate, type NavigationIntent } from "./lib/navigation";
+import { reconcileManualMeliponaryChange, toNavigationIntent, type Navigate, type NavigationIntent } from "./lib/navigation";
 import { normalizeActiveMeliponary, normalizeTheme, readSidebarCollapsed, resolveTheme, UI_STORAGE, type ThemeMode } from "./lib/ui-preferences";
 import type { View } from "./types";
 import "./hardening.css";
@@ -89,14 +89,17 @@ function App() {
     }
   }
 
-  function changeMeliponary(value: string) {
+  function changeMeliponary(value: string, source: "manual" | "navigation" = "manual") {
     setActiveMeliponaryId(value);
     localStorage.setItem(UI_STORAGE.activeMeliponary, value);
+    if (source === "manual") {
+      setNavigationIntent((current) => reconcileManualMeliponaryChange(current));
+    }
   }
 
   const navigate: Navigate = (target) => {
     const next = toNavigationIntent(target);
-    if (next.meliponaryId) changeMeliponary(next.meliponaryId);
+    if (next.meliponaryId) changeMeliponary(next.meliponaryId, "navigation");
     setNavigationIntent({ ...next });
     setActiveView(next.view);
   };
@@ -109,7 +112,7 @@ function App() {
         <header className="context-bar">
           <div className="context-title"><span className="topbar-context">Operação</span><strong>{viewTitles[activeView]}</strong></div>
           <div className="context-actions">
-            <label className="meliponary-selector"><span>Meliponário</span><select value={activeMeliponaryId} onChange={(event) => changeMeliponary(event.target.value)}><option value="all">Todos os meliponários</option>{data.meliponaries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label className="meliponary-selector"><span>Meliponário</span><select value={activeMeliponaryId} onChange={(event) => changeMeliponary(event.target.value, "manual")}><option value="all">Todos os meliponários</option>{data.meliponaries.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
             <button className="icon-button" type="button" onClick={() => { void handleRefresh(); }} disabled={refreshing} aria-label={refreshing ? "Atualizando dados" : "Atualizar dados"} title={refreshing ? "Atualizando…" : "Atualizar"}><Icon name="refresh" /></button>
           </div>
         </header>
