@@ -49,9 +49,9 @@ O banco é criado por uma cópia consistente do SQLite. A árvore `media/` inclu
 - versão do schema;
 - nome do banco;
 - raiz da mídia;
-- inventário dos assets com caminho relativo e tamanho em bytes.
+- inventário dos assets com caminho relativo, tamanho em bytes e checksum SHA-256.
 
-O manifest torna possível distinguir um backup completo atual de um diretório arbitrário ou de formatos legados.
+O manifest torna possível distinguir um backup completo atual de um diretório arbitrário ou de formatos legados e detectar alterações nos assets mesmo quando o tamanho do arquivo continua igual.
 
 ## Validação da restauração
 
@@ -67,7 +67,7 @@ Antes do staging, a aplicação valida:
 6. quando existe manifest, formato e versão do manifest;
 7. correspondência entre schema declarado e banco;
 8. caminhos relativos e confinados à pasta `media/`;
-9. presença e tamanho de cada asset declarado;
+9. presença, tamanho e SHA-256 de cada asset declarado;
 10. equivalência entre o inventário declarado e a árvore física de mídia.
 
 Links simbólicos não são aceitos na árvore copiada para backup/restauração.
@@ -136,7 +136,7 @@ Ela examina fotos e anexos e informa:
 - registros cujo arquivo está ausente;
 - arquivos físicos sob as áreas gerenciadas que não possuem referência no banco.
 
-O diagnóstico é somente leitura. Nenhum registro ou arquivo órfão é apagado automaticamente.
+O diagnóstico é somente leitura. Nenhum registro ou arquivo órfão é apagado automaticamente. Condições de permissão, destino não gravável, banco inválido e incompatibilidade de schema são tratadas pelos respectivos fluxos de filesystem, backup e restauração com mensagens públicas e sem promover estado inválido.
 
 ## Arquivo ausente
 
@@ -165,6 +165,10 @@ Essa saída é derivada e não constitui fonte de verdade.
 - restauração não troca silenciosamente o estado ativo sem validação e cópia de segurança;
 - diagnóstico não apaga automaticamente arquivos ou registros;
 - CSV exportado não é tratado como anexo gerenciado.
+
+## Validação de campo
+
+Os gates automatizados validam build, lint, testes e contratos de código. A validação real do desktop exige ambiente gráfico e interação com o sistema operacional e permanece uma etapa de campo explícita para tamanhos de janela, temas, teclado, pickers, thumbnails, abertura/revelação, arquivos ausentes, backup → restore após restart e persistência de `window-state`.
 
 ## Recomendações durante a fase experimental
 
