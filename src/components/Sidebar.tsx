@@ -1,4 +1,4 @@
-import type { View } from "../types";
+import type { View } from "../lib/navigation";
 import { Icon, type IconName } from "./Icon";
 
 type SidebarProps = {
@@ -16,6 +16,7 @@ const groups: NavGroup[] = [
     { view: "dashboard", label: "Visão geral", icon: "dashboard" },
     { view: "agenda", label: "Agenda", icon: "agenda" },
     { view: "alerts", label: "Alertas", icon: "alerts" },
+    { view: "reports", label: "Relatórios", icon: "history" },
   ]},
   { label: "Plantel", items: [
     { view: "meliponaries", label: "Meliponários", icon: "meliponary" },
@@ -36,7 +37,7 @@ const groups: NavGroup[] = [
     { view: "lifecycle", label: "Ciclo de vida", icon: "lifecycle" },
   ]},
   { label: "Administração", items: [
-    { view: "data", label: "Dados e relatórios", icon: "data" },
+    { view: "data", label: "Dados", icon: "data" },
   ]},
 ];
 
@@ -53,16 +54,8 @@ export function Sidebar({ activeView, onNavigate, collapsed, onToggle }: Sidebar
           <section className="nav-group" key={group.label}>
             <div className="nav-group-label">{group.label}</div>
             {group.items.map((item) => (
-              <button
-                key={item.view}
-                type="button"
-                className={activeView === item.view ? "nav-item active" : "nav-item"}
-                onClick={() => onNavigate(item.view)}
-                aria-current={activeView === item.view ? "page" : undefined}
-                title={collapsed ? item.label : item.title}
-              >
-                <span className="nav-icon"><Icon name={item.icon} /></span>
-                <span className="nav-label">{item.label}</span>
+              <button key={item.view} type="button" className={activeView === item.view ? "nav-item active" : "nav-item"} onClick={() => onNavigate(item.view)} aria-current={activeView === item.view ? "page" : undefined} title={collapsed ? item.label : item.title}>
+                <span className="nav-icon"><Icon name={item.icon} /></span><span className="nav-label">{item.label}</span>
               </button>
             ))}
           </section>
