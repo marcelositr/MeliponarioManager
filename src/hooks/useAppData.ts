@@ -12,6 +12,7 @@ import {
   voidColonyEvent, voidFeeding, voidInspection, voidMovementDocument, voidProductionRecord,
   voidTransport,
 } from "../lib/api";
+import { publicError } from "../lib/presentation";
 import type {
   ChangeBoxStateInput, ChangeColonyLifecycleInput, CoreData, CorrectDivisionInput, CorrectEventInput,
   CorrectFeedingInput, CorrectInspectionInput, CorrectMaintenanceInput, CorrectMovementDetailsInput,
@@ -53,7 +54,7 @@ export function useAppData() {
   async function runMutation(action: () => Promise<unknown>, successMessage: string): Promise<boolean> {
     setBusy(true); setFeedback(null);
     try { await action(); await refresh(); setFeedback({ kind: "success", text: successMessage }); return true; }
-    catch (error) { setFeedback({ kind: "error", text: readableError(error) }); return false; }
+    catch (error) { setFeedback({ kind: "error", text: publicError(error, "Não foi possível concluir a operação. Verifique os dados e tente novamente.") }); return false; }
     finally { setBusy(false); }
   }
 
@@ -113,9 +114,3 @@ export function useAppData() {
 
 export type AppActions = ReturnType<typeof useAppData>["actions"];
 export type RecordStateMap = ReturnType<typeof useAppData>["recordStateMap"];
-
-function readableError(error: unknown) {
-  if (typeof error === "string" && error.trim()) return error;
-  if (error instanceof Error && error.message) return error.message;
-  return "Não foi possível concluir a operação.";
-}
