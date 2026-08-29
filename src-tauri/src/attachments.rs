@@ -139,15 +139,12 @@ pub async fn import(
     input: ImportManagedAttachment,
 ) -> Result<ManagedAttachment, AppError> {
     let meliponary_id = required(&input.meliponary_id, "Meliponário")?;
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id = ?)")
-            .bind(&meliponary_id)
-            .fetch_one(pool)
-            .await?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id = ?)")
+        .bind(&meliponary_id)
+        .fetch_one(pool)
+        .await?;
     if !exists {
-        return Err(AppError::NotFound(
-            "Meliponário não encontrado.".to_owned(),
-        ));
+        return Err(AppError::NotFound("Meliponário não encontrado.".to_owned()));
     }
 
     let source_path = PathBuf::from(required(&input.source_path, "Arquivo de origem")?);
@@ -227,15 +224,12 @@ pub async fn list_by_meliponary(
     meliponary_id: &str,
 ) -> Result<Vec<ManagedAttachment>, AppError> {
     let meliponary_id = required(meliponary_id, "Meliponário")?;
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id = ?)")
-            .bind(&meliponary_id)
-            .fetch_one(pool)
-            .await?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id = ?)")
+        .bind(&meliponary_id)
+        .fetch_one(pool)
+        .await?;
     if !exists {
-        return Err(AppError::NotFound(
-            "Meliponário não encontrado.".to_owned(),
-        ));
+        return Err(AppError::NotFound("Meliponário não encontrado.".to_owned()));
     }
 
     let rows = sqlx::query_as::<_, ManagedAttachmentRow>(
@@ -491,8 +485,10 @@ mod tests {
                 .unwrap();
         assert_eq!(stored.len(), 2);
         assert_ne!(stored[0], stored[1]);
-        assert!(stored.iter().all(|path| path
-            .starts_with(&format!("media/attachments/meliponaries/{meliponary_id}/"))));
+        assert!(stored
+            .iter()
+            .all(|path| path
+                .starts_with(&format!("media/attachments/meliponaries/{meliponary_id}/"))));
         assert!(stored.iter().all(|path| data_dir.join(path).is_file()));
         let _ = fs::remove_dir_all(root).await;
     }
