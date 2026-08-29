@@ -27,6 +27,10 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Integração da Agenda ao shell/sidebar/router e atalhos de navegação entre Agenda, alertas, colônias e caixas.
 - Testes frontend específicos da Etapa 4 para rota da Agenda, contexto ativo, alertas acionáveis, conjunto de ações e consumo dos record centers.
 - Documentação dedicada da Agenda em `docs/AGENDA.md`.
+- Central de Relatórios dedicada com visão operacional, produção, custos registrados, Agenda, histórico de colônia e consolidação por meliponário, calculados por serviços Rust tipados.
+- Exportação CSV UTF-8 com separador `;`, ordem determinística, cabeçalhos humanos, escaping de conteúdo e proteção contra formula injection em campos textuais.
+- Saída imprimível dos relatórios pela WebView e impressão do sistema, com CSS específico para papel e fundo claro mesmo quando a aplicação está em tema escuro.
+- Documentação dedicada dos relatórios em `docs/REPORTS.md`, incluindo filtros, semântica de métricas, estado efetivo, CSV, impressão e limitações.
 
 ### Changed
 
@@ -45,6 +49,8 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - O seletor de meliponário ativo passa a filtrar Agenda, alertas, Dashboard, colônias, caixas e fluxos de manejo, preservando catálogos globais apenas onde o domínio exige destinos externos ao contexto, como transferências.
 - Dashboard passa a integrar resumo da Agenda e alertas acionáveis; quando há contexto ativo, indicadores sem contrato de escopo confiável não são misturados silenciosamente com a visão filtrada.
 - Fichas de Colônia, Caixa e Meliponário passam a consumir projeções `record_center` do backend como hubs de leitura e navegação.
+- A área `Dados` volta a ficar dedicada a backup, restauração e exportação estrutural, enquanto relatórios operacionais passam a possuir rota, menu e sidebar próprios.
+- Relatórios operacionais aplicam estado efetivo no backend: fatos anulados ou revertidos não entram silenciosamente em totais válidos, e histórico completo/auditoria é um modo explícito.
 
 ### Fixed
 
