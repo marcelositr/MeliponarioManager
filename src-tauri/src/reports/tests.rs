@@ -17,10 +17,12 @@ async fn seed() -> SqlitePool {
         .execute(&pool)
         .await
         .unwrap();
-    sqlx::query("INSERT INTO boxes(id,meliponary_id,code,status) VALUES('b1','m1','CX-001','active')")
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO boxes(id,meliponary_id,code,status) VALUES('b1','m1','CX-001','active')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
     sqlx::query("INSERT INTO colonies(id,meliponary_id,species_id,code,status) VALUES('c1','m1','s1','JAT-001','active')")
         .execute(&pool)
         .await
@@ -222,8 +224,14 @@ async fn colony_effective_history_is_chronological_and_full_mode_keeps_invalidat
     )
     .await
     .unwrap();
-    assert!(effective.timeline.windows(2).all(|pair| pair[0].occurred_at <= pair[1].occurred_at));
-    assert!(!effective.timeline.iter().any(|row| row.source_id == "prod-void"));
+    assert!(effective
+        .timeline
+        .windows(2)
+        .all(|pair| pair[0].occurred_at <= pair[1].occurred_at));
+    assert!(!effective
+        .timeline
+        .iter()
+        .any(|row| row.source_id == "prod-void"));
 
     let full = colony::colony_report(
         &pool,
@@ -235,5 +243,8 @@ async fn colony_effective_history_is_chronological_and_full_mode_keeps_invalidat
     )
     .await
     .unwrap();
-    assert!(full.timeline.iter().any(|row| row.source_id == "prod-void" && row.state == "voided"));
+    assert!(full
+        .timeline
+        .iter()
+        .any(|row| row.source_id == "prod-void" && row.state == "voided"));
 }
