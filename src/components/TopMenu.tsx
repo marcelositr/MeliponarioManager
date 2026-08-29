@@ -61,8 +61,9 @@ function Menu({ name, label, open, onToggle, onMove, children }: { name: MenuNam
     }
     if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      const root = event.currentTarget.parentElement;
       if (!open) onToggle();
-      window.requestAnimationFrame(() => event.currentTarget.parentElement?.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus());
+      window.requestAnimationFrame(() => root?.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus());
     }
   }
   return <div className="menu-root"><button data-menu-trigger={name} className={open ? "menu-trigger open" : "menu-trigger"} role="menuitem" type="button" onClick={onToggle} onKeyDown={onTriggerKeyDown} aria-haspopup="menu" aria-expanded={open}>{label}</button>{open && <div className="menu-popover" role="menu" aria-label={label}>{children}</div>}</div>;
@@ -70,6 +71,19 @@ function Menu({ name, label, open, onToggle, onMove, children }: { name: MenuNam
 
 function MenuItem({ label, onClick, disabled = false, checked = false, icon }: { label: string; onClick?: () => void; disabled?: boolean; checked?: boolean; icon?: "sun" | "moon" | "system" | "refresh" | "database" | "info" }) {
   function onKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
+      const bar = event.currentTarget.closest<HTMLElement>("[role='menubar']");
+      const roots = Array.from(bar?.querySelectorAll<HTMLElement>(".menu-root") ?? []);
+      const currentRoot = event.currentTarget.closest<HTMLElement>(".menu-root");
+      const index = currentRoot ? roots.indexOf(currentRoot) : -1;
+      if (index < 0 || roots.length === 0) return;
+      const next = roots[(index + (event.key === "ArrowRight" ? 1 : -1) + roots.length) % roots.length];
+      const trigger = next.querySelector<HTMLButtonElement>("[data-menu-trigger]");
+      trigger?.click();
+      window.requestAnimationFrame(() => next.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus());
+      return;
+    }
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const menu = event.currentTarget.closest("[role='menu']");
