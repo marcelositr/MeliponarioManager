@@ -18,6 +18,7 @@ import type {
 import type { Navigate, NavigationIntent } from "../lib/navigation";
 import { formatDateTimeBr } from "../lib/presentation";
 import type { Alert, InspectionPhoto, View } from "../types";
+import { MeliponaryFilesPanel } from "./MeliponaryFilesPanel";
 
 type NavigateProps = { onNavigate: (view: View) => void };
 
@@ -182,6 +183,7 @@ export function MeliponaryOperationalCenter({ meliponaryId, onNavigate }: Naviga
         <button className="button-secondary" type="button" onClick={() => navigate({ view: "boxes", meliponaryId })}>Caixas</button>
       </div>
     </section>
+    <MeliponaryFilesPanel meliponaryId={meliponaryId} />
     <TaskPanel tasks={tasks} onNavigate={navigate} />
     <AlertPanel alerts={alerts} onNavigate={navigate} />
   </div>;
