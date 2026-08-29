@@ -71,10 +71,9 @@ async fn operational_report_resolved(
         .collect();
 
     let inspections =
-        period_count_by_colony(pool, filter, "inspections", "inspected_at", "voided_at").await?;
-    let feedings = period_count_by_colony(pool, filter, "feedings", "fed_at", "voided_at").await?;
-    let events =
-        period_count_by_colony(pool, filter, "colony_events", "occurred_at", "voided_at").await?;
+        period_count_by_colony(pool, filter, ColonyPeriodCount::Inspections).await?;
+    let feedings = period_count_by_colony(pool, filter, ColonyPeriodCount::Feedings).await?;
+    let events = period_count_by_colony(pool, filter, ColonyPeriodCount::Events).await?;
     let maintenance: i64 = sqlx::query_scalar(
         "SELECT COUNT(*)
          FROM box_maintenance_records r
@@ -182,32 +181,43 @@ async fn operational_report_resolved(
     })
 }
 
+#[derive(Clone, Copy)]
+enum ColonyPeriodCount {
+    Inspections,
+    Feedings,
+    Events,
+}
+
 async fn period_count_by_colony(
     pool: &SqlitePool,
     filter: &ResolvedFilter,
-    table: &str,
-    date_column: &str,
-    void_column: &str,
+    kind: ColonyPeriodCount,
 ) -> Result<i64, AppError> {
-    let allowed = match (table, date_column, void_column) {
-        ("inspections", "inspected_at", "voided_at")
-        | ("feedings", "fed_at", "voided_at")
-        | ("colony_events", "occurred_at", "voided_at") => true,
-        _ => false,
+    let sql = match kind {
+        ColonyPeriodCount::Inspections => {
+            "SELECT COUNT(*) FROM inspections r
+             JOIN colonies c ON c.id = r.colony_id
+             WHERE r.voided_at IS NULL
+               AND r.inspected_at >= ? AND r.inspected_at <= ?
+               AND (? IS NULL OR c.meliponary_id = ?)"
+        }
+        ColonyPeriodCount::Feedings => {
+            "SELECT COUNT(*) FROM feedings r
+             JOIN colonies c ON c.id = r.colony_id
+             WHERE r.voided_at IS NULL
+               AND r.fed_at >= ? AND r.fed_at <= ?
+               AND (? IS NULL OR c.meliponary_id = ?)"
+        }
+        ColonyPeriodCount::Events => {
+            "SELECT COUNT(*) FROM colony_events r
+             JOIN colonies c ON c.id = r.colony_id
+             WHERE r.voided_at IS NULL
+               AND r.occurred_at >= ? AND r.occurred_at <= ?
+               AND (? IS NULL OR c.meliponary_id = ?)"
+        }
     };
-    if !allowed {
-        return Err(AppError::Validation(
-            "Consulta de relatório inválida.".to_owned(),
-        ));
-    }
-    let sql = format!(
-        "SELECT COUNT(*) FROM {table} r
-         JOIN colonies c ON c.id = r.colony_id
-         WHERE r.{void_column} IS NULL
-           AND r.{date_column} >= ? AND r.{date_column} <= ?
-           AND (? IS NULL OR c.meliponary_id = ?)"
-    );
-    Ok(sqlx::query_scalar(&sql)
+
+    Ok(sqlx::query_scalar(sql)
         .bind(&filter.start_at)
         .bind(&filter.end_at)
         .bind(filter.meliponary_id.as_deref())
