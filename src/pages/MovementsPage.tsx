@@ -182,8 +182,9 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
         const transportReturn = returnByMovement.get(item.id);
         const secondary = [{ label: "Documentos", onClick: () => openDocuments(item.id) }];
         if (!disabled && item.movementType === "transport") {
-          if (transportReturn) secondary.push({ label: "Reabrir transporte…", onClick: () => setReopenTarget(item) });
-          else {
+          if (transportReturn) {
+            if (!hasOpenTransport) secondary.push({ label: "Reabrir transporte…", onClick: () => setReopenTarget(item) });
+          } else {
             secondary.push({ label: "Registrar retorno…", onClick: () => { setReturnTarget(item); setReturnForm(returnInitial); } });
             secondary.push({ label: "Anular transporte", onClick: () => setMovementAction({ item, mode: "void" }) });
           }
