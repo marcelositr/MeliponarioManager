@@ -826,7 +826,8 @@ pub async fn generate_management_report(
         .await
         .map_err(|_| "Não foi possível consultar a visão operacional.".to_owned())?;
 
-    let mut report = format!("# Relatório do MeliponarioManager\
+    let mut report = format!(
+        "# Relatório do MeliponarioManager\
 \
 Gerado em: {created_at}\
 \
@@ -840,17 +841,32 @@ Gerado em: {created_at}\
 - Caixas ativas e livres: {}\
 \
 ## Situação das colônias\
-", summary.meliponaries, summary.species, summary.colonies, summary.boxes, overview.occupied_boxes, overview.free_boxes);
+",
+        summary.meliponaries,
+        summary.species,
+        summary.colonies,
+        summary.boxes,
+        overview.occupied_boxes,
+        overview.free_boxes
+    );
     for item in &overview.colony_statuses {
-        report.push_str(&format!("- {}: {}\
-", item.label, item.count));
+        report.push_str(&format!(
+            "- {}: {}\
+",
+            item.label, item.count
+        ));
     }
-    report.push_str("\
+    report.push_str(
+        "\
 ## Distribuição por espécie\
-");
+",
+    );
     for item in &overview.species_distribution {
-        report.push_str(&format!("- {}: {}\
-", item.label, item.count));
+        report.push_str(&format!(
+            "- {}: {}\
+",
+            item.label, item.count
+        ));
     }
     report.push_str(&format!(
         "\
