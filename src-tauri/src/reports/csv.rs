@@ -141,12 +141,12 @@ pub(super) async fn export(
         _ => {
             return Err(AppError::Validation(
                 "Tipo de CSV de relatório não suportado.".to_owned(),
-            ))
+            ));
         }
     };
 
-    fs::write(path, content).map_err(|error| {
-        AppError::Validation(format!("Não foi possível salvar o CSV selecionado: {error}"))
+    fs::write(path, content).map_err(|_| {
+        AppError::Validation("Não foi possível salvar o CSV no destino selecionado.".to_owned())
     })?;
     Ok(CsvExportResult {
         path: path.to_owned(),
