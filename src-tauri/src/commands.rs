@@ -17,7 +17,7 @@ use crate::{
     movements::{self, ColonyMovement, CreateMovement},
     operational,
     production::{self, CreateProductionRecord, ProductionRecord},
-    repository, time, timeline,
+    repository, time, timeline, transport,
 };
 use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager, State};
@@ -478,6 +478,17 @@ pub async fn create_colony_movement(
     pool: State<'_, SqlitePool>,
     mut input: CreateMovement,
 ) -> Result<ColonyMovement, String> {
+    if input.movement_type.trim() == "transport"
+        && transport::has_open_transport_for_colony(&pool, &input.colony_id, None)
+            .await
+            .map_err(message)?
+    {
+        return Err(
+            "Esta colônia já possui um transporte temporário aberto. Registre o retorno ou anule o transporte atual antes de iniciar outro."
+                .to_owned(),
+        );
+    }
+
     input.moved_at = Some(
         time::normalize_or_now(&pool, &input.moved_at, false)
             .await
