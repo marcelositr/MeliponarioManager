@@ -33,6 +33,7 @@ mod reversals;
 mod stage4_migration_tests;
 mod time;
 mod timeline;
+mod transport;
 
 use sqlx::SqlitePool;
 use tauri::Manager;
@@ -111,6 +112,9 @@ pub fn run() {
             commands::list_movement_documents,
             commands::list_colony_documents,
             commands::get_movement_traceability,
+            transport::complete_transport,
+            transport::list_transport_returns,
+            transport::reopen_transport,
             admin_commands::edit_meliponary,
             admin_commands::archive_meliponary,
             admin_commands::reactivate_meliponary,
