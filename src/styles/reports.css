@@ -1,0 +1,50 @@
+.reports-page { max-width: 1500px; margin: 0 auto; }
+.report-controls { display: grid; gap: 14px; }
+.report-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; }
+.report-tab { border: 0; border-radius: 4px; background: transparent; color: var(--text-secondary); padding: 7px 10px; font-weight: 600; }
+.report-tab:hover, .report-tab.active { background: var(--surface-selected); color: var(--text-primary); }
+.report-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap: 10px; align-items: end; }
+.report-audit-toggle { align-self: center; margin-top: 22px; }
+.report-sheet { display: grid; gap: 14px; }
+.report-print-header { padding: 18px 20px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--surface-panel); }
+.report-print-header h1 { margin: 4px 0 2px; font-size: 24px; }
+.report-print-header > p { margin: 0 0 12px; color: var(--text-secondary); }
+.report-print-header dl, .report-details { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 10px; margin: 0; }
+.report-print-header dl div, .report-details div { display: grid; gap: 2px; }
+.report-print-header dt, .report-details dt { color: var(--text-secondary); font-size: 12px; }
+.report-print-header dd, .report-details dd { margin: 0; font-weight: 600; }
+.report-section { padding: 16px 20px; border: 1px solid var(--border-subtle); border-radius: 6px; background: var(--surface-panel); break-inside: avoid; }
+.report-section h2 { margin: 0 0 12px; font-size: 16px; }
+.report-metrics { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 8px; }
+.report-metric { display: grid; gap: 4px; min-height: 62px; padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 4px; background: var(--surface-subtle); }
+.report-metric span { color: var(--text-secondary); font-size: 12px; }
+.report-metric strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+.report-note { margin: 10px 0 0; color: var(--text-secondary); font-size: 13px; }
+.report-table { width: 100%; }
+.report-table tr { break-inside: avoid; }
+.report-table thead { display: table-header-group; }
+
+@media (max-width: 1100px) {
+  .report-filter-grid { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+  .report-metrics { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+}
+
+@media print {
+  @page { margin: 14mm; }
+  html, body, #root, .application-shell, .shell-body, .workspace, .workspace-content { background: #fff !important; color: #111 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  .menu-bar, .sidebar, .context-bar, .status-bar, .feedback-banner, .report-no-print { display: none !important; }
+  .shell-body, .workspace, .workspace-content, .reports-page { display: block !important; margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: none !important; }
+  .report-sheet { display: block; color: #111 !important; }
+  .report-print-header, .report-section { border: 0; border-radius: 0; background: #fff !important; color: #111 !important; padding: 0 0 10mm; break-inside: avoid; }
+  .report-print-header { border-bottom: 1px solid #777; margin-bottom: 8mm; }
+  .report-print-header h1, .report-section h2, .report-metric strong, .report-details dd { color: #111 !important; }
+  .report-print-header p, .report-print-header dt, .report-section p, .report-metric span, .report-details dt { color: #444 !important; }
+  .report-metrics { grid-template-columns: repeat(4, 1fr); }
+  .report-metric { background: #fff !important; border: 1px solid #aaa; color: #111 !important; break-inside: avoid; }
+  .table-wrap { overflow: visible !important; }
+  .data-table, .data-table th, .data-table td { color: #111 !important; background: #fff !important; border-color: #bbb !important; }
+  .data-table thead { display: table-header-group; }
+  .data-table tr { break-inside: avoid; page-break-inside: avoid; }
+  .report-section h2, .report-print-header h1 { break-after: avoid; page-break-after: avoid; }
+  button, input, select, textarea { display: none !important; }
+}
