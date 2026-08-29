@@ -93,6 +93,14 @@ async fn period_is_inclusive_and_effective_production_never_mixes_units() {
 async fn operational_report_respects_reversals_transport_returns_and_real_costs() {
     let pool = seed().await;
     sqlx::query(
+        "INSERT INTO colonies(id,meliponary_id,species_id,code,status) VALUES
+         ('c-weak','m1','s1','JAT-W','weak'),
+         ('c-recovering','m1','s1','JAT-R','recovering')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
         "INSERT INTO colony_movements(id,colony_id,movement_type,moved_at,from_meliponary_id,to_meliponary_id)
          VALUES
           ('transfer-valid','c1','internal_transfer','2026-08-05 10:00:00','m1','m2'),
@@ -141,6 +149,8 @@ async fn operational_report_respects_reversals_transport_returns_and_real_costs(
     let report = operational::operational_report(&pool, &august_filter())
         .await
         .unwrap();
+    assert_eq!(report.plantel.total_colonies, 3);
+    assert_eq!(report.plantel.active_colonies, 3);
     assert_eq!(report.movements.transfers, 1);
     assert_eq!(report.movements.temporary_started, 2);
     assert_eq!(report.movements.returns_completed, 1);
