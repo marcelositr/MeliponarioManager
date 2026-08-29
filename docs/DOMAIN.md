@@ -104,7 +104,37 @@ Regras principais:
 - o SQLite guarda apenas metadados e o caminho relativo;
 - nomes internos usam identificadores próprios para evitar colisões;
 - os formatos iniciais aceitos são JPG, PNG e WebP;
-- a exclusão protege o caminho para que apenas a área gerenciada de mídia possa ser afetada.
+- a exclusão protege o caminho para que apenas a área gerenciada de mídia possa ser afetada;
+- a interface pode carregar uma prévia limitada e sob demanda, sem transformar o binário em estado persistido do frontend;
+- ausência física do arquivo não autoriza apagar automaticamente a metadata histórica.
+
+### Anexo gerenciado de meliponário
+
+Documento ou arquivo associado ao contexto administrativo de um meliponário.
+
+O anexo não é uma nova fonte de verdade para fatos de manejo. Ele complementa o Record Center da unidade com material externo, enquanto o vínculo e os metadados permanecem no SQLite.
+
+Metadados principais:
+
+- meliponário;
+- nome original;
+- caminho relativo gerenciado;
+- extensão e tipo MIME quando reconhecidos;
+- tamanho em bytes;
+- descrição e observações;
+- data de inclusão.
+
+Regras principais:
+
+- o arquivo precisa pertencer a um meliponário existente;
+- a aplicação copia a origem para `media/attachments/meliponaries/<meliponary-id>/`;
+- o nome físico é gerado por UUID, permitindo arquivos distintos com o mesmo nome original;
+- o caminho de origem não é mantido como dependência permanente;
+- a remoção afeta apenas a cópia gerenciada e sua metadata, nunca o arquivo original usado na importação;
+- a ausência física preserva a metadata e é exposta pelo diagnóstico de arquivos;
+- paths absolutos, travessia de diretório e escapes da área `media/` são rejeitados.
+
+Consulte [FILES.md](FILES.md) para a política completa de armazenamento, diagnóstico, backup e abertura dos arquivos.
 
 ### Alimentação
 
@@ -281,9 +311,9 @@ Elas consolidam somente dados já existentes em suas fontes:
 
 - Colônia: situação, caixa atual, inspeção e alimentação recentes, Agenda e alertas;
 - Caixa: estado físico, ocupação, manutenção, Agenda e fotos cujo contexto histórico pertence à caixa;
-- Meliponário: plantel, caixas, Agenda, atrasos, alertas e produção recente.
+- Meliponário: plantel, caixas, Agenda, atrasos, alertas, produção recente e arquivos administrativos associados ao próprio meliponário.
 
-Essas fichas não criam tabelas paralelas nem se tornam novas fontes de verdade.
+Essas fichas não criam tabelas paralelas nem se tornam novas fontes de verdade. Arquivos exibidos no Record Center permanecem entidades de suporte, com metadata própria e binários gerenciados fora do SQLite.
 
 ## Visões derivadas
 
@@ -351,11 +381,11 @@ CSV e impressão são formatos de saída dessas projeções. Eles não alteram o
 
 ## Serviços de dados
 
-Backup, exportação estrutural, relatórios e restauração são serviços operacionais e **não entidades do domínio**.
+Backup, exportação estrutural, relatórios, diagnóstico de arquivos e restauração são serviços operacionais e **não entidades do domínio**.
 
-Eles trabalham sobre o estado persistido sem criar uma segunda fonte de verdade. A restauração é preparada, validada e aplicada de forma controlada, com backup de segurança do estado atual antes da troca. CSV e impressão são saídas de consulta; exportação JSON permanece uma representação estrutural e backup continua sendo o mecanismo de recuperação.
+Eles trabalham sobre o estado persistido sem criar uma segunda fonte de verdade. A restauração é preparada, validada e aplicada de forma controlada, com backup de segurança do estado atual antes da troca. CSV e impressão são saídas de consulta; exportação JSON permanece uma representação estrutural e backup completo continua sendo o mecanismo de recuperação dos dados e binários gerenciados.
 
-Consulte [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) e [REPORTS.md](REPORTS.md).
+Consulte [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md), [FILES.md](FILES.md) e [REPORTS.md](REPORTS.md).
 
 ## Princípios
 
