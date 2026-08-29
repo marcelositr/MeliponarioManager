@@ -90,6 +90,46 @@ Uma experiência dedicada de comparação visual lado a lado permanece como poss
 - restauração preparada com validação de integridade;
 - hardening de CI e pipeline de bundles Linux e Windows.
 
+## Etapa experimental v0.8
+
+A série seguinte amplia robustez operacional e informação gerencial sem transformar o aplicativo em serviço web ou BI pesado.
+
+### Fundação, shell, operação e Agenda
+
+**Implementados no trabalho acumulado da v0.8.**
+
+- integridade e hardening de domínio;
+- shell desktop enterprise e acessibilidade;
+- correções/reversões auditáveis;
+- Agenda operacional;
+- centros de registro de Colônia, Caixa e Meliponário;
+- lifecycle completo de transporte temporário com retorno e reabertura auditada.
+
+### Relatórios, CSV e impressão
+
+**Em implementação no Bloco 5B.**
+
+- Central de Relatórios dedicada;
+- visão operacional por período e contexto;
+- produção sem mistura de unidades;
+- custos limitados aos valores realmente persistidos;
+- desempenho da Agenda com estados semanticamente explícitos;
+- histórico operacional de colônia e modo completo/auditoria;
+- consolidação por meliponário;
+- CSV UTF-8 seguro para planilhas;
+- impressão pela WebView/sistema operacional com layout próprio para papel.
+
+Relatórios são derivados dos dados existentes e não criam uma nova fonte de verdade nem exigem migration própria.
+
+### Reservado ao Bloco 5C
+
+- arquivos/anexos gerenciados além do suporte atual de fotos;
+- manifest e armazenamento gerenciado de documentos quando aprovado;
+- polish final de fotos;
+- revisão final de backup considerando novos arquivos;
+- window-state final;
+- auditoria visual/runtime final completa.
+
 ## Próximos ciclos 0.x
 
 As próximas versões serão definidas pelo uso real do sistema e não por uma corrida artificial de números.
