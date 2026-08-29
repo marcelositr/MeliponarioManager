@@ -31,6 +31,14 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Exportação CSV UTF-8 com separador `;`, ordem determinística, cabeçalhos humanos, escaping de conteúdo e proteção contra formula injection em campos textuais.
 - Saída imprimível dos relatórios pela WebView e impressão do sistema, com CSS específico para papel e fundo claro mesmo quando a aplicação está em tema escuro.
 - Documentação dedicada dos relatórios em `docs/REPORTS.md`, incluindo filtros, semântica de métricas, estado efetivo, CSV, impressão e limitações.
+- Migration aditiva `0017_managed_attachments.sql` para anexos associados a meliponários, preservando metadata no SQLite e binários na área local gerenciada.
+- Painel contextual de Arquivos no Record Center do Meliponário, com seleção por Dialog nativo, descrição, abertura, revelação e remoção confirmada.
+- Diagnóstico de arquivos que cruza fotos e anexos registrados com o filesystem e informa assets ausentes ou arquivos sem referência, sem limpeza automática.
+- Manifest v1 para backups completos, com formato, versão, schema e inventário de assets.
+- Exportação JSON estrutural versionada com IDs, relações e metadata de fotos/anexos, declarando explicitamente que binários não estão incorporados.
+- Estado da janela persistido pelo plugin oficial `tauri-plugin-window-state`.
+- Thumbnails lazy para fotos de inspeção com limite de bytes para prévia e estados explícitos de arquivo ausente ou prévia indisponível.
+- Documentação dedicada de arquivos gerenciados em `docs/FILES.md` e testes frontend específicos do Bloco 5C.
 
 ### Changed
 
@@ -51,6 +59,9 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Fichas de Colônia, Caixa e Meliponário passam a consumir projeções `record_center` do backend como hubs de leitura e navegação.
 - A área `Dados` volta a ficar dedicada a backup, restauração e exportação estrutural, enquanto relatórios operacionais passam a possuir rota, menu e sidebar próprios.
 - Relatórios operacionais aplicam estado efetivo no backend: fatos anulados ou revertidos não entram silenciosamente em totais válidos, e histórico completo/auditoria é um modo explícito.
+- Fotos de inspeção deixam de exigir caminho digitado e passam a usar seleção nativa, contexto humano, abertura/revelação do arquivo e carregamento de prévia sob demanda.
+- Backup completo passa a validar manifest, schema e inventário de mídia antes do staging; restauração aplica troca de banco/mídia com cópia de segurança e rollback local.
+- JSON portátil passa a ter contrato estrutural explícito e não é apresentado como mecanismo de restauração completa.
 
 ### Fixed
 
@@ -59,6 +70,9 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Confirmações críticas de ciclo de vida e remoção de fotos deixam de usar diálogos genéricos do navegador e passam a explicar a consequência da operação.
 - Reconciliação da Agenda recupera tarefa derivada artificialmente ausente mantendo idempotência após execuções repetidas.
 - Ordenação combinada dos alertas usa uma consulta externa após o `UNION ALL`, mantendo prioridade/data/chave compatíveis com SQLite.
+- Reabertura de transporte temporário não pode criar dois transportes abertos para a mesma colônia, incluindo proteção contra bypass direto pelo SQLite.
+- Registros de arquivos ausentes permanecem preservados e são sinalizados em vez de serem apagados silenciosamente.
+- Falhas na gravação de metadata de anexo compensam a cópia física recém-criada, evitando arquivo gerenciado órfão no fluxo normal de importação.
 
 ## [0.7.1] - 2026-08-27
 
