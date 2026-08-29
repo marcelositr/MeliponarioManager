@@ -75,6 +75,13 @@ test("temporary transport exposes open, complete and reopen lifecycle in the mov
   assert.match(api, /reopen_transport/);
 });
 
+test("temporary transport UI does not offer reopening while another transport is open", async () => {
+  const page = await source("src/pages/MovementsPage.tsx");
+  assert.match(page, /const hasOpenTransport = useMemo/);
+  assert.match(page, /if \(transportReturn\) \{\s*if \(!hasOpenTransport\) secondary\.push\(\{ label: "Reabrir transporte…"/);
+  assert.match(page, /movementForm\.movementType === "transport" && hasOpenTransport/);
+});
+
 test("presentation keeps canonical persistence out of visible dates", () => {
   assert.equal(formatDateTimeBr("2026-08-28 21:37:42"), "28/08/2026 21:37");
   assert.equal(formatDateTimeBr("2026-08-28T09:05:00"), "28/08/2026 09:05");
