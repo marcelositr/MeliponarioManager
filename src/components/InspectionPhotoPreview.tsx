@@ -4,12 +4,11 @@ import { getInspectionPhotoPreview } from "../lib/files-api";
 type Props = {
   photoId: string;
   alt: string;
-  onAvailabilityChange?: (fileExists: boolean) => void;
 };
 
 type PreviewState = "idle" | "loading" | "missing" | "limited" | "ready" | "error";
 
-export function InspectionPhotoPreview({ photoId, alt, onAvailabilityChange }: Props) {
+export function InspectionPhotoPreview({ photoId, alt }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<PreviewState>("idle");
   const [url, setUrl] = useState<string | null>(null);
@@ -26,7 +25,6 @@ export function InspectionPhotoPreview({ photoId, alt, onAvailabilityChange }: P
       try {
         const preview = await getInspectionPhotoPreview(photoId);
         if (cancelled) return;
-        onAvailabilityChange?.(preview.fileExists);
         if (!preview.fileExists) {
           setState("missing");
           return;
@@ -65,7 +63,7 @@ export function InspectionPhotoPreview({ photoId, alt, onAvailabilityChange }: P
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [photoId, onAvailabilityChange]);
+  }, [photoId]);
 
   return <div ref={rootRef} className={`photo-thumbnail photo-thumbnail-${state}`}>
     {state === "ready" && url ? <img src={url} alt={alt} loading="lazy" /> : <span>{state === "missing" ? "Arquivo não encontrado" : state === "limited" ? "Prévia não carregada" : state === "error" ? "Prévia indisponível" : "Carregando prévia…"}</span>}
