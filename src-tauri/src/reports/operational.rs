@@ -20,7 +20,7 @@ async fn operational_report_resolved(
 ) -> Result<OperationalReport, AppError> {
     let (total_colonies, active_colonies): (i64, i64) = sqlx::query_as(
         "SELECT COUNT(*),
-                COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0)
+                COALESCE(SUM(CASE WHEN status IN ('active', 'weak', 'recovering') THEN 1 ELSE 0 END), 0)
          FROM colonies
          WHERE (? IS NULL OR meliponary_id = ?)",
     )
@@ -70,8 +70,7 @@ async fn operational_report_resolved(
         })
         .collect();
 
-    let inspections =
-        period_count_by_colony(pool, filter, ColonyPeriodCount::Inspections).await?;
+    let inspections = period_count_by_colony(pool, filter, ColonyPeriodCount::Inspections).await?;
     let feedings = period_count_by_colony(pool, filter, ColonyPeriodCount::Feedings).await?;
     let events = period_count_by_colony(pool, filter, ColonyPeriodCount::Events).await?;
     let maintenance: i64 = sqlx::query_scalar(
