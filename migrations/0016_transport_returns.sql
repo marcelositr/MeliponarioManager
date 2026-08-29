@@ -62,6 +62,41 @@ BEGIN
     END;
 END;
 
+CREATE TRIGGER prevent_parallel_open_transport_on_reopen
+BEFORE UPDATE OF reversed_at ON transport_returns
+WHEN OLD.reversed_at IS NULL
+  AND NEW.reversed_at IS NOT NULL
+BEGIN
+    SELECT CASE
+        WHEN EXISTS (
+            SELECT 1
+            FROM colony_movements target
+            JOIN colony_movements other
+              ON other.colony_id = target.colony_id
+             AND other.id <> target.id
+            WHERE target.id = NEW.movement_id
+              AND target.movement_type = 'transport'
+              AND target.voided_at IS NULL
+              AND target.reversed_at IS NULL
+              AND other.movement_type = 'transport'
+              AND other.voided_at IS NULL
+              AND other.reversed_at IS NULL
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM transport_returns other_return
+                  WHERE other_return.movement_id = other.id
+                    AND other_return.reversed_at IS NULL
+              )
+        ) THEN RAISE(ABORT, 'A colônia já possui outro transporte temporário aberto.')
+    END;
+END;
+
+CREATE TRIGGER prevent_transport_return_delete
+BEFORE DELETE ON transport_returns
+BEGIN
+    SELECT RAISE(ABORT, 'Retornos de transporte não podem ser excluídos; use a reabertura auditada.');
+END;
+
 CREATE TRIGGER prevent_void_completed_transport
 BEFORE UPDATE OF voided_at ON colony_movements
 WHEN OLD.movement_type = 'transport'
