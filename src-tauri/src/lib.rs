@@ -3,6 +3,7 @@ mod agenda;
 mod agenda_commands;
 mod agenda_execution;
 mod alerts;
+mod attachments;
 mod audit;
 mod box_states;
 mod commands;
@@ -17,6 +18,7 @@ mod history;
 mod inspections;
 mod lifecycle;
 mod maintenance;
+mod managed_files;
 mod master_data;
 mod media;
 #[cfg(test)]
@@ -32,6 +34,8 @@ mod repository;
 mod reversals;
 #[cfg(test)]
 mod stage4_migration_tests;
+#[cfg(test)]
+mod stage5c_migration_tests;
 mod time;
 mod timeline;
 mod transport;
@@ -41,12 +45,20 @@ use tauri::Manager;
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
             data_management::apply_pending_restore(&data_dir).map_err(std::io::Error::other)?;
             std::fs::create_dir_all(data_dir.join("media").join("inspections"))?;
+            std::fs::create_dir_all(
+                data_dir
+                    .join("media")
+                    .join("attachments")
+                    .join("meliponaries"),
+            )?;
 
             let database_path = data_dir.join("meliponario.db");
             let pool: SqlitePool =
@@ -82,6 +94,15 @@ pub fn run() {
             data_management::export_portable_json,
             data_management::generate_management_report,
             data_management::stage_restore,
+            managed_files::diagnose_managed_files,
+            managed_files::open_managed_attachment,
+            managed_files::reveal_managed_attachment,
+            managed_files::open_inspection_photo,
+            managed_files::reveal_inspection_photo,
+            attachments::import_meliponary_attachment,
+            attachments::list_meliponary_attachments,
+            attachments::update_meliponary_attachment,
+            attachments::remove_meliponary_attachment,
             commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,
