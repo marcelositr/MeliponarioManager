@@ -76,7 +76,9 @@ fn safe_extension(path: &Path) -> Option<String> {
     let value = path.extension()?.to_str()?.trim().to_ascii_lowercase();
     if value.is_empty()
         || value.len() > 16
-        || !value.chars().all(|character| character.is_ascii_alphanumeric())
+        || !value
+            .chars()
+            .all(|character| character.is_ascii_alphanumeric())
     {
         return None;
     }
@@ -187,9 +189,7 @@ pub async fn import(
         .map(|extension| format!("{id}.{extension}"))
         .unwrap_or_else(|| id.clone());
     let target_path = target_dir.join(&stored_name);
-    let relative_path = format!(
-        "media/attachments/meliponaries/{meliponary_id}/{stored_name}"
-    );
+    let relative_path = format!("media/attachments/meliponaries/{meliponary_id}/{stored_name}");
 
     fs::copy(&source_path, &target_path)
         .await
@@ -261,14 +261,13 @@ pub async fn update(
     input: UpdateManagedAttachment,
 ) -> Result<ManagedAttachment, AppError> {
     let id = required(&input.id, "Anexo")?;
-    let result = sqlx::query(
-        "UPDATE managed_attachments SET description = ?, notes = ? WHERE id = ?",
-    )
-    .bind(optional(&input.description))
-    .bind(optional(&input.notes))
-    .bind(&id)
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("UPDATE managed_attachments SET description = ?, notes = ? WHERE id = ?")
+            .bind(optional(&input.description))
+            .bind(optional(&input.notes))
+            .bind(&id)
+            .execute(pool)
+            .await?;
     if result.rows_affected() == 0 {
         return Err(AppError::NotFound("Anexo não encontrado.".to_owned()));
     }
@@ -492,9 +491,8 @@ mod tests {
                 .unwrap();
         assert_eq!(stored.len(), 2);
         assert_ne!(stored[0], stored[1]);
-        assert!(stored.iter().all(|path| path.starts_with(&format!(
-            "media/attachments/meliponaries/{meliponary_id}/"
-        ))));
+        assert!(stored.iter().all(|path| path
+            .starts_with(&format!("media/attachments/meliponaries/{meliponary_id}/"))));
         assert!(stored.iter().all(|path| data_dir.join(path).is_file()));
         let _ = fs::remove_dir_all(root).await;
     }
