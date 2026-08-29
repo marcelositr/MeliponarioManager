@@ -18,6 +18,6 @@ export function AgendaWorkspacePage({ meliponaries, colonies, boxes, activeMelip
       <button className="button-secondary" type="button" onClick={() => onNavigate("colonies")}>Abrir colônias</button>
       <button className="button-secondary" type="button" onClick={() => onNavigate("boxes")}>Abrir caixas</button>
     </div>
-    <AgendaPage meliponaries={meliponaries} colonies={colonies} boxes={boxes} activeMeliponaryId={activeMeliponaryId} focusTaskId={navigationIntent.view === "agenda" ? navigationIntent.taskId : undefined} focusColonyId={navigationIntent.view === "agenda" ? navigationIntent.colonyId : undefined} />
+    <AgendaPage meliponaries={meliponaries} colonies={colonies} boxes={boxes} activeMeliponaryId={activeMeliponaryId} focusTaskId={navigationIntent.view === "agenda" ? navigationIntent.taskId ?? undefined : undefined} focusColonyId={navigationIntent.view === "agenda" ? navigationIntent.colonyId ?? undefined : undefined} />
   </div>;
 }
