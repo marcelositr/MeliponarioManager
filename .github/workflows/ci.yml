@@ -73,7 +73,17 @@ jobs:
         working-directory: src-tauri
         env:
           RUST_BACKTRACE: 1
-        run: cargo test -- --nocapture
+        run: |
+          set -o pipefail
+          cargo test -- --nocapture 2>&1 | tee ../rust-test-output.log
+
+      - name: Upload Rust test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-test-diagnostics-${{ github.sha }}
+          path: rust-test-output.log
+          if-no-files-found: error
 
       - name: Build Tauri desktop binary
         run: npm run tauri -- build --no-bundle
