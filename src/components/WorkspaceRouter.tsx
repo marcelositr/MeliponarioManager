@@ -1,6 +1,6 @@
 import type { AppActions, RecordStateMap } from "../hooks/useAppData";
-import type { Navigate, NavigationIntent } from "../lib/navigation";
-import type { CoreData, DashboardStats, View } from "../types";
+import type { Navigate, NavigationIntent, View } from "../lib/navigation";
+import type { CoreData, DashboardStats } from "../types";
 import { AgendaWorkspacePage } from "../pages/AgendaWorkspacePage";
 import { AlertsPage } from "../pages/AlertsPage";
 import { AssetsPage } from "../pages/AssetsPage";
@@ -16,6 +16,7 @@ import { LifecyclePage } from "../pages/LifecyclePage";
 import { MeliponariesPage } from "../pages/MeliponariesPage";
 import { MovementsPage } from "../pages/MovementsPage";
 import { ProductionPage } from "../pages/ProductionPage";
+import { ReportsPage } from "../pages/ReportsPage";
 import { SpeciesPage } from "../pages/SpeciesPage";
 
 type WorkspaceRouterProps = {
@@ -54,5 +55,6 @@ export function WorkspaceRouter({ activeView, navigationIntent, activeMeliponary
   if (activeView === "movements") return <MovementsPage colonies={contextualColonies} meliponaries={data.meliponaries} boxes={data.boxes} busy={busy} recordStateMap={recordStateMap} onCreateMovement={actions.createMovement} onCreateDocument={actions.createMovementDocument} onCorrectMovement={actions.correctMovementDetails} onVoidTransport={actions.voidTransport} onReverseMovement={actions.reverseMovement} onUpdateDocument={actions.updateMovementDocument} onVoidDocument={actions.voidMovementDocument} />;
   if (activeView === "assets") return <AssetsPage colonies={contextualColonies} boxes={contextualBoxes} busy={busy} autoCreate={autoCreate} recordStateMap={recordStateMap} onImportPhoto={actions.importInspectionPhoto} onDeletePhoto={actions.deleteInspectionPhoto} onCreateMaintenance={actions.createBoxMaintenance} onCorrectMaintenance={actions.correctMaintenance} onVoidMaintenance={actions.voidMaintenance} />;
   if (activeView === "lifecycle") return <LifecyclePage colonies={contextualColonies} busy={busy} recordStateMap={recordStateMap} onChange={actions.changeLifecycle} onReverse={actions.reverseLifecycle} />;
+  if (activeView === "reports") return <ReportsPage meliponaries={data.meliponaries} colonies={data.colonies} species={data.species} activeMeliponaryId={activeMeliponaryId} navigationIntent={navigationIntent} />;
   return <DataManagementPage />;
 }
