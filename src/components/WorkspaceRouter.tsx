@@ -37,6 +37,7 @@ export function WorkspaceRouter({ activeView, navigationIntent, activeMeliponary
   const contextualColonies = navigationIntent.view === activeView && navigationIntent.colonyId ? scopedColonies.filter((item) => item.id === navigationIntent.colonyId) : scopedColonies;
   const contextualBoxes = navigationIntent.view === activeView && navigationIntent.boxId ? scopedBoxes.filter((item) => item.id === navigationIntent.boxId) : scopedBoxes;
   const contextualMeliponaries = navigationIntent.view === activeView && navigationIntent.meliponaryId ? data.meliponaries.filter((item) => item.id === navigationIntent.meliponaryId) : scopedMeliponaries;
+  const autoCreate = navigationIntent.view === activeView && navigationIntent.action === "create";
 
   if (activeView === "dashboard") return <DashboardPage stats={stats} data={data} activeMeliponaryId={activeMeliponaryId} onNavigate={onNavigate} />;
   if (activeView === "agenda") return <AgendaWorkspacePage meliponaries={scopedMeliponaries} colonies={scopedColonies} boxes={scopedBoxes} activeMeliponaryId={activeMeliponaryId} navigationIntent={navigationIntent} onNavigate={onNavigate} />;
@@ -44,8 +45,8 @@ export function WorkspaceRouter({ activeView, navigationIntent, activeMeliponary
   if (activeView === "species") return <SpeciesPage items={data.species} busy={busy} onCreate={actions.createSpecies} onEdit={actions.editSpecies} onArchive={actions.archiveSpecies} onReactivate={actions.reactivateSpecies} onDelete={actions.deleteSpecies} />;
   if (activeView === "colonies") return <ColoniesPage items={contextualColonies} meliponaries={scopedMeliponaries} species={data.species} boxes={scopedBoxes} busy={busy} onCreate={actions.createColony} onPlace={actions.placeColony} onEdit={actions.editColony} onDelete={actions.deleteColony} onNavigate={onNavigate} />;
   if (activeView === "boxes") return <BoxesPage items={contextualBoxes} meliponaries={scopedMeliponaries} busy={busy} onCreate={actions.createBox} onEdit={actions.editBox} onChangeState={actions.changeBoxState} onDelete={actions.deleteBox} onNavigate={onNavigate} />;
-  if (activeView === "inspections") return <InspectionsPage colonies={contextualColonies} busy={busy} onCreate={actions.createInspection} recordStateMap={recordStateMap} onCorrect={actions.correctInspection} onVoid={actions.voidInspection} />;
-  if (activeView === "feeding") return <FeedingPage colonies={contextualColonies} busy={busy} onCreate={actions.createFeeding} recordStateMap={recordStateMap} onCorrect={actions.correctFeeding} onVoid={actions.voidFeeding} />;
+  if (activeView === "inspections") return <InspectionsPage colonies={contextualColonies} busy={busy} autoCreate={autoCreate} onCreate={actions.createInspection} recordStateMap={recordStateMap} onCorrect={actions.correctInspection} onVoid={actions.voidInspection} />;
+  if (activeView === "feeding") return <FeedingPage colonies={contextualColonies} busy={busy} autoCreate={autoCreate} onCreate={actions.createFeeding} recordStateMap={recordStateMap} onCorrect={actions.correctFeeding} onVoid={actions.voidFeeding} />;
   if (activeView === "production") return <ProductionPage colonies={contextualColonies} busy={busy} onCreate={actions.createProduction} recordStateMap={recordStateMap} onCorrect={actions.correctProduction} onVoid={actions.voidProduction} />;
   if (activeView === "history") return <EventsTimelinePage colonies={contextualColonies} busy={busy} onCreate={actions.createEvent} recordStateMap={recordStateMap} onCorrect={actions.correctEvent} onVoid={actions.voidEvent} />;
   if (activeView === "alerts") return <AlertsPage activeMeliponaryId={activeMeliponaryId} onNavigate={onNavigate} />;
