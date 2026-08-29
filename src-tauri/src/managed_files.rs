@@ -42,10 +42,13 @@ pub(crate) fn absolute_media_path(
         ));
     }
 
-    let first = path.components().next().and_then(|component| match component {
-        Component::Normal(value) => value.to_str(),
-        _ => None,
-    });
+    let first = path
+        .components()
+        .next()
+        .and_then(|component| match component {
+            Component::Normal(value) => value.to_str(),
+            _ => None,
+        });
     if first != Some("media") {
         return Err(AppError::Validation(
             "O arquivo está fora da área gerenciada da aplicação.".to_owned(),
@@ -55,10 +58,7 @@ pub(crate) fn absolute_media_path(
     Ok(data_dir.join(path))
 }
 
-pub(crate) fn ensure_managed_prefix(
-    relative_path: &str,
-    prefix: &[&str],
-) -> Result<(), AppError> {
+pub(crate) fn ensure_managed_prefix(relative_path: &str, prefix: &[&str]) -> Result<(), AppError> {
     let components: Vec<_> = Path::new(relative_path)
         .components()
         .filter_map(|component| match component {
@@ -86,7 +86,9 @@ pub(crate) fn file_exists(data_dir: &Path, relative_path: &str) -> bool {
 }
 
 fn public_open_error(action: &str) -> String {
-    format!("Não foi possível {action} este arquivo. Verifique se ele ainda existe e tente novamente.")
+    format!(
+        "Não foi possível {action} este arquivo. Verifique se ele ainda existe e tente novamente."
+    )
 }
 
 fn open_path(app: &AppHandle, relative_path: &str, reveal: bool) -> Result<(), String> {
@@ -242,7 +244,11 @@ pub async fn diagnose_managed_files(
     }
 
     let mut physical_files = Vec::new();
-    collect_files(&data_dir.join("media").join("inspections"), &data_dir, &mut physical_files);
+    collect_files(
+        &data_dir.join("media").join("inspections"),
+        &data_dir,
+        &mut physical_files,
+    );
     collect_files(
         &data_dir.join("media").join("attachments"),
         &data_dir,
@@ -281,10 +287,7 @@ mod tests {
         let root = Path::new("/tmp/app");
         let path = absolute_media_path(root, "media/attachments/meliponaries/a/file.pdf")
             .expect("managed path");
-        assert_eq!(
-            path,
-            root.join("media/attachments/meliponaries/a/file.pdf")
-        );
+        assert_eq!(path, root.join("media/attachments/meliponaries/a/file.pdf"));
         assert!(ensure_managed_prefix(
             "media/attachments/meliponaries/a/file.pdf",
             &["media", "attachments", "meliponaries"]
