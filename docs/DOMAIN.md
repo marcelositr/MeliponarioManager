@@ -155,6 +155,14 @@ Tipos operacionais atuais incluem:
 
 A movimentação preserva origem, destino e contexto das caixas quando aplicável. Operações que alteram plantel e ocupação são tratadas transacionalmente para evitar estado parcial.
 
+#### Transporte temporário e retorno
+
+Um movimento `transport` representa a saída para transporte temporário e não altera o meliponário atual, a caixa atual nem o saldo do plantel. O movimento original permanece preservado como fato histórico.
+
+A conclusão do transporte é registrada separadamente em `transport_returns`. Enquanto não existe retorno ativo, o transporte está aberto. Um retorno ativo marca sua conclusão e preserva data e observações.
+
+Reabrir um transporte não apaga o retorno anterior: o retorno é revertido com data e motivo, mantendo a trilha histórica e de auditoria. Uma colônia pode ter no máximo um transporte temporário aberto por vez, inclusive quando a abertura decorre de uma reabertura.
+
 ### Documento de movimentação
 
 Evidência ou referência associada a uma movimentação já registrada. Uma movimentação pode possuir zero, um ou vários documentos.
@@ -325,13 +333,29 @@ Ele combina informações como situação administrativa das colônias, força d
 
 Quando um meliponário específico está selecionado, a interface só apresenta como contextuais os indicadores que podem ser corretamente escopados. Dados consolidados que não possuem contrato de escopo não são misturados silenciosamente com a visão filtrada.
 
+### Relatórios operacionais
+
+A Central de Relatórios é uma projeção de leitura sobre as entidades e fatos existentes. Ela não cria tabelas paralelas, saldos independentes nem novos fatos de domínio.
+
+Os relatórios usam período inclusivo e contexto opcional de meliponário. Fatos anulados ou operações revertidas são excluídos das projeções operacionais efetivas. O histórico de colônia pode ativar explicitamente um modo completo/auditoria para mostrar esses registros com seu estado, sem transformá-los novamente em fatos válidos.
+
+A visão operacional combina uma fotografia atual do plantel com fatos ocorridos no período. Ela não afirma reconstruir historicamente o plantel na data final quando o schema atual não oferece informação suficiente para isso.
+
+Produção é agregada no backend e sempre preserva a unidade. Quantidades com unidades diferentes não são somadas entre si.
+
+Custos são limitados ao que está realmente persistido em `box_maintenance_records.cost`. O sistema não infere custos de alimentação, produção, movimentação ou preços de mercado. A interface atual trata esse campo como reais, embora o schema ainda não possua coluna própria de moeda.
+
+Métricas da Agenda são contagens nomeadas de tarefas criadas, agendadas e dos estados finais. `rescheduled` permanece um estado terminal próprio e a tarefa sucessora é outro registro; reagendamento não é reinterpretado automaticamente como falha.
+
+CSV e impressão são formatos de saída dessas projeções. Eles não alteram o banco, não geram fatos de auditoria e não substituem backup ou exportação estrutural. Consulte [REPORTS.md](REPORTS.md) para filtros, relatórios disponíveis, CSV e impressão.
+
 ## Serviços de dados
 
-Backup, exportação, relatório e restauração são serviços operacionais e **não entidades do domínio**.
+Backup, exportação estrutural, relatórios e restauração são serviços operacionais e **não entidades do domínio**.
 
-Eles trabalham sobre o estado persistido sem criar uma segunda fonte de verdade. A restauração é preparada, validada e aplicada de forma controlada, com backup de segurança do estado atual antes da troca.
+Eles trabalham sobre o estado persistido sem criar uma segunda fonte de verdade. A restauração é preparada, validada e aplicada de forma controlada, com backup de segurança do estado atual antes da troca. CSV e impressão são saídas de consulta; exportação JSON permanece uma representação estrutural e backup continua sendo o mecanismo de recuperação.
 
-Consulte [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md).
+Consulte [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) e [REPORTS.md](REPORTS.md).
 
 ## Princípios
 
@@ -361,4 +385,4 @@ A interface pode usar termos familiares ao meliponicultor. O modelo interno pres
 
 ### Estado derivado não deve virar estado paralelo
 
-Timeline, alertas, dashboard, Agenda e fichas operacionais devem ser calculados a partir dos registros reais sempre que possível, evitando duplicação e inconsistência.
+Timeline, alertas, dashboard, Agenda, fichas operacionais e relatórios devem ser calculados a partir dos registros reais sempre que possível, evitando duplicação e inconsistência.
