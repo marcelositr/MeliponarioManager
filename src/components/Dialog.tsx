@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useEffect, useId, useRef, type ReactElement, type ReactNode } from "react";
 import { Icon } from "./Icon";
 
 type DialogProps = {
@@ -7,8 +7,17 @@ type DialogProps = {
   description?: string;
   size?: "small" | "medium" | "large";
   children: ReactNode;
+  footer?: ReactNode;
   onClose: () => void;
   closeOnBackdrop?: boolean;
+};
+
+type ElementProps = {
+  children?: ReactNode;
+  className?: string;
+  id?: string;
+  type?: string;
+  form?: string;
 };
 
 const focusableSelector = [
@@ -20,11 +29,13 @@ const focusableSelector = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
-export function Dialog({ open, title, description, size = "medium", children, onClose, closeOnBackdrop = false }: DialogProps) {
+export function Dialog({ open, title, description, size = "medium", children, footer, onClose, closeOnBackdrop = false }: DialogProps) {
   const titleId = useId();
   const descriptionId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const { body, promotedFooter } = splitDialogActions(children, titleId);
+  const footerContent = footer || promotedFooter;
 
   useEffect(() => {
     if (!open) return;
@@ -82,9 +93,57 @@ export function Dialog({ open, title, description, size = "medium", children, on
         <div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
         <button className="icon-button" type="button" onClick={onClose} aria-label="Fechar"><Icon name="close" /></button>
       </header>
-      <div className="dialog-body">{children}</div>
+      <div className="dialog-body">{body}</div>
+      {footerContent && <footer className="dialog-footer">{footerContent}</footer>}
     </section>
   </div>;
+}
+
+function splitDialogActions(children: ReactNode, idPrefix: string) {
+  const actions: ReactNode[] = [];
+  let formIndex = 0;
+
+  function walk(node: ReactNode, directFormId?: string): ReactNode {
+    return Children.map(node, (child) => {
+      if (!isValidElement(child)) return child;
+      const element = child as ReactElement<ElementProps>;
+      const props = element.props;
+      const className = props.className || "";
+
+      if (directFormId && className.split(/\s+/).includes("form-actions")) {
+        actions.push(bindSubmitButtons(element, directFormId));
+        return null;
+      }
+
+      const isForm = element.type === "form";
+      const formId = isForm ? (props.id || `${idPrefix}-form-${formIndex++}`) : undefined;
+      const nextChildren = props.children === undefined
+        ? undefined
+        : isForm
+          ? walk(props.children, formId)
+          : walk(props.children);
+
+      if (isForm) return cloneElement(element, { id: formId }, nextChildren);
+      if (props.children !== undefined) return cloneElement(element, undefined, nextChildren);
+      return element;
+    });
+  }
+
+  return {
+    body: walk(children),
+    promotedFooter: actions.length > 0 ? <>{actions}</> : undefined,
+  };
+}
+
+function bindSubmitButtons(node: ReactNode, formId: string): ReactNode {
+  return Children.map(node, (child) => {
+    if (!isValidElement(child)) return child;
+    const element = child as ReactElement<ElementProps>;
+    const props = element.props;
+    const nextChildren = props.children === undefined ? undefined : bindSubmitButtons(props.children, formId);
+    const form = element.type === "button" && props.type === "submit" ? formId : props.form;
+    return cloneElement(element, form ? { form } : undefined, nextChildren);
+  });
 }
 
 function getFocusable(root: HTMLElement) {
