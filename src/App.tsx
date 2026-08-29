@@ -104,6 +104,8 @@ function App() {
     setActiveView(next.view);
   };
 
+  const aboutFooter = <div className="dialog-actions"><button type="button" onClick={() => setAboutOpen(false)}>Fechar</button></div>;
+
   return <div className="application-shell">
     <TopMenu theme={theme} onThemeChange={setTheme} sidebarCollapsed={effectiveCollapsed} onToggleSidebar={changeSidebar} onNavigate={navigate} onRefresh={() => { void handleRefresh(); }} refreshDisabled={refreshing} onOpenAbout={() => setAboutOpen(true)} />
     <div className={effectiveCollapsed ? "shell-body sidebar-is-collapsed" : "shell-body"}>
@@ -121,7 +123,7 @@ function App() {
       </main>
     </div>
     <StatusBar connectionStatus={connectionStatus} activeMeliponaryLabel={activeMeliponaryLabel} appVersion={appVersion} />
-    <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} title="Sobre o MeliponarioManager" description="Gestão local e rastreável do meliponário." size="small"><div className="about-dialog"><p>Aplicação desktop local-first para controle de plantel, manejo e histórico operacional.</p><dl><div><dt>Versão</dt><dd>v{appVersion}</dd></div><div><dt>Banco</dt><dd>SQLite local</dd></div></dl><div className="dialog-actions"><button type="button" onClick={() => setAboutOpen(false)}>Fechar</button></div></div></Dialog>
+    <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)} title="Sobre o MeliponarioManager" description="Gestão local e rastreável do meliponário." size="small" footer={aboutFooter}><div className="about-dialog"><p>Aplicação desktop local-first para controle de plantel, manejo e histórico operacional.</p><dl><div><dt>Versão</dt><dd>v{appVersion}</dd></div><div><dt>Banco</dt><dd>SQLite local</dd></div></dl></div></Dialog>
   </div>;
 }
 
