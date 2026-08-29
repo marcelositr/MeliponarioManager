@@ -51,11 +51,15 @@ async fn operational_report_resolved(
     .await?;
 
     let status_rows: Vec<(String, i64)> = sqlx::query_as(
-        "SELECT status, COUNT(*)
+        "SELECT CASE
+                    WHEN status IN ('active', 'weak', 'recovering') THEN 'active'
+                    ELSE status
+                END AS projected_status,
+                COUNT(*)
          FROM colonies
          WHERE (? IS NULL OR meliponary_id = ?)
-         GROUP BY status
-         ORDER BY status",
+         GROUP BY projected_status
+         ORDER BY projected_status",
     )
     .bind(filter.meliponary_id.as_deref())
     .bind(filter.meliponary_id.as_deref())
