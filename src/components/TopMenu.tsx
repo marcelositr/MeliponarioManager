@@ -1,5 +1,5 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
 import type { ThemeMode } from "../lib/ui-preferences";
 import type { View } from "../types";
 import { Icon } from "./Icon";
@@ -11,36 +11,72 @@ type TopMenuProps = {
   onToggleSidebar: () => void;
   onNavigate: (view: View) => void;
   onRefresh: () => void;
+  refreshDisabled?: boolean;
   onOpenAbout: () => void;
 };
-type MenuName = "file" | "edit" | "view" | "tools" | "help";
+type MenuName = "file" | "view" | "tools" | "help";
+const menuOrder: MenuName[] = ["file", "view", "tools", "help"];
 
-export function TopMenu({ theme, onThemeChange, sidebarCollapsed, onToggleSidebar, onNavigate, onRefresh, onOpenAbout }: TopMenuProps) {
+export function TopMenu({ theme, onThemeChange, sidebarCollapsed, onToggleSidebar, onNavigate, onRefresh, refreshDisabled = false, onOpenAbout }: TopMenuProps) {
   const [open, setOpen] = useState<MenuName | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const close = (event: MouseEvent) => { if (rootRef.current && !rootRef.current.contains(event.target as Node)) setOpen(null); };
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(null); };
-    document.addEventListener("mousedown", close); window.addEventListener("keydown", escape);
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !open) return;
+      const active = rootRef.current?.querySelector<HTMLElement>(`[data-menu-trigger="${open}"]`);
+      setOpen(null);
+      active?.focus();
+    };
+    document.addEventListener("mousedown", close);
+    window.addEventListener("keydown", escape);
     return () => { document.removeEventListener("mousedown", close); window.removeEventListener("keydown", escape); };
-  }, []);
+  }, [open]);
+
   function toggle(name: MenuName) { setOpen((current) => current === name ? null : name); }
   function action(fn: () => void) { return () => { setOpen(null); fn(); }; }
+  function moveTrigger(name: MenuName, direction: -1 | 1) {
+    const index = menuOrder.indexOf(name);
+    const next = menuOrder[(index + direction + menuOrder.length) % menuOrder.length];
+    rootRef.current?.querySelector<HTMLElement>(`[data-menu-trigger="${next}"]`)?.focus();
+    if (open) setOpen(next);
+  }
 
-  return <div className="menu-bar" ref={rootRef}>
-    <div className="menu-brand">MeliponarioManager</div>
-    <Menu label="Arquivo" open={open === "file"} onToggle={() => toggle("file")}><MenuItem label="Backup" onClick={action(() => onNavigate("data"))} /><MenuItem label="Restaurar" onClick={action(() => onNavigate("data"))} /><MenuItem label="Exportar" onClick={action(() => onNavigate("data"))} /><MenuItem label="Relatórios" onClick={action(() => onNavigate("data"))} /><div className="menu-separator" /><MenuItem label="Sair" onClick={action(() => { void getCurrentWindow().close(); })} /></Menu>
-    <Menu label="Editar" open={open === "edit"} onToggle={() => toggle("edit")}><MenuItem label="Novo registro" disabled /><MenuItem label="Editar registro" disabled /></Menu>
-    <Menu label="Exibir" open={open === "view"} onToggle={() => toggle("view")}><MenuItem label="Tema claro" checked={theme === "light"} icon="sun" onClick={action(() => onThemeChange("light"))} /><MenuItem label="Tema escuro" checked={theme === "dark"} icon="moon" onClick={action(() => onThemeChange("dark"))} /><MenuItem label="Seguir sistema" checked={theme === "system"} icon="system" onClick={action(() => onThemeChange("system"))} /><div className="menu-separator" /><MenuItem label={sidebarCollapsed ? "Expandir sidebar" : "Recolher sidebar"} onClick={action(onToggleSidebar)} /><MenuItem label="Atualizar" icon="refresh" onClick={action(onRefresh)} /></Menu>
-    <Menu label="Ferramentas" open={open === "tools"} onToggle={() => toggle("tools")}><MenuItem label="Dados" icon="database" onClick={action(() => onNavigate("data"))} /></Menu>
-    <Menu label="Ajuda" open={open === "help"} onToggle={() => toggle("help")}><MenuItem label="Sobre" icon="info" onClick={action(onOpenAbout)} /></Menu>
+  return <div className="menu-bar" ref={rootRef} role="menubar" aria-label="Menu principal">
+    <div className="menu-brand" aria-hidden="true">MeliponarioManager</div>
+    <Menu name="file" label="Arquivo" open={open === "file"} onToggle={() => toggle("file")} onMove={moveTrigger}><MenuItem label="Backup" onClick={action(() => onNavigate("data"))} /><MenuItem label="Restaurar…" onClick={action(() => onNavigate("data"))} /><MenuItem label="Exportar" onClick={action(() => onNavigate("data"))} /><MenuItem label="Relatórios" onClick={action(() => onNavigate("data"))} /><div className="menu-separator" role="separator" /><MenuItem label="Sair" onClick={action(() => { void getCurrentWindow().close(); })} /></Menu>
+    <Menu name="view" label="Exibir" open={open === "view"} onToggle={() => toggle("view")} onMove={moveTrigger}><MenuItem label="Tema claro" checked={theme === "light"} icon="sun" onClick={action(() => onThemeChange("light"))} /><MenuItem label="Tema escuro" checked={theme === "dark"} icon="moon" onClick={action(() => onThemeChange("dark"))} /><MenuItem label="Seguir sistema" checked={theme === "system"} icon="system" onClick={action(() => onThemeChange("system"))} /><div className="menu-separator" role="separator" /><MenuItem label={sidebarCollapsed ? "Expandir sidebar" : "Recolher sidebar"} onClick={action(onToggleSidebar)} /><MenuItem label="Atualizar" icon="refresh" disabled={refreshDisabled} onClick={action(onRefresh)} /></Menu>
+    <Menu name="tools" label="Ferramentas" open={open === "tools"} onToggle={() => toggle("tools")} onMove={moveTrigger}><MenuItem label="Dados" icon="database" onClick={action(() => onNavigate("data"))} /></Menu>
+    <Menu name="help" label="Ajuda" open={open === "help"} onToggle={() => toggle("help")} onMove={moveTrigger}><MenuItem label="Sobre…" icon="info" onClick={action(onOpenAbout)} /></Menu>
   </div>;
 }
 
-function Menu({ label, open, onToggle, children }: { label: string; open: boolean; onToggle: () => void; children: ReactNode }) {
-  return <div className="menu-root"><button className={open ? "menu-trigger open" : "menu-trigger"} type="button" onClick={onToggle} aria-expanded={open}>{label}</button>{open && <div className="menu-popover">{children}</div>}</div>;
+function Menu({ name, label, open, onToggle, onMove, children }: { name: MenuName; label: string; open: boolean; onToggle: () => void; onMove: (name: MenuName, direction: -1 | 1) => void; children: ReactNode }) {
+  function onTriggerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      onMove(name, event.key === "ArrowRight" ? 1 : -1);
+      return;
+    }
+    if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (!open) onToggle();
+      window.requestAnimationFrame(() => event.currentTarget.parentElement?.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus());
+    }
+  }
+  return <div className="menu-root"><button data-menu-trigger={name} className={open ? "menu-trigger open" : "menu-trigger"} role="menuitem" type="button" onClick={onToggle} onKeyDown={onTriggerKeyDown} aria-haspopup="menu" aria-expanded={open}>{label}</button>{open && <div className="menu-popover" role="menu" aria-label={label}>{children}</div>}</div>;
 }
 
 function MenuItem({ label, onClick, disabled = false, checked = false, icon }: { label: string; onClick?: () => void; disabled?: boolean; checked?: boolean; icon?: "sun" | "moon" | "system" | "refresh" | "database" | "info" }) {
-  return <button className="menu-item" type="button" onClick={onClick} disabled={disabled}><span className="menu-item-mark">{checked ? <Icon name="check" /> : icon ? <Icon name={icon} /> : null}</span><span>{label}</span></button>;
+  function onKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const menu = event.currentTarget.closest("[role='menu']");
+    const items = Array.from(menu?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not([disabled])") ?? []);
+    const index = items.indexOf(event.currentTarget);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+    items[next]?.focus();
+  }
+  return <button className="menu-item" role="menuitem" type="button" onClick={onClick} onKeyDown={onKeyDown} disabled={disabled} aria-checked={checked || undefined}><span className="menu-item-mark">{checked ? <Icon name="check" /> : icon ? <Icon name={icon} /> : null}</span><span>{label}</span></button>;
 }
