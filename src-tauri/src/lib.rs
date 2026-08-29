@@ -27,6 +27,7 @@ mod production;
 mod record_centers;
 mod record_corrections;
 mod record_states;
+mod reports;
 mod repository;
 mod reversals;
 #[cfg(test)]
@@ -70,6 +71,13 @@ pub fn run() {
             commands::get_box_maintenance_count,
             commands::get_lifecycle_count,
             dashboard::get_dashboard_overview,
+            reports::get_operational_report,
+            reports::get_production_report,
+            reports::get_cost_report,
+            reports::get_agenda_report,
+            reports::get_colony_report,
+            reports::get_meliponary_report,
+            reports::export_report_csv,
             data_management::create_full_backup,
             data_management::export_portable_json,
             data_management::generate_management_report,
