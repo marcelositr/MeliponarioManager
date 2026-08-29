@@ -89,7 +89,7 @@ O resultado informa:
 - registros cujo binário está ausente;
 - arquivos físicos sem referência no SQLite.
 
-O diagnóstico é somente leitura. Ele não apaga automaticamente metadata nem arquivos órfãos.
+O diagnóstico é somente leitura. Ele não apaga automaticamente metadata nem arquivos órfãos. Falhas de permissão ou de acesso ao filesystem são tratadas pelos fluxos de leitura, importação, backup e restauração com erros públicos, sem transformar diagnóstico em ferramenta de reparo destrutivo.
 
 ## Fotos de inspeção
 
@@ -121,7 +121,7 @@ media/attachments/meliponaries/
 media/inspections/
 ```
 
-Caminhos absolutos, `..` e outros escapes da área gerenciada são rejeitados.
+Caminhos absolutos, `..` e outros escapes da área gerenciada são rejeitados. A conversão do caminho já resolvido para a API oficial do opener é explícita e falível; caminhos que não possam ser representados com segurança não são enviados ao sistema operacional.
 
 ## Backup completo
 
@@ -134,7 +134,7 @@ backup-<timestamp>-<id>/
 └── media/
 ```
 
-O `manifest.json` v1 registra formato, versão do formato, versão do aplicativo, versão do schema e inventário de assets com caminho relativo e tamanho.
+O `manifest.json` v1 registra formato, versão do formato, versão do aplicativo, versão do schema e inventário de assets com caminho relativo, tamanho e checksum SHA-256. A restauração rejeita asset ausente, tamanho divergente, conteúdo alterado mesmo com o mesmo tamanho, caminho fora de `media/` ou árvore física diferente do inventário declarado.
 
 O backup completo inclui fotos e anexos. Consulte [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) para as regras de validação e restauração.
 
@@ -151,6 +151,22 @@ Por isso:
 ## Estado da janela
 
 O desktop usa o plugin oficial `tauri-plugin-window-state` para restaurar estado da janela entre sessões. Isso é independente dos arquivos de domínio e não altera o SQLite.
+
+## Validação técnica e teste de campo
+
+O fechamento técnico do 5C depende dos gates de build, lint e testes automatizados no mesmo HEAD. A validação visual/runtime real permanece separada porque exige um desktop gráfico e interação com os dialogs do sistema.
+
+Devem ser conferidos em teste de campo:
+
+- 900×600, 1280×720, 1366×768 e 1920×1080;
+- Light, Dark e System;
+- navegação por teclado;
+- pickers nativos;
+- thumbnails;
+- Abrir e Mostrar no local;
+- arquivos ausentes;
+- backup → restore com restart;
+- persistência de `window-state`.
 
 ## Limitações atuais
 
