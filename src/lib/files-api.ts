@@ -27,6 +27,13 @@ export type ManagedFilesDiagnostic = {
   orphanFiles: string[];
 };
 
+export type InspectionPhotoPreview = {
+  fileExists: boolean;
+  mimeType?: string | null;
+  bytes?: number[] | null;
+  previewLimited: boolean;
+};
+
 export function importMeliponaryAttachment(input: { meliponaryId: string; sourcePath: string; description?: string; notes?: string }) {
   return invoke<ManagedAttachment>("import_meliponary_attachment", { input });
 }
@@ -49,6 +56,10 @@ export function openManagedAttachment(attachmentId: string) {
 
 export function revealManagedAttachment(attachmentId: string) {
   return invoke<void>("reveal_managed_attachment", { attachmentId });
+}
+
+export function getInspectionPhotoPreview(photoId: string) {
+  return invoke<InspectionPhotoPreview>("get_inspection_photo_preview", { photoId });
 }
 
 export function openInspectionPhoto(photoId: string) {
