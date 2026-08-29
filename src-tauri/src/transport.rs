@@ -117,16 +117,17 @@ pub async fn complete(
     )?;
     let notes = optional(&input.notes);
 
-    let movement: Option<(String, String, String, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT colony_id, movement_type, moved_at, voided_at, reversed_at
+    let movement: Option<(String, String, String, Option<String>, Option<String>)> =
+        sqlx::query_as(
+            "SELECT colony_id, movement_type, moved_at, voided_at, reversed_at
          FROM colony_movements
          WHERE id = ?",
-    )
-    .bind(&movement_id)
-    .fetch_optional(pool)
-    .await?;
-    let (_colony_id, movement_type, moved_at, voided_at, reversed_at) = movement
-        .ok_or_else(|| AppError::NotFound("Transporte não encontrado.".to_owned()))?;
+        )
+        .bind(&movement_id)
+        .fetch_optional(pool)
+        .await?;
+    let (_colony_id, movement_type, moved_at, voided_at, reversed_at) =
+        movement.ok_or_else(|| AppError::NotFound("Transporte não encontrado.".to_owned()))?;
 
     if movement_type != "transport" {
         return Err(AppError::Validation(
@@ -194,11 +195,7 @@ pub async fn complete(
         .ok_or_else(|| AppError::NotFound("Retorno do transporte não encontrado.".to_owned()))
 }
 
-pub async fn reopen(
-    pool: &SqlitePool,
-    movement_id: &str,
-    reason: &str,
-) -> Result<(), AppError> {
+pub async fn reopen(pool: &SqlitePool, movement_id: &str, reason: &str) -> Result<(), AppError> {
     let movement_id = required(movement_id, "Transporte")?;
     let reason = required(reason, "Motivo da reabertura")?;
 
@@ -222,11 +219,10 @@ pub async fn reopen(
         .ok_or_else(|| AppError::Validation("Este transporte já está aberto.".to_owned()))?;
 
     let mut tx = pool.begin().await?;
-    let reversed_at: String = sqlx::query_scalar(
-        "SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')",
-    )
-    .fetch_one(&mut *tx)
-    .await?;
+    let reversed_at: String =
+        sqlx::query_scalar("SELECT strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')")
+            .fetch_one(&mut *tx)
+            .await?;
 
     sqlx::query(
         "UPDATE transport_returns
@@ -349,10 +345,12 @@ mod tests {
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO boxes(id,meliponary_id,code,status) VALUES('b1','m1','CX-1','active')")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO boxes(id,meliponary_id,code,status) VALUES('b1','m1','CX-1','active')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
         sqlx::query("INSERT INTO colonies(id,meliponary_id,species_id,code,status) VALUES('c1','m1','s1','JAT-1','active')")
             .execute(&pool)
             .await
