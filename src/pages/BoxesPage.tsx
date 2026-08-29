@@ -5,7 +5,8 @@ import { PageToolbar } from "../components/PageToolbar";
 import { ReasonDialog } from "../components/ReasonDialog";
 import { RecordActions } from "../components/RecordActions";
 import { listBoxStateHistory } from "../lib/api";
-import type { BoxStateRecord, ChangeBoxStateInput, CreateBoxInput, EditBoxInput, EntityActionInput, HiveBox, Meliponary, View } from "../types";
+import type { Navigate } from "../lib/navigation";
+import type { BoxStateRecord, ChangeBoxStateInput, CreateBoxInput, EditBoxInput, EntityActionInput, HiveBox, Meliponary } from "../types";
 
 type Props = {
   items: HiveBox[]; meliponaries: Meliponary[]; busy: boolean;
@@ -13,7 +14,7 @@ type Props = {
   onEdit: (input: EditBoxInput) => Promise<boolean>;
   onChangeState: (input: ChangeBoxStateInput) => Promise<boolean>;
   onDelete: (input: EntityActionInput) => Promise<boolean>;
-  onNavigate: (view: View) => void;
+  onNavigate: Navigate;
 };
 const initialForm: CreateBoxInput = { meliponaryId: "", code: "", model: "", material: "", locationNote: "", notes: "" };
 type ReasonAction = { kind: "state" | "delete"; item: HiveBox; nextState?: string } | null;
