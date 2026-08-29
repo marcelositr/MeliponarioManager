@@ -5,6 +5,7 @@ import "./styles.css";
 import "./styles/enterprise.css";
 import "./styles/operations.css";
 import "./styles/reports.css";
+import "./styles/files.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
