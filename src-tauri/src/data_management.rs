@@ -1,6 +1,7 @@
 use crate::{dashboard, repository};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use sha2::{Digest, Sha256};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions},
     Column, Row, SqlitePool, TypeInfo,
@@ -8,6 +9,7 @@ use sqlx::{
 use std::{
     collections::BTreeSet,
     fs,
+    io::Read,
     path::{Component, Path, PathBuf},
 };
 use tauri::{AppHandle, Manager, State};
@@ -57,6 +59,7 @@ struct BackupManifest {
 struct BackupAsset {
     relative_path: String,
     byte_size: u64,
+    sha256: String,
 }
 
 #[derive(Debug, Clone)]
@@ -127,6 +130,23 @@ fn ensure_plain_relative_path(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn sha256_file(path: &Path) -> Result<String, String> {
+    let mut file = fs::File::open(path)
+        .map_err(|_| storage_error("Não foi possível verificar um arquivo do backup."))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|_| storage_error("Não foi possível verificar um arquivo do backup."))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    Ok(format!("{:x}", hasher.finalize()))
+}
+
 fn copy_tree(source: &Path, target: &Path) -> Result<(), String> {
     if !source.exists() {
         fs::create_dir_all(target)
@@ -193,9 +213,11 @@ fn collect_assets(root: &Path) -> Result<Vec<BackupAsset>, String> {
                         storage_error("Não foi possível verificar o tamanho de um arquivo.")
                     })?
                     .len();
+                let sha256 = sha256_file(&path)?;
                 output.push(BackupAsset {
                     relative_path: relative,
                     byte_size,
+                    sha256,
                 });
             }
         }
@@ -345,6 +367,12 @@ fn validate_manifest(
                 asset.relative_path
             ));
         }
+        if sha256_file(&full_path)? != asset.sha256 {
+            return Err(format!(
+                "O backup está inconsistente: o conteúdo do arquivo {} foi alterado.",
+                asset.relative_path
+            ));
+        }
     }
 
     let actual = collect_assets(&media_root)?
@@ -404,6 +432,7 @@ fn write_backup_manifest(
         .map(|asset| BackupAsset {
             relative_path: format!("{MEDIA_ROOT}/{}", asset.relative_path),
             byte_size: asset.byte_size,
+            sha256: asset.sha256,
         })
         .collect();
     let manifest = BackupManifest {
@@ -1010,6 +1039,10 @@ mod tests {
         assert_eq!(manifest.format_version, 1);
         assert_eq!(manifest.schema_version, CURRENT_SCHEMA_VERSION);
         assert_eq!(manifest.assets.len(), 2);
+        assert!(manifest
+            .assets
+            .iter()
+            .all(|asset| asset.sha256.len() == 64));
         validate_restore_source(&backup).await.unwrap();
         pool.close().await;
 
@@ -1120,6 +1153,16 @@ mod tests {
 
         fs::write(&manifest_path, &original_manifest).unwrap();
         let manifest: BackupManifest = serde_json::from_slice(&original_manifest).unwrap();
+        let changed = &manifest.assets[0].relative_path;
+        let original_asset = fs::read(backup.join(changed)).unwrap();
+        let mut changed_asset = original_asset.clone();
+        changed_asset[0] ^= 0xff;
+        fs::write(backup.join(changed), &changed_asset).unwrap();
+        assert_eq!(changed_asset.len(), original_asset.len());
+        assert!(stage_restore_at(&root, &backup).await.is_err());
+        assert_eq!(fs::read(&current).unwrap(), b"keep-current");
+        fs::write(backup.join(changed), original_asset).unwrap();
+
         let missing = &manifest.assets[0].relative_path;
         fs::remove_file(backup.join(missing)).unwrap();
         assert!(stage_restore_at(&root, &backup).await.is_err());
