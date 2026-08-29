@@ -70,23 +70,11 @@ async fn operational_report_resolved(
         })
         .collect();
 
-    let inspections = period_count_by_colony(
-        pool,
-        filter,
-        "inspections",
-        "inspected_at",
-        "voided_at",
-    )
-    .await?;
+    let inspections =
+        period_count_by_colony(pool, filter, "inspections", "inspected_at", "voided_at").await?;
     let feedings = period_count_by_colony(pool, filter, "feedings", "fed_at", "voided_at").await?;
-    let events = period_count_by_colony(
-        pool,
-        filter,
-        "colony_events",
-        "occurred_at",
-        "voided_at",
-    )
-    .await?;
+    let events =
+        period_count_by_colony(pool, filter, "colony_events", "occurred_at", "voided_at").await?;
     let maintenance: i64 = sqlx::query_scalar(
         "SELECT COUNT(*)
          FROM box_maintenance_records r
