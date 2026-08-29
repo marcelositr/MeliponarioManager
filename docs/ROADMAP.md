@@ -45,7 +45,7 @@ Acompanhamentos pós-divisão mais especializados podem evoluir em ciclos futuro
 
 **Concluído no desenvolvimento pré-release.**
 
-- transferências internas entre meliponários;
+- transferências internas entre meliponários cadastrados;
 - transferências externas;
 - transportes temporários;
 - baixas, perdas, inativações e reativações com histórico;
@@ -107,7 +107,7 @@ A série seguinte amplia robustez operacional e informação gerencial sem trans
 
 ### Relatórios, CSV e impressão
 
-**Em implementação no Bloco 5B.**
+**Concluído no Bloco 5B.**
 
 - Central de Relatórios dedicada;
 - visão operacional por período e contexto;
