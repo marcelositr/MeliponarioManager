@@ -21,13 +21,12 @@ pub async fn get_inspection_photo_preview(
     pool: State<'_, SqlitePool>,
     photo_id: String,
 ) -> Result<InspectionPhotoPreview, String> {
-    let row: Option<(String, Option<String>)> = sqlx::query_as(
-        "SELECT relative_path, mime_type FROM inspection_photos WHERE id = ?",
-    )
-    .bind(photo_id.trim())
-    .fetch_optional(&*pool)
-    .await
-    .map_err(|_| "Não foi possível consultar a foto.".to_owned())?;
+    let row: Option<(String, Option<String>)> =
+        sqlx::query_as("SELECT relative_path, mime_type FROM inspection_photos WHERE id = ?")
+            .bind(photo_id.trim())
+            .fetch_optional(&*pool)
+            .await
+            .map_err(|_| "Não foi possível consultar a foto.".to_owned())?;
     let (relative_path, mime_type) = row.ok_or_else(|| "Foto não encontrada.".to_owned())?;
     managed_files::ensure_managed_prefix(&relative_path, &["media", "inspections"])
         .map_err(|error| error.to_string())?;
