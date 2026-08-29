@@ -497,13 +497,8 @@ mod tests {
     #[tokio::test]
     async fn reopening_completed_transport_is_blocked_while_another_transport_is_open() {
         let (pool, colony_id) = seed().await;
-        let transport_a = open_transport_at(
-            &pool,
-            &colony_id,
-            "2026-02-01 08:00:00",
-            "Exposição A",
-        )
-        .await;
+        let transport_a =
+            open_transport_at(&pool, &colony_id, "2026-02-01 08:00:00", "Exposição A").await;
         complete(
             &pool,
             CompleteTransport {
@@ -515,13 +510,8 @@ mod tests {
         .await
         .unwrap();
 
-        let transport_b = open_transport_at(
-            &pool,
-            &colony_id,
-            "2026-02-03 08:00:00",
-            "Exposição B",
-        )
-        .await;
+        let transport_b =
+            open_transport_at(&pool, &colony_id, "2026-02-03 08:00:00", "Exposição B").await;
         let audit_before = movement_audit_count(&pool, &transport_a).await;
 
         let blocked = reopen(&pool, &transport_a, "Corrigir retorno A").await;
@@ -532,7 +522,10 @@ mod tests {
             other => panic!("reabertura deveria ser bloqueada por validação de domínio: {other:?}"),
         }
 
-        assert_eq!(open_transport_ids(&pool, &colony_id).await, vec![transport_b.clone()]);
+        assert_eq!(
+            open_transport_ids(&pool, &colony_id).await,
+            vec![transport_b.clone()]
+        );
         let active_return_a: i64 = sqlx::query_scalar(
             "SELECT COUNT(*) FROM transport_returns
              WHERE movement_id = ? AND reversed_at IS NULL",
@@ -542,7 +535,10 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(active_return_a, 1);
-        assert_eq!(movement_audit_count(&pool, &transport_a).await, audit_before);
+        assert_eq!(
+            movement_audit_count(&pool, &transport_a).await,
+            audit_before
+        );
 
         let direct_sql = sqlx::query(
             "UPDATE transport_returns
@@ -552,7 +548,8 @@ mod tests {
         .bind(&transport_a)
         .execute(&pool)
         .await;
-        let direct_error = direct_sql.expect_err("trigger SQLite deve bloquear reabertura concorrente");
+        let direct_error =
+            direct_sql.expect_err("trigger SQLite deve bloquear reabertura concorrente");
         assert!(direct_error
             .to_string()
             .contains("A colônia já possui outro transporte temporário aberto."));
@@ -566,7 +563,10 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(preserved_active_a, 1);
-        assert_eq!(movement_audit_count(&pool, &transport_a).await, audit_before);
+        assert_eq!(
+            movement_audit_count(&pool, &transport_a).await,
+            audit_before
+        );
 
         complete(
             &pool,
@@ -583,7 +583,10 @@ mod tests {
         reopen(&pool, &transport_a, "Corrigir retorno A")
             .await
             .unwrap();
-        assert_eq!(open_transport_ids(&pool, &colony_id).await, vec![transport_a.clone()]);
+        assert_eq!(
+            open_transport_ids(&pool, &colony_id).await,
+            vec![transport_a.clone()]
+        );
 
         let return_history_a: (i64, i64) = sqlx::query_as(
             "SELECT COUNT(*), SUM(CASE WHEN reversed_at IS NOT NULL THEN 1 ELSE 0 END)
