@@ -105,9 +105,21 @@ A série seguinte amplia robustez operacional e informação gerencial sem trans
 - centros de registro de Colônia, Caixa e Meliponário;
 - lifecycle completo de transporte temporário com retorno e reabertura auditada.
 
-### Relatórios, CSV e impressão
+### Bloco 5A - Product hardening
 
-**Concluído no Bloco 5B.**
+**Concluído tecnicamente.**
+
+- comportamento de menubar e navegação contextual refinados;
+- dialogs e menus de ações endurecidos para teclado e foco;
+- mensagens técnicas reduzidas na superfície do produto;
+- Agenda protegida contra respostas obsoletas;
+- semântica de transporte temporário fechada com no máximo um transporte aberto por colônia;
+- criação e reabertura protegidas por backend e SQLite;
+- testes de regressão para o lifecycle de transporte.
+
+### Bloco 5B - Relatórios, CSV e impressão
+
+**Concluído tecnicamente.**
 
 - Central de Relatórios dedicada;
 - visão operacional por período e contexto;
@@ -121,14 +133,27 @@ A série seguinte amplia robustez operacional e informação gerencial sem trans
 
 Relatórios são derivados dos dados existentes e não criam uma nova fonte de verdade nem exigem migration própria.
 
-### Reservado ao Bloco 5C
+### Bloco 5C - Arquivos, portabilidade e acabamento local
 
-- arquivos/anexos gerenciados além do suporte atual de fotos;
-- manifest e armazenamento gerenciado de documentos quando aprovado;
-- polish final de fotos;
-- revisão final de backup considerando novos arquivos;
-- window-state final;
-- auditoria visual/runtime final completa.
+**Implementado tecnicamente no trabalho acumulado da v0.8.**
+
+- anexos gerenciados no contexto do Record Center de Meliponário;
+- migration aditiva `0017_managed_attachments.sql`;
+- armazenamento binário fora do SQLite com nomes internos por UUID e caminhos relativos;
+- seleção de arquivos por Dialog nativo;
+- abertura e revelação pelo plugin oficial do desktop;
+- tratamento explícito de arquivos ausentes sem apagar metadata;
+- diagnóstico entre registros SQLite e filesystem;
+- fotos de inspeção com picker nativo, contexto humano, thumbnails lazy e limite de prévia;
+- backup completo com manifest versionado e inventário de assets;
+- restauração validada com staging, cópia de segurança e rollback da troca;
+- exportação JSON estrutural versionada sem incorporar binários e sem importador destrutivo;
+- restauração de estado da janela pelo plugin oficial `tauri-plugin-window-state`;
+- testes de backend, migrations e estrutura frontend específicos do bloco.
+
+A validação visual/runtime em desktop gráfico é uma etapa separada da CI. Quando o ambiente de execução automatizado não disponibiliza sessão gráfica real, essa parte permanece explicitamente para teste de campo e não é considerada comprovada pelo build.
+
+Consulte [FILES.md](FILES.md), [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) e [REPORTS.md](REPORTS.md).
 
 ## Próximos ciclos 0.x
 
