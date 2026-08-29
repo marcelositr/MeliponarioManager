@@ -1,4 +1,6 @@
-use super::{resolve_filter, ColonyHistoryRow, ColonyReport, ColonyReportIdentity, ColonyReportInput};
+use super::{
+    resolve_filter, ColonyHistoryRow, ColonyReport, ColonyReportIdentity, ColonyReportInput,
+};
 use crate::repository::AppError;
 use sqlx::{FromRow, SqlitePool};
 use std::collections::HashSet;
@@ -61,7 +63,14 @@ pub(super) async fn colony_report(
     if !input.include_audit {
         timeline.retain(|row| !matches!(row.state.as_str(), "voided" | "reversed"));
     } else {
-        append_audit_rows(pool, colony_id, &filter.start_at, &filter.end_at, &mut timeline).await?;
+        append_audit_rows(
+            pool,
+            colony_id,
+            &filter.start_at,
+            &filter.end_at,
+            &mut timeline,
+        )
+        .await?;
     }
     timeline.sort_by(|a, b| {
         a.occurred_at
