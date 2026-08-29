@@ -22,6 +22,7 @@ const focusableSelector = [
 
 export function Dialog({ open, title, description, size = "medium", children, onClose, closeOnBackdrop = false }: DialogProps) {
   const titleId = useId();
+  const descriptionId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
 
@@ -67,7 +68,7 @@ export function Dialog({ open, title, description, size = "medium", children, on
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("keydown", onKeyDown);
-      if (previousFocus?.isConnected) previousFocus.focus();
+      if (isVisible(previousFocus)) previousFocus.focus();
     };
   }, [open, onClose]);
 
@@ -76,9 +77,9 @@ export function Dialog({ open, title, description, size = "medium", children, on
   return <div ref={backdropRef} className="dialog-backdrop" role="presentation" onMouseDown={(event) => {
     if (closeOnBackdrop && event.currentTarget === event.target && isTopDialog(backdropRef.current)) onClose();
   }}>
-    <section ref={dialogRef} tabIndex={-1} className={`dialog dialog-${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <section ref={dialogRef} tabIndex={-1} className={`dialog dialog-${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined}>
       <header className="dialog-header">
-        <div><h2 id={titleId}>{title}</h2>{description && <p>{description}</p>}</div>
+        <div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
         <button className="icon-button" type="button" onClick={onClose} aria-label="Fechar"><Icon name="close" /></button>
       </header>
       <div className="dialog-body">{children}</div>
@@ -87,7 +88,11 @@ export function Dialog({ open, title, description, size = "medium", children, on
 }
 
 function getFocusable(root: HTMLElement) {
-  return Array.from(root.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
+  return Array.from(root.querySelectorAll<HTMLElement>(focusableSelector)).filter(isVisible);
+}
+
+function isVisible(element: HTMLElement | null): element is HTMLElement {
+  return Boolean(element?.isConnected && !element.hidden && element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0);
 }
 
 function isTopDialog(backdrop: HTMLDivElement | null) {
