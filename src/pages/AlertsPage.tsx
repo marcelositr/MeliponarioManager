@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { PageToolbar } from "../components/PageToolbar";
 import { listAlerts } from "../lib/api";
+import type { Navigate, NavigationIntent } from "../lib/navigation";
+import { formatDateTimeBr } from "../lib/presentation";
 import type { Alert, View } from "../types";
 
 type Props = {
   activeMeliponaryId: string;
-  onNavigate: (view: View) => void;
+  onNavigate: Navigate;
 };
 
 export function AlertsPage({ activeMeliponaryId, onNavigate }: Props) {
@@ -48,24 +50,24 @@ export function AlertsPage({ activeMeliponaryId, onNavigate }: Props) {
           <h2>Pendências do contexto atual</h2>
           <p>Alertas de tarefa apontam para a própria Agenda; condições observadas apontam para o manejo correspondente.</p>
         </div>
-        {loading ? <div className="empty-list">Calculando alertas...</div> : error ? <div className="inline-notice">{error}</div> : scopedItems.length === 0 ? (
+        {loading ? <div className="empty-list" role="status">Calculando alertas...</div> : error ? <div className="inline-notice" role="alert">{error}</div> : scopedItems.length === 0 ? (
           <div className="empty-list">Nenhuma pendência derivada dos registros atuais.</div>
         ) : (
           <div className="record-list">
             {scopedItems.map((item) => {
-              const actionView = recommendedView(item.recommendedAction);
+              const actionIntent = recommendedIntent(item);
               return <article className="record-card" key={item.alertKey}>
                 <div className="record-title-row">
                   <div>
                     <strong>{contextLabel(item)} · {item.title}</strong>
-                    <span>{item.dueAt ? `Previsto para ${formatDateTime(item.dueAt)}` : alertTypeLabel(item.alertType)}</span>
+                    <span>{item.dueAt ? `Previsto para ${formatDateTimeBr(item.dueAt)}` : alertTypeLabel(item.alertType)}</span>
                   </div>
                   <span className={`badge severity-${item.severity}`}>{severityLabel(item.severity)}</span>
                 </div>
                 {item.details && <p>{item.details}</p>}
                 <div className="form-actions">
-                  {item.taskId && <button type="button" onClick={() => onNavigate("agenda")}>Abrir na Agenda</button>}
-                  <button type="button" className={item.taskId ? "button-secondary" : undefined} onClick={() => onNavigate(actionView)}>{recommendedLabel(item.recommendedAction)}</button>
+                  {item.taskId && <button type="button" onClick={() => onNavigate({ view: "agenda", taskId: item.taskId, colonyId: item.colonyId, boxId: item.boxId, meliponaryId: item.meliponaryId })}>Abrir na Agenda</button>}
+                  <button type="button" className={item.taskId ? "button-secondary" : undefined} onClick={() => onNavigate(actionIntent)}>{recommendedLabel(item.recommendedAction)}</button>
                 </div>
               </article>;
             })}
@@ -77,7 +79,6 @@ export function AlertsPage({ activeMeliponaryId, onNavigate }: Props) {
 }
 
 function contextLabel(item: Alert) { return item.colonyCode || item.boxCode || "Meliponário"; }
-function formatDateTime(value: string) { return value.replace("T", " ").slice(0, 16); }
 function severityLabel(value: string) { return value === "critical" ? "Crítico" : value === "attention" ? "Atenção" : "Informativo"; }
 function alertTypeLabel(value: string) {
   const labels: Record<string, string> = { inspection_due: "Inspeção pendente", feeding_due: "Alimentação pendente", maintenance_due: "Manutenção pendente", weak_colony: "Colônia fraca" };
@@ -87,6 +88,9 @@ function recommendedView(value: string): View {
   if (value === "register_feeding") return "feeding";
   if (value === "register_maintenance") return "assets";
   return "inspections";
+}
+function recommendedIntent(item: Alert): NavigationIntent {
+  return { view: recommendedView(item.recommendedAction), colonyId: item.colonyId, boxId: item.boxId, meliponaryId: item.meliponaryId, action: "create" };
 }
 function recommendedLabel(value: string) {
   if (value === "register_feeding") return "Registrar alimentação";
