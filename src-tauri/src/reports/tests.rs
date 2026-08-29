@@ -151,6 +151,16 @@ async fn operational_report_respects_reversals_transport_returns_and_real_costs(
         .unwrap();
     assert_eq!(report.plantel.total_colonies, 3);
     assert_eq!(report.plantel.active_colonies, 3);
+    assert!(report
+        .plantel
+        .colony_statuses
+        .iter()
+        .any(|row| row.key == "active" && row.count == 3));
+    assert!(!report
+        .plantel
+        .colony_statuses
+        .iter()
+        .any(|row| matches!(row.key.as_str(), "weak" | "recovering")));
     assert_eq!(report.movements.transfers, 1);
     assert_eq!(report.movements.temporary_started, 2);
     assert_eq!(report.movements.returns_completed, 1);
