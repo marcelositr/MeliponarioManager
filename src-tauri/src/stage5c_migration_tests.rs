@@ -69,8 +69,8 @@ async fn upgrade_through_0017_preserves_existing_data_and_enables_managed_attach
     .unwrap();
     sqlx::query(
         "INSERT INTO scheduled_tasks (
-            id, meliponary_id, colony_id, task_type, title, scheduled_for, status, source_kind
-         ) VALUES ('t1','m1','c1','inspection','Revisar colônia','2026-02-01 09:00:00','pending','manual')",
+            id, meliponary_id, colony_id, task_type, title, scheduled_for, status
+         ) VALUES ('t1','m1','c1','inspection','Revisar colônia','2026-02-01 09:00:00','pending')",
     )
     .execute(&pool)
     .await
