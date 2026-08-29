@@ -91,6 +91,12 @@ fn public_open_error(action: &str) -> String {
     )
 }
 
+fn opener_path(path: &Path, action: &str) -> Result<String, String> {
+    path.to_str()
+        .map(str::to_owned)
+        .ok_or_else(|| public_open_error(action))
+}
+
 fn open_path(app: &AppHandle, relative_path: &str, reveal: bool) -> Result<(), String> {
     let data_dir = app
         .path()
@@ -101,14 +107,16 @@ fn open_path(app: &AppHandle, relative_path: &str, reveal: bool) -> Result<(), S
         return Err("Arquivo não encontrado na área gerenciada da aplicação.".to_owned());
     }
 
+    let action = if reveal { "mostrar" } else { "abrir" };
+    let path = opener_path(&path, action)?;
     if reveal {
         app.opener()
             .reveal_item_in_dir(&path)
-            .map_err(|_| public_open_error("mostrar"))
+            .map_err(|_| public_open_error(action))
     } else {
         app.opener()
-            .open_path(&path, None::<&str>)
-            .map_err(|_| public_open_error("abrir"))
+            .open_path(path, None::<&str>)
+            .map_err(|_| public_open_error(action))
     }
 }
 
