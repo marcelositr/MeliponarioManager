@@ -19,9 +19,10 @@ import type { Navigate, NavigationIntent } from "../lib/navigation";
 import { formatDateTimeBr } from "../lib/presentation";
 import type { Alert, InspectionPhoto, View } from "../types";
 
-type NavigateProps = { onNavigate: Navigate };
+type NavigateProps = { onNavigate: (view: View) => void };
 
 export function ColonyOperationalCenter({ colonyId, onNavigate }: NavigateProps & { colonyId: string }) {
+  const navigate = onNavigate as Navigate;
   const [center, setCenter] = useState<ColonyRecordCenter | null>(null);
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -62,19 +63,20 @@ export function ColonyOperationalCenter({ colonyId, onNavigate }: NavigateProps 
         <Metric label="Próximo compromisso" value={center.nextTaskTitle ? `${center.nextTaskTitle}${center.nextTaskAt ? ` · ${formatDateTimeBr(center.nextTaskAt)}` : ""}` : "Nenhum"} />
       </div>
       <div className="workspace-actions">
-        <button type="button" onClick={() => onNavigate({ view: "agenda", colonyId })}>Abrir Agenda</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "inspections", colonyId })}>Inspeções</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "feeding", colonyId })}>Alimentação</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "history", colonyId })}>Histórico</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "movements", colonyId })}>Movimentações</button>
+        <button type="button" onClick={() => navigate({ view: "agenda", colonyId })}>Abrir Agenda</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "inspections", colonyId })}>Inspeções</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "feeding", colonyId })}>Alimentação</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "history", colonyId })}>Histórico</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "movements", colonyId })}>Movimentações</button>
       </div>
     </section>
-    <TaskPanel tasks={tasks} onNavigate={onNavigate} />
-    <AlertPanel alerts={alerts} onNavigate={onNavigate} />
+    <TaskPanel tasks={tasks} onNavigate={navigate} />
+    <AlertPanel alerts={alerts} onNavigate={navigate} />
   </div>;
 }
 
 export function BoxOperationalCenter({ boxId, onNavigate }: NavigateProps & { boxId: string }) {
+  const navigate = onNavigate as Navigate;
   const [center, setCenter] = useState<BoxRecordCenter | null>(null);
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [occupancies, setOccupancies] = useState<BoxOccupancyHistory[]>([]);
@@ -117,12 +119,12 @@ export function BoxOperationalCenter({ boxId, onNavigate }: NavigateProps & { bo
         <Metric label="Fotos no contexto da caixa" value={String(photos.length)} />
       </div>
       <div className="workspace-actions">
-        <button type="button" onClick={() => onNavigate({ view: "agenda", boxId })}>Abrir Agenda</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "assets", boxId })}>Manutenção</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "boxes", boxId })}>Esta caixa</button>
+        <button type="button" onClick={() => navigate({ view: "agenda", boxId })}>Abrir Agenda</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "assets", boxId })}>Manutenção</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "boxes", boxId })}>Esta caixa</button>
       </div>
     </section>
-    <TaskPanel tasks={tasks} onNavigate={onNavigate} />
+    <TaskPanel tasks={tasks} onNavigate={navigate} />
     <section className="panel wide-list">
       <div className="panel-heading"><h2>Histórico de ocupação</h2><p>Intervalos preservados de colônia ↔ caixa.</p></div>
       {occupancies.length === 0 ? <div className="empty-list">Esta caixa ainda não possui ocupações registradas.</div> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Colônia</th><th>Início</th><th>Fim</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>{occupancies.map((item) => <tr key={item.id}><td><strong>{item.colonyCode}</strong></td><td>{formatDateTimeBr(item.startedAt)}</td><td>{item.endedAt ? formatDateTimeBr(item.endedAt) : "Atual"}</td><td>{item.reason || "—"}</td><td>{item.correctedAt ? "Corrigido" : "Original"}</td></tr>)}</tbody></table></div>}
@@ -135,6 +137,7 @@ export function BoxOperationalCenter({ boxId, onNavigate }: NavigateProps & { bo
 }
 
 export function MeliponaryOperationalCenter({ meliponaryId, onNavigate }: NavigateProps & { meliponaryId: string }) {
+  const navigate = onNavigate as Navigate;
   const [center, setCenter] = useState<MeliponaryRecordCenter | null>(null);
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -173,14 +176,14 @@ export function MeliponaryOperationalCenter({ meliponaryId, onNavigate }: Naviga
         <Metric label="Produções recentes" value={String(center.recentProductionRecords)} />
       </div>
       <div className="workspace-actions">
-        <button type="button" onClick={() => onNavigate({ view: "agenda", meliponaryId })}>Abrir Agenda</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "alerts", meliponaryId })}>Alertas</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "colonies", meliponaryId })}>Colônias</button>
-        <button className="button-secondary" type="button" onClick={() => onNavigate({ view: "boxes", meliponaryId })}>Caixas</button>
+        <button type="button" onClick={() => navigate({ view: "agenda", meliponaryId })}>Abrir Agenda</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "alerts", meliponaryId })}>Alertas</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "colonies", meliponaryId })}>Colônias</button>
+        <button className="button-secondary" type="button" onClick={() => navigate({ view: "boxes", meliponaryId })}>Caixas</button>
       </div>
     </section>
-    <TaskPanel tasks={tasks} onNavigate={onNavigate} />
-    <AlertPanel alerts={alerts} onNavigate={onNavigate} />
+    <TaskPanel tasks={tasks} onNavigate={navigate} />
+    <AlertPanel alerts={alerts} onNavigate={navigate} />
   </div>;
 }
 
