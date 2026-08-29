@@ -171,7 +171,9 @@ fn collect_assets(root: &Path) -> Result<Vec<BackupAsset>, String> {
                 .file_type()
                 .map_err(|_| storage_error("Não foi possível identificar um arquivo do backup."))?;
             if file_type.is_symlink() {
-                return Err("A árvore de arquivos contém um link simbólico não suportado.".to_owned());
+                return Err(
+                    "A árvore de arquivos contém um link simbólico não suportado.".to_owned(),
+                );
             }
             let path = entry.path();
             if file_type.is_dir() {
@@ -179,13 +181,17 @@ fn collect_assets(root: &Path) -> Result<Vec<BackupAsset>, String> {
             } else if file_type.is_file() {
                 let relative = path
                     .strip_prefix(base)
-                    .map_err(|_| storage_error("Não foi possível identificar um arquivo do backup."))?
+                    .map_err(|_| {
+                        storage_error("Não foi possível identificar um arquivo do backup.")
+                    })?
                     .to_string_lossy()
                     .replace('\\', "/");
                 ensure_plain_relative_path(&relative)?;
                 let byte_size = entry
                     .metadata()
-                    .map_err(|_| storage_error("Não foi possível verificar o tamanho de um arquivo."))?
+                    .map_err(|_| {
+                        storage_error("Não foi possível verificar o tamanho de um arquivo.")
+                    })?
                     .len();
                 output.push(BackupAsset {
                     relative_path: relative,
@@ -276,7 +282,8 @@ async fn validate_database(path: &Path) -> Result<i64, String> {
 }
 
 fn read_manifest(path: &Path) -> Result<BackupManifest, String> {
-    let bytes = fs::read(path).map_err(|_| "Não foi possível ler o manifest do backup.".to_owned())?;
+    let bytes =
+        fs::read(path).map_err(|_| "Não foi possível ler o manifest do backup.".to_owned())?;
     serde_json::from_slice(&bytes).map_err(|_| "O manifest do backup é inválido.".to_owned())
 }
 
@@ -311,10 +318,14 @@ fn validate_manifest(
     for asset in &manifest.assets {
         ensure_plain_relative_path(&asset.relative_path)?;
         let relative = Path::new(&asset.relative_path);
-        if relative.components().next().and_then(|component| match component {
-            Component::Normal(value) => value.to_str(),
-            _ => None,
-        }) != Some(MEDIA_ROOT)
+        if relative
+            .components()
+            .next()
+            .and_then(|component| match component {
+                Component::Normal(value) => value.to_str(),
+                _ => None,
+            })
+            != Some(MEDIA_ROOT)
         {
             return Err("O manifest declara um arquivo fora da área de mídia.".to_owned());
         }
@@ -341,7 +352,9 @@ fn validate_manifest(
         .map(|asset| format!("{MEDIA_ROOT}/{}", asset.relative_path))
         .collect::<BTreeSet<_>>();
     if actual != declared {
-        return Err("O conteúdo da pasta de mídia não corresponde ao manifest do backup.".to_owned());
+        return Err(
+            "O conteúdo da pasta de mídia não corresponde ao manifest do backup.".to_owned(),
+        );
     }
     Ok(())
 }
@@ -537,7 +550,9 @@ pub fn apply_pending_restore(data_dir: &Path) -> Result<(), String> {
         .duration_since(std::time::UNIX_EPOCH)
         .map_err(|_| "Não foi possível preparar a restauração.".to_owned())?
         .as_secs();
-    let safety_dir = data_dir.join("backups").join(format!("pre-restore-{stamp}"));
+    let safety_dir = data_dir
+        .join("backups")
+        .join(format!("pre-restore-{stamp}"));
     fs::create_dir_all(&safety_dir).map_err(|_| {
         "Não foi possível criar o backup de segurança antes da restauração.".to_owned()
     })?;
@@ -636,10 +651,9 @@ fn blob_hex(bytes: &[u8]) -> String {
 }
 
 async fn export_rows(pool: &SqlitePool, sql: &'static str) -> Result<Vec<Value>, String> {
-    let rows = sqlx::query(sql)
-        .fetch_all(pool)
-        .await
-        .map_err(|_| "Não foi possível consultar uma estrutura para a exportação JSON.".to_owned())?;
+    let rows = sqlx::query(sql).fetch_all(pool).await.map_err(|_| {
+        "Não foi possível consultar uma estrutura para a exportação JSON.".to_owned()
+    })?;
     let mut output = Vec::with_capacity(rows.len());
     for row in rows {
         let mut object = Map::new();
@@ -695,8 +709,11 @@ async fn portable_tables(pool: &SqlitePool) -> Result<PortableTables, String> {
             "SELECT * FROM inspection_photos ORDER BY created_at, id",
         )
         .await?,
-        feedings: export_rows(pool, "SELECT * FROM feedings ORDER BY fed_at, created_at, id")
-            .await?,
+        feedings: export_rows(
+            pool,
+            "SELECT * FROM feedings ORDER BY fed_at, created_at, id",
+        )
+        .await?,
         production_records: export_rows(
             pool,
             "SELECT * FROM production_records ORDER BY harvested_at, created_at, id",
@@ -781,8 +798,7 @@ pub async fn export_portable_json(
     let bytes = serde_json::to_vec_pretty(&export)
         .map_err(|_| "Não foi possível serializar a exportação JSON.".to_owned())?;
     let path = export_dir.join(format!("estrutura-{created_at}.json"));
-    fs::write(&path, bytes)
-        .map_err(|_| "Não foi possível gravar a exportação JSON.".to_owned())?;
+    fs::write(&path, bytes).map_err(|_| "Não foi possível gravar a exportação JSON.".to_owned())?;
     Ok(GeneratedArtifact {
         kind: "json".to_owned(),
         path: path.to_string_lossy().into_owned(),
@@ -810,16 +826,38 @@ pub async fn generate_management_report(
         .await
         .map_err(|_| "Não foi possível consultar a visão operacional.".to_owned())?;
 
-    let mut report = format!("# Relatório do MeliponarioManager\n\nGerado em: {created_at}\n\n## Estrutura\n\n- Meliponários: {}\n- Espécies: {}\n- Colônias: {}\n- Caixas: {}\n- Caixas ocupadas: {}\n- Caixas ativas e livres: {}\n\n## Situação das colônias\n", summary.meliponaries, summary.species, summary.colonies, summary.boxes, overview.occupied_boxes, overview.free_boxes);
+    let mut report = format!("# Relatório do MeliponarioManager\
+\
+Gerado em: {created_at}\
+\
+## Estrutura\
+\
+- Meliponários: {}\
+- Espécies: {}\
+- Colônias: {}\
+- Caixas: {}\
+- Caixas ocupadas: {}\
+- Caixas ativas e livres: {}\
+\
+## Situação das colônias\
+", summary.meliponaries, summary.species, summary.colonies, summary.boxes, overview.occupied_boxes, overview.free_boxes);
     for item in &overview.colony_statuses {
-        report.push_str(&format!("- {}: {}\n", item.label, item.count));
+        report.push_str(&format!("- {}: {}\
+", item.label, item.count));
     }
-    report.push_str("\n## Distribuição por espécie\n");
+    report.push_str("\
+## Distribuição por espécie\
+");
     for item in &overview.species_distribution {
-        report.push_str(&format!("- {}: {}\n", item.label, item.count));
+        report.push_str(&format!("- {}: {}\
+", item.label, item.count));
     }
     report.push_str(&format!(
-        "\n## Pendências\n\nAlertas atuais: {}\n",
+        "\
+## Pendências\
+\
+Alertas atuais: {}\
+",
         overview.alerts.len()
     ));
     for alert in overview.alerts.iter().take(20) {
@@ -831,7 +869,8 @@ pub async fn generate_management_report(
             "Meliponário".to_owned()
         };
         report.push_str(&format!(
-            "- {context}: {}{}\n",
+            "- {context}: {}{}\
+",
             alert.title,
             alert
                 .due_at
@@ -842,8 +881,7 @@ pub async fn generate_management_report(
     }
 
     let path = export_dir.join(format!("relatorio-{created_at}.md"));
-    fs::write(&path, report)
-        .map_err(|_| "Não foi possível gravar o relatório.".to_owned())?;
+    fs::write(&path, report).map_err(|_| "Não foi possível gravar o relatório.".to_owned())?;
     Ok(GeneratedArtifact {
         kind: "report".to_owned(),
         path: path.to_string_lossy().into_owned(),
@@ -856,10 +894,7 @@ mod tests {
     use super::*;
 
     fn temp_root(label: &str) -> PathBuf {
-        std::env::temp_dir().join(format!(
-            "meliponariomanager-{label}-{}",
-            Uuid::new_v4()
-        ))
+        std::env::temp_dir().join(format!("meliponariomanager-{label}-{}", Uuid::new_v4()))
     }
 
     async fn seeded_installation(root: &Path) -> SqlitePool {
@@ -986,10 +1021,7 @@ mod tests {
             ("managed_attachments", 1),
         ] {
             let sql = format!("SELECT COUNT(*) FROM {table}");
-            let count: i64 = sqlx::query_scalar(&sql)
-                .fetch_one(&restored)
-                .await
-                .unwrap();
+            let count: i64 = sqlx::query_scalar(&sql).fetch_one(&restored).await.unwrap();
             assert_eq!(count, expected, "table {table}");
         }
         let integrity: String = sqlx::query_scalar("PRAGMA integrity_check")
