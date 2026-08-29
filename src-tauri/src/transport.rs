@@ -52,60 +52,6 @@ fn message(error: AppError) -> String {
     error.to_string()
 }
 
-pub async fn ensure_can_open(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
-    let colony_id = required(colony_id, "Colônia")?;
-    let open: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-            SELECT 1
-            FROM colony_movements m
-            WHERE m.colony_id = ?
-              AND m.movement_type = 'transport'
-              AND m.voided_at IS NULL
-              AND m.reversed_at IS NULL
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM transport_returns r
-                  WHERE r.movement_id = m.id
-                    AND r.reversed_at IS NULL
-              )
-        )",
-    )
-    .bind(colony_id)
-    .fetch_one(pool)
-    .await?;
-
-    if open {
-        Err(AppError::Validation(
-            "Esta colônia já possui um transporte temporário aberto. Registre o retorno antes de iniciar outro."
-                .to_owned(),
-        ))
-    } else {
-        Ok(())
-    }
-}
-
-pub async fn ensure_can_void(pool: &SqlitePool, movement_id: &str) -> Result<(), AppError> {
-    let movement_id = required(movement_id, "Movimentação")?;
-    let active_return: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-            SELECT 1 FROM transport_returns
-            WHERE movement_id = ? AND reversed_at IS NULL
-        )",
-    )
-    .bind(movement_id)
-    .fetch_one(pool)
-    .await?;
-
-    if active_return {
-        Err(AppError::Validation(
-            "Este transporte já foi concluído. Reabra o transporte antes de anular o movimento original."
-                .to_owned(),
-        ))
-    } else {
-        Ok(())
-    }
-}
-
 pub async fn complete(
     pool: &SqlitePool,
     input: CompleteTransport,
@@ -117,16 +63,15 @@ pub async fn complete(
     )?;
     let notes = optional(&input.notes);
 
-    let movement: Option<(String, String, String, Option<String>, Option<String>)> =
-        sqlx::query_as(
-            "SELECT colony_id, movement_type, moved_at, voided_at, reversed_at
+    let movement: Option<(String, String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT movement_type, moved_at, voided_at, reversed_at
          FROM colony_movements
          WHERE id = ?",
-        )
-        .bind(&movement_id)
-        .fetch_optional(pool)
-        .await?;
-    let (_colony_id, movement_type, moved_at, voided_at, reversed_at) =
+    )
+    .bind(&movement_id)
+    .fetch_optional(pool)
+    .await?;
+    let (movement_type, moved_at, voided_at, reversed_at) =
         movement.ok_or_else(|| AppError::NotFound("Transporte não encontrado.".to_owned()))?;
 
     if movement_type != "transport" {
@@ -326,7 +271,10 @@ pub async fn reopen_transport(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::movements::{self, CreateMovement};
+    use crate::{
+        movements::{self, CreateMovement},
+        record_corrections::{self, VoidRecord},
+    };
     use sqlx::sqlite::SqlitePoolOptions;
 
     async fn seed() -> (SqlitePool, String) {
@@ -420,11 +368,6 @@ mod tests {
         let (pool, colony_id) = seed().await;
         let movement_id = open_transport(&pool, &colony_id).await;
 
-        assert!(matches!(
-            ensure_can_open(&pool, &colony_id).await,
-            Err(AppError::Validation(_))
-        ));
-
         let second = movements::create(
             &pool,
             CreateMovement {
@@ -454,7 +397,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn completed_transport_cannot_be_voided_before_reopening() {
+    async fn completed_transport_must_be_reopened_before_administrative_void() {
         let (pool, colony_id) = seed().await;
         let movement_id = open_transport(&pool, &colony_id).await;
         complete(
@@ -468,9 +411,43 @@ mod tests {
         .await
         .unwrap();
 
-        assert!(matches!(
-            ensure_can_void(&pool, &movement_id).await,
-            Err(AppError::Validation(_))
-        ));
+        let blocked = record_corrections::void_transport(
+            &pool,
+            VoidRecord {
+                id: movement_id.clone(),
+                reason: "Lançamento incorreto".to_owned(),
+            },
+        )
+        .await;
+        assert!(matches!(blocked, Err(AppError::Database(_))));
+
+        reopen(&pool, &movement_id, "Retorno precisa ser corrigido")
+            .await
+            .unwrap();
+        record_corrections::void_transport(
+            &pool,
+            VoidRecord {
+                id: movement_id.clone(),
+                reason: "Movimento lançado por engano".to_owned(),
+            },
+        )
+        .await
+        .unwrap();
+
+        let voided_at: Option<String> =
+            sqlx::query_scalar("SELECT voided_at FROM colony_movements WHERE id = ?")
+                .bind(&movement_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert!(voided_at.is_some());
+
+        let preserved_returns: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM transport_returns WHERE movement_id = ?")
+                .bind(&movement_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(preserved_returns, 1);
     }
 }
