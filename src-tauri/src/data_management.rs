@@ -1039,10 +1039,7 @@ mod tests {
         assert_eq!(manifest.format_version, 1);
         assert_eq!(manifest.schema_version, CURRENT_SCHEMA_VERSION);
         assert_eq!(manifest.assets.len(), 2);
-        assert!(manifest
-            .assets
-            .iter()
-            .all(|asset| asset.sha256.len() == 64));
+        assert!(manifest.assets.iter().all(|asset| asset.sha256.len() == 64));
         validate_restore_source(&backup).await.unwrap();
         pool.close().await;
 
@@ -1057,10 +1054,7 @@ mod tests {
             .unwrap();
         macro_rules! assert_table_count {
             ($sql:literal, $expected:expr, $table:literal) => {{
-                let count: i64 = sqlx::query_scalar($sql)
-                    .fetch_one(&restored)
-                    .await
-                    .unwrap();
+                let count: i64 = sqlx::query_scalar($sql).fetch_one(&restored).await.unwrap();
                 assert_eq!(count, $expected, "table {}", $table);
             }};
         }
@@ -1077,7 +1071,11 @@ mod tests {
             1_i64,
             "box_maintenance_records"
         );
-        assert_table_count!("SELECT COUNT(*) FROM scheduled_tasks", 2_i64, "scheduled_tasks");
+        assert_table_count!(
+            "SELECT COUNT(*) FROM scheduled_tasks",
+            2_i64,
+            "scheduled_tasks"
+        );
         assert_table_count!(
             "SELECT COUNT(*) FROM colony_movements",
             1_i64,
