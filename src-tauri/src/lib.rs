@@ -25,6 +25,7 @@ mod media;
 mod migration_tests;
 mod movements;
 mod operational;
+mod photo_preview;
 mod production;
 mod record_centers;
 mod record_corrections;
@@ -99,6 +100,7 @@ pub fn run() {
             managed_files::reveal_managed_attachment,
             managed_files::open_inspection_photo,
             managed_files::reveal_inspection_photo,
+            photo_preview::get_inspection_photo_preview,
             attachments::import_meliponary_attachment,
             attachments::list_meliponary_attachments,
             attachments::update_meliponary_attachment,
