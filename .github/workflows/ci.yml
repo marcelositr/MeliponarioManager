@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main, feat/v0.8-foundation-integrity, feat/v0.8-enterprise-shell, feat/v0.8-operational-actions]
   push:
-    branches: [main]
+    branches: [main, feat/v0.8-reports-files-final-polish]
 
 jobs:
   check:
