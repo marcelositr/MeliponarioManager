@@ -16,6 +16,7 @@ type TopMenuProps = {
 };
 type MenuName = "file" | "view" | "tools" | "help";
 const menuOrder: MenuName[] = ["file", "view", "tools", "help"];
+const menuItemSelector = "[role='menuitem']:not([disabled]), [role='menuitemradio']:not([disabled])";
 
 export function TopMenu({ theme, onThemeChange, sidebarCollapsed, onToggleSidebar, onNavigate, onRefresh, refreshDisabled = false, onOpenAbout }: TopMenuProps) {
   const [open, setOpen] = useState<MenuName | null>(null);
@@ -46,7 +47,7 @@ export function TopMenu({ theme, onThemeChange, sidebarCollapsed, onToggleSideba
   return <div className="menu-bar" ref={rootRef} role="menubar" aria-label="Menu principal">
     <div className="menu-brand" aria-hidden="true">MeliponarioManager</div>
     <Menu name="file" label="Arquivo" open={open === "file"} onToggle={() => toggle("file")} onMove={moveTrigger}><MenuItem label="Backup" onClick={action(() => onNavigate("data"))} /><MenuItem label="Restaurar…" onClick={action(() => onNavigate("data"))} /><MenuItem label="Exportar" onClick={action(() => onNavigate("data"))} /><MenuItem label="Relatórios" onClick={action(() => onNavigate("data"))} /><div className="menu-separator" role="separator" /><MenuItem label="Sair" onClick={action(() => { void getCurrentWindow().close(); })} /></Menu>
-    <Menu name="view" label="Exibir" open={open === "view"} onToggle={() => toggle("view")} onMove={moveTrigger}><MenuItem label="Tema claro" checked={theme === "light"} icon="sun" onClick={action(() => onThemeChange("light"))} /><MenuItem label="Tema escuro" checked={theme === "dark"} icon="moon" onClick={action(() => onThemeChange("dark"))} /><MenuItem label="Seguir sistema" checked={theme === "system"} icon="system" onClick={action(() => onThemeChange("system"))} /><div className="menu-separator" role="separator" /><MenuItem label={sidebarCollapsed ? "Expandir sidebar" : "Recolher sidebar"} onClick={action(onToggleSidebar)} /><MenuItem label="Atualizar" icon="refresh" disabled={refreshDisabled} onClick={action(onRefresh)} /></Menu>
+    <Menu name="view" label="Exibir" open={open === "view"} onToggle={() => toggle("view")} onMove={moveTrigger}><MenuItem label="Tema claro" radio checked={theme === "light"} icon="sun" onClick={action(() => onThemeChange("light"))} /><MenuItem label="Tema escuro" radio checked={theme === "dark"} icon="moon" onClick={action(() => onThemeChange("dark"))} /><MenuItem label="Seguir sistema" radio checked={theme === "system"} icon="system" onClick={action(() => onThemeChange("system"))} /><div className="menu-separator" role="separator" /><MenuItem label={sidebarCollapsed ? "Expandir sidebar" : "Recolher sidebar"} onClick={action(onToggleSidebar)} /><MenuItem label="Atualizar" icon="refresh" disabled={refreshDisabled} onClick={action(onRefresh)} /></Menu>
     <Menu name="tools" label="Ferramentas" open={open === "tools"} onToggle={() => toggle("tools")} onMove={moveTrigger}><MenuItem label="Dados" icon="database" onClick={action(() => onNavigate("data"))} /></Menu>
     <Menu name="help" label="Ajuda" open={open === "help"} onToggle={() => toggle("help")} onMove={moveTrigger}><MenuItem label="Sobre…" icon="info" onClick={action(onOpenAbout)} /></Menu>
   </div>;
@@ -63,13 +64,13 @@ function Menu({ name, label, open, onToggle, onMove, children }: { name: MenuNam
       event.preventDefault();
       const root = event.currentTarget.parentElement;
       if (!open) onToggle();
-      window.requestAnimationFrame(() => root?.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus());
+      window.requestAnimationFrame(() => root?.querySelector<HTMLElement>(`[role='menu'] ${menuItemSelector}`)?.focus());
     }
   }
   return <div className="menu-root"><button data-menu-trigger={name} className={open ? "menu-trigger open" : "menu-trigger"} role="menuitem" type="button" onClick={onToggle} onKeyDown={onTriggerKeyDown} aria-haspopup="menu" aria-expanded={open}>{label}</button>{open && <div className="menu-popover" role="menu" aria-label={label}>{children}</div>}</div>;
 }
 
-function MenuItem({ label, onClick, disabled = false, checked = false, icon }: { label: string; onClick?: () => void; disabled?: boolean; checked?: boolean; icon?: "sun" | "moon" | "system" | "refresh" | "database" | "info" }) {
+function MenuItem({ label, onClick, disabled = false, checked = false, radio = false, icon }: { label: string; onClick?: () => void; disabled?: boolean; checked?: boolean; radio?: boolean; icon?: "sun" | "moon" | "system" | "refresh" | "database" | "info" }) {
   function onKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
@@ -81,16 +82,16 @@ function MenuItem({ label, onClick, disabled = false, checked = false, icon }: {
       const next = roots[(index + (event.key === "ArrowRight" ? 1 : -1) + roots.length) % roots.length];
       const trigger = next.querySelector<HTMLButtonElement>("[data-menu-trigger]");
       trigger?.click();
-      window.requestAnimationFrame(() => next.querySelector<HTMLElement>("[role='menuitem']:not([disabled])")?.focus());
+      window.requestAnimationFrame(() => next.querySelector<HTMLElement>(`[role='menu'] ${menuItemSelector}`)?.focus());
       return;
     }
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
     const menu = event.currentTarget.closest("[role='menu']");
-    const items = Array.from(menu?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not([disabled])") ?? []);
+    const items = Array.from(menu?.querySelectorAll<HTMLButtonElement>(menuItemSelector) ?? []);
     const index = items.indexOf(event.currentTarget);
     const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
     items[next]?.focus();
   }
-  return <button className="menu-item" role="menuitem" type="button" onClick={onClick} onKeyDown={onKeyDown} disabled={disabled} aria-checked={checked || undefined}><span className="menu-item-mark">{checked ? <Icon name="check" /> : icon ? <Icon name={icon} /> : null}</span><span>{label}</span></button>;
+  return <button className="menu-item" role={radio ? "menuitemradio" : "menuitem"} type="button" onClick={onClick} onKeyDown={onKeyDown} disabled={disabled} aria-checked={radio ? checked : undefined}><span className="menu-item-mark">{checked ? <Icon name="check" /> : icon ? <Icon name={icon} /> : null}</span><span>{label}</span></button>;
 }
