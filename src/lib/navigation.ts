@@ -1,4 +1,6 @@
-import type { View } from "../types";
+import type { View as CoreView } from "../types";
+
+export type View = CoreView | "reports";
 
 export type NavigationIntent = {
   view: View;
