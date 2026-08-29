@@ -1022,24 +1022,55 @@ mod tests {
         let restored = crate::database::initialize(&destination.join(DATABASE_FILE))
             .await
             .unwrap();
-        for (table, expected) in [
-            ("meliponaries", 1_i64),
-            ("inspections", 1),
-            ("feedings", 1),
-            ("production_records", 1),
-            ("box_maintenance_records", 1),
-            ("scheduled_tasks", 2),
-            ("colony_movements", 1),
-            ("transport_returns", 1),
-            ("colony_lifecycle_records", 1),
-            ("audit_records", 1),
-            ("inspection_photos", 1),
-            ("managed_attachments", 1),
-        ] {
-            let sql = format!("SELECT COUNT(*) FROM {table}");
-            let count: i64 = sqlx::query_scalar(&sql).fetch_one(&restored).await.unwrap();
-            assert_eq!(count, expected, "table {table}");
+        macro_rules! assert_table_count {
+            ($sql:literal, $expected:expr, $table:literal) => {{
+                let count: i64 = sqlx::query_scalar($sql)
+                    .fetch_one(&restored)
+                    .await
+                    .unwrap();
+                assert_eq!(count, $expected, "table {}", $table);
+            }};
         }
+        assert_table_count!("SELECT COUNT(*) FROM meliponaries", 1_i64, "meliponaries");
+        assert_table_count!("SELECT COUNT(*) FROM inspections", 1_i64, "inspections");
+        assert_table_count!("SELECT COUNT(*) FROM feedings", 1_i64, "feedings");
+        assert_table_count!(
+            "SELECT COUNT(*) FROM production_records",
+            1_i64,
+            "production_records"
+        );
+        assert_table_count!(
+            "SELECT COUNT(*) FROM box_maintenance_records",
+            1_i64,
+            "box_maintenance_records"
+        );
+        assert_table_count!("SELECT COUNT(*) FROM scheduled_tasks", 2_i64, "scheduled_tasks");
+        assert_table_count!(
+            "SELECT COUNT(*) FROM colony_movements",
+            1_i64,
+            "colony_movements"
+        );
+        assert_table_count!(
+            "SELECT COUNT(*) FROM transport_returns",
+            1_i64,
+            "transport_returns"
+        );
+        assert_table_count!(
+            "SELECT COUNT(*) FROM colony_lifecycle_records",
+            1_i64,
+            "colony_lifecycle_records"
+        );
+        assert_table_count!("SELECT COUNT(*) FROM audit_records", 1_i64, "audit_records");
+        assert_table_count!(
+            "SELECT COUNT(*) FROM inspection_photos",
+            1_i64,
+            "inspection_photos"
+        );
+        assert_table_count!(
+            "SELECT COUNT(*) FROM managed_attachments",
+            1_i64,
+            "managed_attachments"
+        );
         let integrity: String = sqlx::query_scalar("PRAGMA integrity_check")
             .fetch_one(&restored)
             .await
