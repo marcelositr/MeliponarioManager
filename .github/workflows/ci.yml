@@ -71,7 +71,9 @@ jobs:
 
       - name: Test Rust backend
         working-directory: src-tauri
-        run: cargo test
+        env:
+          RUST_BACKTRACE: 1
+        run: cargo test -- --nocapture
 
       - name: Build Tauri desktop binary
         run: npm run tauri -- build --no-bundle
