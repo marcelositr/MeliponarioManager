@@ -2,10 +2,10 @@ import type { View } from "../types";
 
 export type NavigationIntent = {
   view: View;
-  taskId?: string;
-  colonyId?: string;
-  boxId?: string;
-  meliponaryId?: string;
+  taskId?: string | null;
+  colonyId?: string | null;
+  boxId?: string | null;
+  meliponaryId?: string | null;
   action?: "create" | "open";
 };
 
