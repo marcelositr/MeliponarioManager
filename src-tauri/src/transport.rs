@@ -5,6 +5,8 @@ use sqlx::{FromRow, SqlitePool};
 use tauri::State;
 use uuid::Uuid;
 
+const OTHER_OPEN_TRANSPORT_MESSAGE: &str = "Esta colônia já possui outro transporte temporário aberto. Conclua ou anule o transporte atual antes de reabrir este.";
+
 #[derive(Debug, Clone, Serialize, FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct TransportReturn {
@@ -50,6 +52,48 @@ fn optional(value: &Option<String>) -> Option<String> {
 
 fn message(error: AppError) -> String {
     error.to_string()
+}
+
+fn reopen_write_error(error: sqlx::Error) -> AppError {
+    if error
+        .to_string()
+        .contains("A colônia já possui outro transporte temporário aberto.")
+    {
+        AppError::Validation(OTHER_OPEN_TRANSPORT_MESSAGE.to_owned())
+    } else {
+        AppError::Database(error)
+    }
+}
+
+pub async fn has_open_transport_for_colony(
+    pool: &SqlitePool,
+    colony_id: &str,
+    exclude_movement_id: Option<&str>,
+) -> Result<bool, AppError> {
+    let colony_id = required(colony_id, "Colônia")?;
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(
+            SELECT 1
+            FROM colony_movements m
+            WHERE m.colony_id = ?
+              AND m.movement_type = 'transport'
+              AND m.voided_at IS NULL
+              AND m.reversed_at IS NULL
+              AND (? IS NULL OR m.id <> ?)
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM transport_returns r
+                  WHERE r.movement_id = m.id
+                    AND r.reversed_at IS NULL
+              )
+        )",
+    )
+    .bind(&colony_id)
+    .bind(exclude_movement_id)
+    .bind(exclude_movement_id)
+    .fetch_one(pool)
+    .await?;
+    Ok(exists)
 }
 
 pub async fn complete(
@@ -144,24 +188,37 @@ pub async fn reopen(pool: &SqlitePool, movement_id: &str, reason: &str) -> Resul
     let movement_id = required(movement_id, "Transporte")?;
     let reason = required(reason, "Motivo da reabertura")?;
 
-    let movement_type: Option<String> =
-        sqlx::query_scalar("SELECT movement_type FROM colony_movements WHERE id = ?")
-            .bind(&movement_id)
-            .fetch_optional(pool)
-            .await?;
-    match movement_type.as_deref() {
-        Some("transport") => {}
-        Some(_) => {
-            return Err(AppError::Validation(
-                "Somente transporte temporário pode ser reaberto por este fluxo.".to_owned(),
-            ))
-        }
-        None => return Err(AppError::NotFound("Transporte não encontrado.".to_owned())),
+    let movement: Option<(String, String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT movement_type, colony_id, voided_at, reversed_at
+         FROM colony_movements
+         WHERE id = ?",
+    )
+    .bind(&movement_id)
+    .fetch_optional(pool)
+    .await?;
+    let (movement_type, colony_id, voided_at, reversed_at) =
+        movement.ok_or_else(|| AppError::NotFound("Transporte não encontrado.".to_owned()))?;
+
+    if movement_type != "transport" {
+        return Err(AppError::Validation(
+            "Somente transporte temporário pode ser reaberto por este fluxo.".to_owned(),
+        ));
+    }
+    if voided_at.is_some() || reversed_at.is_some() {
+        return Err(AppError::Validation(
+            "Transporte anulado ou revertido não pode ser reaberto.".to_owned(),
+        ));
     }
 
     let active = get_active_return(pool, &movement_id)
         .await?
         .ok_or_else(|| AppError::Validation("Este transporte já está aberto.".to_owned()))?;
+
+    if has_open_transport_for_colony(pool, &colony_id, Some(&movement_id)).await? {
+        return Err(AppError::Validation(
+            OTHER_OPEN_TRANSPORT_MESSAGE.to_owned(),
+        ));
+    }
 
     let mut tx = pool.begin().await?;
     let reversed_at: String =
@@ -178,7 +235,8 @@ pub async fn reopen(pool: &SqlitePool, movement_id: &str, reason: &str) -> Resul
     .bind(&reason)
     .bind(&active.id)
     .execute(&mut *tx)
-    .await?;
+    .await
+    .map_err(reopen_write_error)?;
 
     audit::record_tx(
         &mut tx,
@@ -311,16 +369,21 @@ mod tests {
         (pool, "c1".to_owned())
     }
 
-    async fn open_transport(pool: &SqlitePool, colony_id: &str) -> String {
+    async fn open_transport_at(
+        pool: &SqlitePool,
+        colony_id: &str,
+        moved_at: &str,
+        destination: &str,
+    ) -> String {
         movements::create(
             pool,
             CreateMovement {
                 colony_id: colony_id.to_owned(),
                 movement_type: "transport".to_owned(),
-                moved_at: Some("2026-02-01 08:00:00".to_owned()),
+                moved_at: Some(moved_at.to_owned()),
                 to_meliponary_id: None,
                 to_box_id: None,
-                destination: Some("Exposição".to_owned()),
+                destination: Some(destination.to_owned()),
                 document_reference: None,
                 notes: None,
             },
@@ -328,6 +391,41 @@ mod tests {
         .await
         .unwrap()
         .id
+    }
+
+    async fn open_transport(pool: &SqlitePool, colony_id: &str) -> String {
+        open_transport_at(pool, colony_id, "2026-02-01 08:00:00", "Exposição").await
+    }
+
+    async fn open_transport_ids(pool: &SqlitePool, colony_id: &str) -> Vec<String> {
+        sqlx::query_scalar(
+            "SELECT m.id
+             FROM colony_movements m
+             WHERE m.colony_id = ?
+               AND m.movement_type = 'transport'
+               AND m.voided_at IS NULL
+               AND m.reversed_at IS NULL
+               AND NOT EXISTS (
+                   SELECT 1 FROM transport_returns r
+                   WHERE r.movement_id = m.id AND r.reversed_at IS NULL
+               )
+             ORDER BY m.moved_at, m.id",
+        )
+        .bind(colony_id)
+        .fetch_all(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn movement_audit_count(pool: &SqlitePool, movement_id: &str) -> i64 {
+        sqlx::query_scalar(
+            "SELECT COUNT(*) FROM audit_records
+             WHERE entity_type = 'movement' AND entity_id = ?",
+        )
+        .bind(movement_id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
     }
 
     #[tokio::test]
@@ -394,6 +492,130 @@ mod tests {
         )
         .await;
         assert!(matches!(invalid_return, Err(AppError::Validation(_))));
+    }
+
+    #[tokio::test]
+    async fn reopening_completed_transport_is_blocked_while_another_transport_is_open() {
+        let (pool, colony_id) = seed().await;
+        let transport_a = open_transport_at(
+            &pool,
+            &colony_id,
+            "2026-02-01 08:00:00",
+            "Exposição A",
+        )
+        .await;
+        complete(
+            &pool,
+            CompleteTransport {
+                movement_id: transport_a.clone(),
+                returned_at: Some("2026-02-02 18:00:00".to_owned()),
+                notes: Some("Retorno A".to_owned()),
+            },
+        )
+        .await
+        .unwrap();
+
+        let transport_b = open_transport_at(
+            &pool,
+            &colony_id,
+            "2026-02-03 08:00:00",
+            "Exposição B",
+        )
+        .await;
+        let audit_before = movement_audit_count(&pool, &transport_a).await;
+
+        let blocked = reopen(&pool, &transport_a, "Corrigir retorno A").await;
+        match blocked {
+            Err(AppError::Validation(message)) => {
+                assert_eq!(message, OTHER_OPEN_TRANSPORT_MESSAGE);
+            }
+            other => panic!("reabertura deveria ser bloqueada por validação de domínio: {other:?}"),
+        }
+
+        assert_eq!(open_transport_ids(&pool, &colony_id).await, vec![transport_b.clone()]);
+        let active_return_a: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM transport_returns
+             WHERE movement_id = ? AND reversed_at IS NULL",
+        )
+        .bind(&transport_a)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(active_return_a, 1);
+        assert_eq!(movement_audit_count(&pool, &transport_a).await, audit_before);
+
+        let direct_sql = sqlx::query(
+            "UPDATE transport_returns
+             SET reversed_at = '2026-02-03 10:00:00', reversal_reason = 'Bypass direto'
+             WHERE movement_id = ? AND reversed_at IS NULL",
+        )
+        .bind(&transport_a)
+        .execute(&pool)
+        .await;
+        let direct_error = direct_sql.expect_err("trigger SQLite deve bloquear reabertura concorrente");
+        assert!(direct_error
+            .to_string()
+            .contains("A colônia já possui outro transporte temporário aberto."));
+
+        let preserved_active_a: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM transport_returns
+             WHERE movement_id = ? AND reversed_at IS NULL",
+        )
+        .bind(&transport_a)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(preserved_active_a, 1);
+        assert_eq!(movement_audit_count(&pool, &transport_a).await, audit_before);
+
+        complete(
+            &pool,
+            CompleteTransport {
+                movement_id: transport_b.clone(),
+                returned_at: Some("2026-02-04 18:00:00".to_owned()),
+                notes: Some("Retorno B".to_owned()),
+            },
+        )
+        .await
+        .unwrap();
+        assert!(open_transport_ids(&pool, &colony_id).await.is_empty());
+
+        reopen(&pool, &transport_a, "Corrigir retorno A")
+            .await
+            .unwrap();
+        assert_eq!(open_transport_ids(&pool, &colony_id).await, vec![transport_a.clone()]);
+
+        let return_history_a: (i64, i64) = sqlx::query_as(
+            "SELECT COUNT(*), SUM(CASE WHEN reversed_at IS NOT NULL THEN 1 ELSE 0 END)
+             FROM transport_returns WHERE movement_id = ?",
+        )
+        .bind(&transport_a)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(return_history_a, (1, 1));
+
+        let active_return_b: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM transport_returns
+             WHERE movement_id = ? AND reversed_at IS NULL",
+        )
+        .bind(&transport_b)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(active_return_b, 1);
+
+        let reopen_audits: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM audit_records
+             WHERE entity_type = 'movement'
+               AND entity_id = ?
+               AND action = 'reopen_transport'",
+        )
+        .bind(&transport_a)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(reopen_audits, 1);
     }
 
     #[tokio::test]
