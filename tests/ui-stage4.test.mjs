@@ -31,18 +31,20 @@ test("Agenda keeps the complete operational action set and contextual query", as
 });
 
 test("alerts and dashboard expose actionable Agenda-aware navigation", async () => {
-  const [types, alerts, dashboard] = await Promise.all([
+  const [types, alerts, dashboard, navigation] = await Promise.all([
     source("src/types.ts"),
     source("src/pages/AlertsPage.tsx"),
     source("src/pages/DashboardPage.tsx"),
+    source("src/lib/navigation.ts"),
   ]);
   assert.match(types, /recommendedAction: string/);
   assert.match(types, /taskId\?: string \| null/);
   assert.match(alerts, /item\.meliponaryId === activeMeliponaryId/);
-  assert.match(alerts, /item\.taskId/);
-  assert.match(alerts, /recommendedView\(item\.recommendedAction\)/);
+  assert.match(alerts, /taskId: item\.taskId/);
+  assert.match(alerts, /recommendedIntent\(item\)/);
   assert.match(dashboard, /getAgendaSummary/);
-  assert.match(dashboard, /alert\.taskId \? "agenda"/);
+  assert.match(dashboard, /taskId: alert\.taskId/);
+  assert.match(navigation, /type NavigationIntent/);
 });
 
 test("record centers consume the dedicated Stage 4 backend projections", async () => {
