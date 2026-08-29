@@ -340,7 +340,9 @@ pub async fn get_cost_report(
     pool: State<'_, SqlitePool>,
     filter: ReportFilter,
 ) -> Result<CostReport, String> {
-    operational::cost_report(&pool, &filter).await.map_err(message)
+    operational::cost_report(&pool, &filter)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
@@ -348,7 +350,9 @@ pub async fn get_agenda_report(
     pool: State<'_, SqlitePool>,
     filter: ReportFilter,
 ) -> Result<AgendaReport, String> {
-    operational::agenda_report(&pool, &filter).await.map_err(message)
+    operational::agenda_report(&pool, &filter)
+        .await
+        .map_err(message)
 }
 
 #[tauri::command]
