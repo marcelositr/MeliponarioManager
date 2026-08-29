@@ -7,8 +7,10 @@ import { StatusBar } from "./components/StatusBar";
 import { TopMenu } from "./components/TopMenu";
 import { WorkspaceRouter } from "./components/WorkspaceRouter";
 import { useAppData } from "./hooks/useAppData";
+import { toNavigationIntent, type Navigate, type NavigationIntent } from "./lib/navigation";
 import { normalizeActiveMeliponary, normalizeTheme, readSidebarCollapsed, resolveTheme, UI_STORAGE, type ThemeMode } from "./lib/ui-preferences";
 import type { View } from "./types";
+import "./hardening.css";
 
 const viewTitles: Record<View, string> = {
   dashboard: "Visão geral", agenda: "Agenda", meliponaries: "Meliponários", species: "Espécies", colonies: "Colônias", boxes: "Caixas", inspections: "Inspeções", feeding: "Alimentação", production: "Produção", history: "Histórico", alerts: "Alertas", genealogy: "Divisões e genealogia", movements: "Movimentações", assets: "Manutenção", lifecycle: "Ciclo de vida", data: "Dados e relatórios",
@@ -17,6 +19,7 @@ const viewTitles: Record<View, string> = {
 function App() {
   const { data, stats, recordStateMap, connectionStatus, busy, feedback, setFeedback, refresh, actions } = useAppData();
   const [activeView, setActiveView] = useState<View>("dashboard");
+  const [navigationIntent, setNavigationIntent] = useState<NavigationIntent>({ view: "dashboard" });
   const [appVersion, setAppVersion] = useState("...");
   const [theme, setTheme] = useState<ThemeMode>(() => normalizeTheme(localStorage.getItem(UI_STORAGE.theme)));
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readSidebarCollapsed(localStorage.getItem(UI_STORAGE.sidebarCollapsed)));
@@ -91,10 +94,17 @@ function App() {
     localStorage.setItem(UI_STORAGE.activeMeliponary, value);
   }
 
+  const navigate: Navigate = (target) => {
+    const next = toNavigationIntent(target);
+    if (next.meliponaryId) changeMeliponary(next.meliponaryId);
+    setNavigationIntent({ ...next });
+    setActiveView(next.view);
+  };
+
   return <div className="application-shell">
-    <TopMenu theme={theme} onThemeChange={setTheme} sidebarCollapsed={effectiveCollapsed} onToggleSidebar={changeSidebar} onNavigate={setActiveView} onRefresh={() => { void handleRefresh(); }} refreshDisabled={refreshing} onOpenAbout={() => setAboutOpen(true)} />
+    <TopMenu theme={theme} onThemeChange={setTheme} sidebarCollapsed={effectiveCollapsed} onToggleSidebar={changeSidebar} onNavigate={navigate} onRefresh={() => { void handleRefresh(); }} refreshDisabled={refreshing} onOpenAbout={() => setAboutOpen(true)} />
     <div className={effectiveCollapsed ? "shell-body sidebar-is-collapsed" : "shell-body"}>
-      <Sidebar activeView={activeView} onNavigate={setActiveView} collapsed={effectiveCollapsed} onToggle={changeSidebar} />
+      <Sidebar activeView={activeView} onNavigate={navigate} collapsed={effectiveCollapsed} onToggle={changeSidebar} />
       <main className="workspace">
         <header className="context-bar">
           <div className="context-title"><span className="topbar-context">Operação</span><strong>{viewTitles[activeView]}</strong></div>
@@ -104,7 +114,7 @@ function App() {
           </div>
         </header>
         {feedback && <div className={`feedback-banner ${feedback.kind}`} role={feedback.kind === "error" ? "alert" : "status"}><span>{feedback.text}</span><button className="icon-button" type="button" onClick={() => setFeedback(null)} aria-label="Fechar aviso"><Icon name="close" /></button></div>}
-        <div className="workspace-content"><WorkspaceRouter activeView={activeView} activeMeliponaryId={scopedMeliponaryId} data={data} stats={stats} busy={busy} actions={actions} recordStateMap={recordStateMap} onNavigate={setActiveView} /></div>
+        <div className="workspace-content"><WorkspaceRouter activeView={activeView} navigationIntent={navigationIntent} activeMeliponaryId={scopedMeliponaryId} data={data} stats={stats} busy={busy} actions={actions} recordStateMap={recordStateMap} onNavigate={navigate} /></div>
       </main>
     </div>
     <StatusBar connectionStatus={connectionStatus} activeMeliponaryLabel={activeMeliponaryLabel} appVersion={appVersion} />
