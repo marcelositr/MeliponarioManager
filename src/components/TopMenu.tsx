@@ -1,7 +1,7 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import type { View } from "../lib/navigation";
 import type { ThemeMode } from "../lib/ui-preferences";
-import type { View } from "../types";
 import { Icon } from "./Icon";
 
 type TopMenuProps = {
@@ -46,7 +46,7 @@ export function TopMenu({ theme, onThemeChange, sidebarCollapsed, onToggleSideba
 
   return <div className="menu-bar" ref={rootRef} role="menubar" aria-label="Menu principal">
     <div className="menu-brand" aria-hidden="true">MeliponarioManager</div>
-    <Menu name="file" label="Arquivo" open={open === "file"} onToggle={() => toggle("file")} onMove={moveTrigger}><MenuItem label="Backup" onClick={action(() => onNavigate("data"))} /><MenuItem label="Restaurar…" onClick={action(() => onNavigate("data"))} /><MenuItem label="Exportar" onClick={action(() => onNavigate("data"))} /><MenuItem label="Relatórios" onClick={action(() => onNavigate("data"))} /><div className="menu-separator" role="separator" /><MenuItem label="Sair" onClick={action(() => { void getCurrentWindow().close(); })} /></Menu>
+    <Menu name="file" label="Arquivo" open={open === "file"} onToggle={() => toggle("file")} onMove={moveTrigger}><MenuItem label="Backup" onClick={action(() => onNavigate("data"))} /><MenuItem label="Restaurar…" onClick={action(() => onNavigate("data"))} /><MenuItem label="Exportar" onClick={action(() => onNavigate("data"))} /><MenuItem label="Relatórios" onClick={action(() => onNavigate("reports"))} /><div className="menu-separator" role="separator" /><MenuItem label="Sair" onClick={action(() => { void getCurrentWindow().close(); })} /></Menu>
     <Menu name="view" label="Exibir" open={open === "view"} onToggle={() => toggle("view")} onMove={moveTrigger}><MenuItem label="Tema claro" radio checked={theme === "light"} icon="sun" onClick={action(() => onThemeChange("light"))} /><MenuItem label="Tema escuro" radio checked={theme === "dark"} icon="moon" onClick={action(() => onThemeChange("dark"))} /><MenuItem label="Seguir sistema" radio checked={theme === "system"} icon="system" onClick={action(() => onThemeChange("system"))} /><div className="menu-separator" role="separator" /><MenuItem label={sidebarCollapsed ? "Expandir sidebar" : "Recolher sidebar"} onClick={action(onToggleSidebar)} /><MenuItem label="Atualizar" icon="refresh" disabled={refreshDisabled} onClick={action(onRefresh)} /></Menu>
     <Menu name="tools" label="Ferramentas" open={open === "tools"} onToggle={() => toggle("tools")} onMove={moveTrigger}><MenuItem label="Dados" icon="database" onClick={action(() => onNavigate("data"))} /></Menu>
     <Menu name="help" label="Ajuda" open={open === "help"} onToggle={() => toggle("help")} onMove={moveTrigger}><MenuItem label="Sobre…" icon="info" onClick={action(onOpenAbout)} /></Menu>
@@ -56,9 +56,7 @@ export function TopMenu({ theme, onThemeChange, sidebarCollapsed, onToggleSideba
 function Menu({ name, label, open, onToggle, onMove, children }: { name: MenuName; label: string; open: boolean; onToggle: () => void; onMove: (name: MenuName, direction: -1 | 1) => void; children: ReactNode }) {
   function onTriggerKeyDown(event: ReactKeyboardEvent<HTMLButtonElement>) {
     if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
-      event.preventDefault();
-      onMove(name, event.key === "ArrowRight" ? 1 : -1);
-      return;
+      event.preventDefault(); onMove(name, event.key === "ArrowRight" ? 1 : -1); return;
     }
     if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
       event.preventDefault();
