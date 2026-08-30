@@ -39,16 +39,98 @@ test("shell distinguishes automatic deep-link context changes from manual select
   assert.match(app, /reconcileManualMeliponaryChange/);
 });
 
-test("dialog has a structural footer outside the scrollable body", async () => {
-  const [dialog, css] = await Promise.all([
+test("dialog lifecycle does not restart autofocus when parent callbacks are recreated", async () => {
+  const dialog = await source("src/components/Dialog.tsx");
+  assert.match(dialog, /const onCloseRef = useRef\(onClose\)/);
+  assert.match(dialog, /onCloseRef\.current = onClose/);
+  assert.match(dialog, /onCloseRef\.current\(\)/);
+  assert.match(dialog, /}, \[open\]\);/);
+  assert.doesNotMatch(dialog, /\[open,\s*onClose\]/);
+  assert.match(dialog, /event\.key === "Tab"/);
+  assert.match(dialog, /isTopDialog/);
+  assert.match(dialog, /previousFocus\.focus\(\)/);
+});
+
+test("dialog has a structural footer outside the scrollable body and runtime styles", async () => {
+  const [dialog, css, app, main] = await Promise.all([
     source("src/components/Dialog.tsx"),
-    source("src/hardening.css"),
+    source("src/styles.css"),
+    source("src/App.tsx"),
+    source("src/main.tsx"),
   ]);
   assert.match(dialog, /<div className="dialog-body">\{body\}<\/div>\s*\{footerContent && <footer className="dialog-footer">/);
   assert.match(dialog, /splitDialogActions/);
   assert.match(dialog, /form \? \{ form \}/);
   assert.match(css, /\.dialog-footer\s*\{/);
-  assert.doesNotMatch(css, /dialog-body[\s\S]{0,300}position:\s*sticky/);
+  assert.match(css, /\.dialog-body\s*\{[^}]*min-height:\s*0;[^}]*overflow:\s*auto;/s);
+  assert.match(main, /import "\.\/styles\.css"/);
+  assert.doesNotMatch(app, /hardening\.css/);
+});
+
+test("shared action groups provide predictable spacing and wrapping", async () => {
+  const [css, agenda] = await Promise.all([
+    source("src/styles.css"),
+    source("src/pages/AgendaWorkspacePage.tsx"),
+  ]);
+  assert.match(css, /\.workspace-actions, \.form-actions, \.dialog-actions, \.quick-actions, \.page-toolbar-controls, \.record-actions/);
+  assert.match(css, /gap:\s*var\(--space-2\);\s*flex-wrap:\s*wrap;/);
+  assert.match(agenda, /className="workspace-actions"/);
+});
+
+test("record action menu is a viewport-aware portal rather than table-flow content", async () => {
+  const [actions, css] = await Promise.all([
+    source("src/components/RecordActions.tsx"),
+    source("src/styles.css"),
+  ]);
+  assert.match(actions, /createPortal/);
+  assert.match(actions, /getBoundingClientRect\(\)/);
+  assert.match(actions, /window\.addEventListener\("scroll", reposition, true\)/);
+  assert.match(actions, /window\.addEventListener\("resize", reposition\)/);
+  assert.match(actions, /role="menu"/);
+  assert.match(actions, /role="menuitem"/);
+  assert.match(css, /\.action-menu-popover\s*\{[^}]*position:\s*fixed;/s);
+  assert.match(css, /max-width:\s*min\(260px, calc\(100vw - 16px\)\)/);
+});
+
+test("theme tokens define foreground contracts and reports use canonical surfaces", async () => {
+  const [css, enterprise, reports] = await Promise.all([
+    source("src/styles.css"),
+    source("src/styles/enterprise.css"),
+    source("src/styles/reports.css"),
+  ]);
+  assert.match(css, /--on-primary:\s*#[0-9a-fA-F]{6}/);
+  assert.match(css, /--on-danger:\s*#[0-9a-fA-F]{6}/);
+  assert.match(css, /color:\s*var\(--on-primary\);\s*background:\s*var\(--primary\)/);
+  assert.match(enterprise, /button\.button-danger[^}]*color:\s*var\(--on-danger\)/s);
+  assert.doesNotMatch(reports, /--border-subtle|--surface-panel|--surface-subtle/);
+  assert.match(reports, /background:\s*var\(--surface-raised\)/);
+});
+
+test("desktop selection contract protects chrome while preserving editable and selectable content", async () => {
+  const css = await source("src/styles.css");
+  assert.match(css, /\.application-shell[^}]*user-select:\s*none;/s);
+  assert.match(css, /input, textarea, \[contenteditable="true"\], \.selectable, \.selectable \* \{ user-select:\s*text; \}/);
+  assert.doesNotMatch(css, /\*\s*\{[^}]*user-select:\s*none/s);
+});
+
+test("responsive contract no longer depends on a 900px root floor", async () => {
+  const [css, app, tauriRaw] = await Promise.all([
+    source("src/styles.css"),
+    source("src/App.tsx"),
+    source("src-tauri/tauri.conf.json"),
+  ]);
+  const tauri = JSON.parse(tauriRaw);
+  const windowConfig = tauri.app.windows[0];
+  assert.doesNotMatch(css, /min-width:\s*900px/);
+  assert.match(css, /@media \(max-width:\s*1199px\)/);
+  assert.match(css, /@media \(max-width:\s*899px\)/);
+  assert.match(css, /@media \(max-height:\s*700px\)/);
+  assert.match(css, /\.workspace-content[^}]*overflow-x:\s*hidden/s);
+  assert.match(css, /\.table-wrap[^}]*overflow:\s*auto/s);
+  assert.match(app, /COMPACT_VIEWPORT_WIDTH = 900/);
+  assert.equal(windowConfig.minWidth, 760);
+  assert.equal(windowConfig.minHeight, 520);
+  assert.equal(tauri.version, "0.8.0");
 });
 
 test("theme choices use menuitemradio while ordinary commands remain menuitem", async () => {

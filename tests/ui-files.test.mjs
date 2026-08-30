@@ -13,7 +13,7 @@ const tauriLib = fs.readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.
 const dataManagement = fs.readFileSync(new URL("../src-tauri/src/data_management.rs", import.meta.url), "utf8");
 const styles = fs.readFileSync(new URL("../src/styles/files.css", import.meta.url), "utf8");
 
- test("managed files stay contextual to the meliponary record center", () => {
+test("managed files stay contextual to the meliponary record center", () => {
   assert.match(recordCenter, /MeliponaryFilesPanel/);
   assert.match(recordCenter, /meliponaryId=\{meliponaryId\}/);
   assert.doesNotMatch(sidebar, /view:\s*["']files["']/);
@@ -62,5 +62,5 @@ test("window state and compact files styling are wired into the desktop", () => 
   assert.match(tauriLib, /tauri_plugin_window_state::Builder::default\(\)\.build\(\)/);
   assert.match(styles, /\.managed-files-table/);
   assert.match(styles, /\.photo-thumbnail/);
-  assert.match(styles, /@media \(max-width: 900px\)/);
+  assert.match(styles, /@media \(max-width: 899px\)/);
 });
