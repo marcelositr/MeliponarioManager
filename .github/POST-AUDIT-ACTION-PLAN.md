@@ -8,7 +8,7 @@ Este arquivo é o ponto de retomada caso a sessão seja interrompida. Ele é tem
 
 ## Estado atual
 
-**Implementação dos passos 1 a 7 concluída na branch, aguardando validação final para receber `[x]`.**
+**Passos 1 a 7 concluídos e validados. O CI rápido do head terminou verde. O pacote agora aguarda teste manual do usuário e integração final.**
 
 Já aplicado:
 
@@ -20,7 +20,7 @@ Já aplicado:
 - separação de CI rápido para branch/PR, validação completa para `main` e manutenção do workflow de bundles/releases;
 - documentação do novo modelo de CI em `CONTRIBUTING.md`, `docs/GITHUB-OPERATIONS.md` e `docs/DISTRIBUTION.md`;
 - sanitização central de `AppError::Database` antes da fronteira IPC, com testes de regressão;
-- primeira execução do CI rápido validou versão, dependências, ícones, frontend e testes de UI; a única falha encontrada foi formatação Rust dos novos testes, já corrigida.
+- CI rápido final concluído com sucesso, incluindo versão, dependências, ícones, frontend, testes de UI, `cargo fmt`, `cargo check`, Clippy e `cargo test`.
 
 Estado de validação:
 
@@ -28,52 +28,53 @@ Estado de validação:
 - branch está à frente de `main` e não está atrasada;
 - nenhuma migration foi modificada;
 - diff atual está limitado ao plano, CI, documentação relacionada, capability, higiene de ícones, limpeza/testes Rust, hardening de erro e correção pontual da Wiki;
-- CI rápido mais recente está em execução após as correções de `rustfmt`;
+- CI rápido final do head atual concluído com sucesso;
+- revisão final do diff concluída;
 - **não abrir/mergear o pacote ainda**;
-- próximo marco: CI rápido verde, revisão final do diff e teste manual da aplicação pelo usuário.
+- próximo marco: teste manual da aplicação pelo usuário e, se aprovado, integração final.
 
 ## 1. Correções funcionais e permissões Tauri
 
-- [ ] Adicionar `dialog:allow-save` à capability desktop usada pela janela principal.
-- [ ] Revisar todos os usos atuais dos plugins/capabilities do Tauri e confirmar que não há outra permissão necessária ausente.
-- [ ] Confirmar que a exportação CSV de Relatórios possui o fluxo de permissão correto.
-- [ ] Registrar teste ou validação que reduza a chance de uma capability obrigatória voltar a faltar silenciosamente.
+- [x] Adicionar `dialog:allow-save` à capability desktop usada pela janela principal.
+- [x] Revisar todos os usos atuais dos plugins/capabilities do Tauri e confirmar que não há outra permissão necessária ausente.
+- [x] Confirmar que a exportação CSV de Relatórios possui o fluxo de permissão correto.
+- [x] Registrar teste ou validação que reduza a chance de uma capability obrigatória voltar a faltar silenciosamente.
 
 **Critério de conclusão:** permissões necessárias ao comportamento atual estão explícitas, sem permissões amplas desnecessárias, e o fluxo de exportação não depende de capability ausente.
 
 ## 2. Wiki e documentação afetada pela auditoria
 
-- [ ] Confirmar a correção manual de `Backup-e-restauracao.md`: o backup é criado automaticamente na área de dados da aplicação e o caminho é informado ao usuário.
-- [ ] Verificar se README, Wiki e `docs/` continuam coerentes após as correções técnicas desta branch.
-- [ ] Corrigir qualquer referência que se torne incorreta durante o trabalho.
+- [x] Confirmar a correção manual de `Backup-e-restauracao.md`: o backup é criado automaticamente na área de dados da aplicação e o caminho é informado ao usuário.
+- [x] Verificar se README, Wiki e `docs/` continuam coerentes após as correções técnicas desta branch.
+- [x] Corrigir qualquer referência que se torne incorreta durante o trabalho.
 
 **Critério de conclusão:** documentação pública descreve o comportamento real da aplicação, sem duplicação técnica desnecessária.
 
 ## 3. Código Rust órfão e legado
 
-- [ ] Remover `src-tauri/src/stage3_migration_tests.rs` após confirmar que sua cobertura relevante já existe nos testes ativos.
-- [ ] Remover `src-tauri/src/record_views.rs` após confirmar que foi substituído por `record_states.rs`/implementação atual.
-- [ ] Remover `src-tauri/src/record_view_commands.rs` após confirmar que seus comandos não são usados pelo frontend nem registrados no Tauri.
-- [ ] Fazer uma varredura final por outros arquivos-fonte claramente órfãos antes de encerrar a etapa.
+- [x] Remover `src-tauri/src/stage3_migration_tests.rs` após confirmar que sua cobertura relevante já existe nos testes ativos.
+- [x] Remover `src-tauri/src/record_views.rs` após confirmar que foi substituído por `record_states.rs`/implementação atual.
+- [x] Remover `src-tauri/src/record_view_commands.rs` após confirmar que seus comandos não são usados pelo frontend nem registrados no Tauri.
+- [x] Fazer uma varredura final por outros arquivos-fonte claramente órfãos antes de encerrar a etapa.
 
 **Critério de conclusão:** nenhum arquivo removido contém comportamento ainda necessário e não permanecem fontes obviamente mortas detectadas nesta auditoria.
 
 ## 4. Recuperação de testes úteis
 
-- [ ] Revisar `src-tauri/src/production_regression_tests.rs`.
-- [ ] Integrar aos testes ativos o caso de produção retroativa preservando a caixa histórica correta.
-- [ ] Garantir cobertura ativa para tipo de produto inválido.
-- [ ] Garantir cobertura ativa para quantidade de produção não positiva.
-- [ ] Garantir cobertura ativa de produção aparecendo na timeline da colônia.
-- [ ] Remover `production_regression_tests.rs` somente depois que os casos úteis estiverem cobertos em arquivos compilados pelo crate.
+- [x] Revisar `src-tauri/src/production_regression_tests.rs`.
+- [x] Integrar aos testes ativos o caso de produção retroativa preservando a caixa histórica correta.
+- [x] Garantir cobertura ativa para tipo de produto inválido.
+- [x] Garantir cobertura ativa para quantidade de produção não positiva.
+- [x] Garantir cobertura ativa de produção aparecendo na timeline da colônia.
+- [x] Remover `production_regression_tests.rs` somente depois que os casos úteis estiverem cobertos em arquivos compilados pelo crate.
 
 **Critério de conclusão:** toda cobertura útil do arquivo órfão está em testes efetivamente executados por `cargo test`.
 
 ## 5. Higiene do repositório
 
-- [ ] Ajustar `.gitignore` para arquivos de ícones gerados pelo fluxo `npm run icons`, preservando apenas os arquivos-fonte que devem ser versionados.
-- [ ] Revisar a árvore do repositório por temporários, outputs gerados e restos de desenvolvimento claramente indevidos.
-- [ ] Não apagar branches antigas nesta etapa; limpeza de branches será tratada separadamente depois da integração.
+- [x] Ajustar `.gitignore` para arquivos de ícones gerados pelo fluxo `npm run icons`, preservando apenas os arquivos-fonte que devem ser versionados.
+- [x] Revisar a árvore do repositório por temporários, outputs gerados e restos de desenvolvimento claramente indevidos.
+- [x] Não apagar branches antigas nesta etapa; limpeza de branches será tratada separadamente depois da integração.
 
 **Critério de conclusão:** executar ferramentas locais de geração não deve poluir o `git status` com artefatos que não pertencem ao versionamento.
 
@@ -81,42 +82,42 @@ Estado de validação:
 
 ### Pull Request / branch
 
-- [ ] Criar ou ajustar um CI rápido para Pull Requests destinados à `main`.
-- [ ] Manter nele as validações essenciais: versão, dependências, frontend build/testes, `cargo fmt`, `cargo check`, `clippy` e `cargo test`.
-- [ ] Retirar o build Tauri desktop pesado do caminho obrigatório de todo PR, desde que a cobertura essencial permaneça protegida.
-- [ ] Preservar o contexto obrigatório `check` exigido pelo ruleset da `main`, ou atualizar o ruleset apenas se estritamente necessário e de forma consciente.
-- [ ] Avaliar filtros de caminho para que mudanças somente documentais não recompilarem desnecessariamente frontend/Rust quando isso puder ser feito sem perder validação relevante.
+- [x] Criar ou ajustar um CI rápido para Pull Requests destinados à `main`.
+- [x] Manter nele as validações essenciais: versão, dependências, frontend build/testes, `cargo fmt`, `cargo check`, `clippy` e `cargo test`.
+- [x] Retirar o build Tauri desktop pesado do caminho obrigatório de todo PR, desde que a cobertura essencial permaneça protegida.
+- [x] Preservar o contexto obrigatório `check` exigido pelo ruleset da `main`, ou atualizar o ruleset apenas se estritamente necessário e de forma consciente.
+- [x] Avaliar filtros de caminho para que mudanças somente documentais não recompilarem desnecessariamente frontend/Rust quando isso puder ser feito sem perder validação relevante.
 
 ### `main`
 
-- [ ] Criar ou ajustar um workflow completo para `push` na `main`.
-- [ ] Incluir o build Tauri desktop completo na validação da `main`.
-- [ ] Manter validações de versão, build e testes pertinentes ao estado integrado.
+- [x] Criar ou ajustar um workflow completo para `push` na `main`.
+- [x] Incluir o build Tauri desktop completo na validação da `main`.
+- [x] Manter validações de versão, build e testes pertinentes ao estado integrado.
 
 ### Release
 
-- [ ] Confirmar que o workflow de bundles/releases continua responsável pelos artefatos de distribuição e não duplica trabalho sem necessidade.
+- [x] Confirmar que o workflow de bundles/releases continua responsável pelos artefatos de distribuição e não duplica trabalho sem necessidade.
 
 **Critério de conclusão:** PRs recebem feedback rápido e obrigatório; a `main` recebe validação completa; releases continuam com validação de distribuição apropriada.
 
 ## 7. Hardening pequeno e seguro
 
-- [ ] Revisar a fronteira de erros Rust → IPC para evitar que erros brutos de `sqlx`/SQLite possam chegar ao frontend por engano.
-- [ ] Centralizar uma mensagem pública segura para erros internos de banco sem esconder mensagens de validação e `NotFound` úteis ao usuário.
-- [ ] Revisar novamente caminhos de arquivos gerenciados, abertura de arquivos, backup/restauração e capabilities Tauri após as mudanças.
-- [ ] Não iniciar nesta branch refatoração estrutural ampla de módulos grandes.
+- [x] Revisar a fronteira de erros Rust → IPC para evitar que erros brutos de `sqlx`/SQLite possam chegar ao frontend por engano.
+- [x] Centralizar uma mensagem pública segura para erros internos de banco sem esconder mensagens de validação e `NotFound` úteis ao usuário.
+- [x] Revisar novamente caminhos de arquivos gerenciados, abertura de arquivos, backup/restauração e capabilities Tauri após as mudanças.
+- [x] Não iniciar nesta branch refatoração estrutural ampla de módulos grandes.
 
 **Critério de conclusão:** o hardening corrige riscos concretos encontrados sem transformar o PR em uma refatoração de arquitetura.
 
 ## 8. Validação e fechamento
 
-- [ ] Revisar o diff completo desta branch contra a `main`.
-- [ ] Confirmar que migrations existentes não foram alteradas indevidamente.
-- [ ] Confirmar que nenhuma chave, token, credencial ou dado pessoal foi introduzido.
-- [ ] Confirmar que README, Wiki e `docs/` continuam consistentes.
-- [ ] Confirmar execução satisfatória do CI rápido da branch/PR.
-- [ ] Confirmar que a estratégia de CI completo da `main` está configurada corretamente.
-- [ ] Preparar resumo final das mudanças para teste manual do usuário.
+- [x] Revisar o diff completo desta branch contra a `main`.
+- [x] Confirmar que migrations existentes não foram alteradas indevidamente.
+- [x] Confirmar que nenhuma chave, token, credencial ou dado pessoal foi introduzido.
+- [x] Confirmar que README, Wiki e `docs/` continuam consistentes.
+- [x] Confirmar execução satisfatória do CI rápido da branch/PR.
+- [x] Confirmar que a estratégia de CI completo da `main` está configurada corretamente.
+- [x] Preparar resumo final das mudanças para teste manual do usuário.
 - [ ] Somente depois do teste manual, preparar a integração final de uma vez, evitando branches adicionais desnecessárias.
 - [ ] Antes de encerrar esta sequência, lembrar explicitamente a dívida técnica abaixo.
 
@@ -143,6 +144,6 @@ Quando uma nova sessão precisar continuar este trabalho:
 1. abrir esta branch;
 2. ler este arquivo;
 3. considerar concluídos **somente** os itens marcados `[x]`;
-4. ler também a seção **Estado atual** para saber o que já foi implementado mas ainda aguarda validação;
+4. ler também a seção **Estado atual** para identificar o próximo marco;
 5. conferir o último diff/commit antes de continuar;
 6. não iniciar dívida técnica enquanto houver item obrigatório acima em aberto, salvo correção necessária para desbloquear o pacote.
