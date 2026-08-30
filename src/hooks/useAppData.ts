@@ -13,6 +13,7 @@ import {
   voidTransport,
 } from "../lib/api";
 import { publicError } from "../lib/presentation";
+import { importSpeciesCsv as importSpeciesCsvFile, type SpeciesImportResult } from "../lib/species-import";
 import type {
   ChangeBoxStateInput, ChangeColonyLifecycleInput, CoreData, CorrectDivisionInput, CorrectEventInput,
   CorrectFeedingInput, CorrectInspectionInput, CorrectMaintenanceInput, CorrectMovementDetailsInput,
@@ -61,6 +62,24 @@ export function useAppData() {
   const actions = {
     createMeliponary: (input: CreateMeliponaryInput) => runMutation(() => createMeliponary(input), "Meliponário cadastrado com sucesso."),
     createSpecies: (input: CreateSpeciesInput) => runMutation(() => createSpecies(input), "Espécie cadastrada com sucesso."),
+    importSpeciesCsv: async (sourcePath: string): Promise<SpeciesImportResult | null> => {
+      setBusy(true); setFeedback(null);
+      try {
+        const result = await importSpeciesCsvFile(sourcePath);
+        await refresh();
+        const importedLabel = result.importedRows === 1 ? "1 espécie importada." : `${result.importedRows} espécies importadas.`;
+        const duplicateLabel = result.duplicateRows > 0
+          ? ` ${result.duplicateRows} duplicada${result.duplicateRows === 1 ? "" : "s"} ignorada${result.duplicateRows === 1 ? "" : "s"}.`
+          : "";
+        setFeedback({ kind: "success", text: `${importedLabel}${duplicateLabel}` });
+        return result;
+      } catch (error) {
+        setFeedback({ kind: "error", text: publicError(error, "Não foi possível importar a lista de espécies.") });
+        return null;
+      } finally {
+        setBusy(false);
+      }
+    },
     createBox: (input: CreateBoxInput) => runMutation(() => createBox(input), "Caixa cadastrada com sucesso."),
     createColony: (input: CreateColonyInput) => runMutation(() => createColony(input), "Colônia cadastrada com sucesso."),
     placeColony: (input: PlaceColonyInput) => runMutation(() => placeColony(input), "Ocupação de caixa registrada e histórico preservado."),
