@@ -104,3 +104,205 @@ pub async fn count(p: &SqlitePool) -> Result<i64, AppError> {
             .await?,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
+        repository, timeline,
+    };
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    async fn test_pool() -> SqlitePool {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::migrate!("../migrations").run(&pool).await.unwrap();
+        pool
+    }
+
+    async fn seed_with_box_history(pool: &SqlitePool) -> (String, String) {
+        let meliponary = repository::create_meliponary(
+            pool,
+            CreateMeliponary {
+                name: "Principal".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let species = repository::create_species(
+            pool,
+            CreateSpecies {
+                common_name: "Jataí".into(),
+                scientific_name: None,
+                genus: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let first_box = repository::create_box(
+            pool,
+            CreateHiveBox {
+                meliponary_id: meliponary.id.clone(),
+                code: "CX-001".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let second_box = repository::create_box(
+            pool,
+            CreateHiveBox {
+                meliponary_id: meliponary.id.clone(),
+                code: "CX-002".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let colony = repository::create_colony(
+            pool,
+            CreateColony {
+                meliponary_id: meliponary.id,
+                species_id: species.id,
+                code: "JAT-001".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: None,
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        repository::place_colony(
+            pool,
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: first_box.id.clone(),
+                started_at: Some("2026-01-01 09:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        repository::place_colony(
+            pool,
+            PlaceColony {
+                colony_id: colony.id.clone(),
+                box_id: second_box.id,
+                started_at: Some("2026-02-01 09:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        (colony.id, first_box.id)
+    }
+
+    fn production_input(
+        colony_id: String,
+        harvested_at: Option<&str>,
+        product_type: &str,
+        quantity: f64,
+    ) -> CreateProductionRecord {
+        CreateProductionRecord {
+            colony_id,
+            harvested_at: harvested_at.map(str::to_owned),
+            product_type: product_type.to_owned(),
+            quantity,
+            unit: "ml".into(),
+            purpose: None,
+            notes: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn retrospective_harvest_keeps_box_from_that_date() {
+        let pool = test_pool().await;
+        let (colony_id, first_box_id) = seed_with_box_history(&pool).await;
+
+        let record = create(
+            &pool,
+            production_input(
+                colony_id,
+                Some("2026-01-15 12:00:00"),
+                "honey",
+                120.0,
+            ),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(record.box_id.as_deref(), Some(first_box_id.as_str()));
+        assert_eq!(record.box_code.as_deref(), Some("CX-001"));
+    }
+
+    #[tokio::test]
+    async fn rejects_invalid_product_type() {
+        let pool = test_pool().await;
+        let (colony_id, _) = seed_with_box_history(&pool).await;
+
+        let result = create(
+            &pool,
+            production_input(colony_id, None, "royal_jelly", 10.0),
+        )
+        .await;
+
+        assert!(matches!(result, Err(AppError::Validation(_))));
+    }
+
+    #[tokio::test]
+    async fn rejects_non_positive_quantity() {
+        for quantity in [0.0, -1.0] {
+            let pool = test_pool().await;
+            let (colony_id, _) = seed_with_box_history(&pool).await;
+
+            let result = create(
+                &pool,
+                production_input(colony_id, None, "pollen", quantity),
+            )
+            .await;
+
+            assert!(matches!(result, Err(AppError::Validation(_))));
+        }
+    }
+
+    #[tokio::test]
+    async fn production_appears_in_colony_timeline() {
+        let pool = test_pool().await;
+        let (colony_id, _) = seed_with_box_history(&pool).await;
+
+        create(
+            &pool,
+            production_input(
+                colony_id.clone(),
+                Some("2026-02-10 12:00:00"),
+                "honey",
+                80.0,
+            ),
+        )
+        .await
+        .unwrap();
+
+        let entries = timeline::by_colony(&pool, &colony_id).await.unwrap();
+        assert!(entries.iter().any(|entry| entry.source_type == "production"));
+    }
+}
