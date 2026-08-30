@@ -85,6 +85,12 @@ Os números `0.1` a `0.6` foram usados como marcos de roadmap durante o desenvol
 
 Não serão criadas releases retroativas apenas para preencher uma sequência numérica. O histórico real desse período permanece nos commits e Pull Requests.
 
+## Integração da v0.8.0
+
+A `v0.8.0` consolida um ciclo acumulado que foi desenvolvido e revisado em Pull Requests empilhados. A integração final é feita por uma única branch de release e um único Pull Request contra `main`, preservando o HEAD funcional aprovado sem rebase, reconstrução ou merge sequencial das etapas intermediárias.
+
+Os Pull Requests empilhados permanecem como histórico de desenvolvimento e revisão e podem ser encerrados como superseded somente depois da integração final autorizada.
+
 ## Notas de release
 
 Cada versão distribuída precisa de um arquivo em:
@@ -117,7 +123,7 @@ Evite transformar notas de release em um dump de commits.
 
 Antes da tag:
 
-1. confirmar que a branch de preparação parte da `main` atual;
+1. confirmar a origem aprovada da branch de preparação e o estado atual de `main`;
 2. sincronizar a versão nos três arquivos do projeto;
 3. atualizar `CHANGELOG.md`;
 4. criar `docs/releases/<tag>.md`;
@@ -157,16 +163,16 @@ A seção da versão deve estar pronta antes da tag. O changelog pode ser mais t
 
 ## Correções após uma tag ou release
 
-Se `v0.7.0` revelar um bug compatível, a correção deve seguir para:
+Se `v0.8.0` revelar um bug compatível, a correção deve seguir para:
 
 ```text
-v0.7.1
+v0.8.1
 ```
 
 Se o próximo ciclo introduzir novas funcionalidades compatíveis:
 
 ```text
-v0.8.0
+v0.9.0
 ```
 
 Não é necessário reutilizar o mesmo número tentando transformar uma Pre-release anterior em uma release estável. Enquanto o projeto estiver nessa fase, cada versão pública continua sendo identificada como experimental no GitHub.

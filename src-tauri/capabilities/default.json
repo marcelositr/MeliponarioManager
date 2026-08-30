@@ -3,5 +3,9 @@
   "identifier": "default",
   "description": "Default desktop permissions for MeliponarioManager",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "dialog:allow-message"
+  ]
 }

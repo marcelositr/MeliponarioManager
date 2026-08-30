@@ -9,6 +9,8 @@ pub struct Meliponary {
     pub responsible_name: Option<String>,
     pub location: Option<String>,
     pub notes: Option<String>,
+    pub archived_at: Option<String>,
+    pub archive_reason: Option<String>,
     pub created_at: String,
 }
 
@@ -29,6 +31,8 @@ pub struct Species {
     pub scientific_name: Option<String>,
     pub genus: Option<String>,
     pub notes: Option<String>,
+    pub archived_at: Option<String>,
+    pub archive_reason: Option<String>,
     pub created_at: String,
 }
 

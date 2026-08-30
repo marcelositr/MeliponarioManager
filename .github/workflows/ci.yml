@@ -2,7 +2,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/v0.8-foundation-integrity, feat/v0.8-enterprise-shell, feat/v0.8-operational-actions, feat/v0.8-agenda-record-centers]
   push:
     branches: [main]
 
@@ -53,6 +53,9 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+
+      - name: Test frontend UI preferences
+        run: npm run test:ui
 
       - name: Check Rust formatting
         working-directory: src-tauri

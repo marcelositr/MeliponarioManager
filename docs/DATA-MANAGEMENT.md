@@ -2,83 +2,184 @@
 
 O MeliponarioManager é uma aplicação local-first. Os dados principais permanecem no computador do usuário, no diretório de dados da aplicação.
 
-Este documento descreve os recursos atuais de backup, exportação, relatório e restauração.
+Este documento descreve backup, restauração e exportação estrutural. A arquitetura de fotos e anexos é detalhada em [FILES.md](FILES.md).
 
 ## Onde os dados vivem
 
 A aplicação mantém:
 
-- banco SQLite com os dados estruturados;
-- arquivos de mídia gerenciados no diretório local da aplicação;
-- metadados de mídia no SQLite, sem armazenar arquivos binários como BLOB.
+- banco SQLite com os dados estruturados e metadados;
+- arquivos gerenciados fora do banco, abaixo de `media/`;
+- preferências de janela tratadas pelo desktop, independentes do domínio.
 
-Fotos de inspeção são organizadas abaixo de:
+Os binários de fotos e anexos não são armazenados como BLOB no SQLite.
+
+Estruturas atuais:
 
 ```text
 media/inspections/<inspection-id>/
+media/attachments/meliponaries/<meliponary-id>/
 ```
+
+Os caminhos persistidos no banco são relativos ao diretório de dados.
 
 ## Backup completo
 
-O backup completo é destinado a preservar o estado necessário para recuperar uma instalação.
+O backup completo é o mecanismo de recuperação integral da instalação.
 
-Ele inclui:
+Backups novos usam um diretório próprio:
 
-- banco SQLite;
-- arquivos de mídia gerenciados pela aplicação.
+```text
+backup-<timestamp>-<id>/
+├── meliponario.db
+├── manifest.json
+└── media/
+```
 
-O backup deve ser tratado como uma cópia de segurança do estado do aplicativo, não como substituto de um histórico externo de versões ou de uma política pessoal de backup do computador.
+O banco é criado por uma cópia consistente do SQLite. A árvore `media/` inclui fotos de inspeção e anexos gerenciados.
+
+### Manifest v1
+
+`manifest.json` identifica explicitamente o formato do backup e registra:
+
+- `format`;
+- `formatVersion`;
+- data de criação;
+- versão do aplicativo;
+- versão do schema;
+- nome do banco;
+- raiz da mídia;
+- inventário dos assets com caminho relativo, tamanho em bytes e checksum SHA-256.
+
+O manifest torna possível distinguir um backup completo atual de um diretório arbitrário ou de formatos legados e detectar alterações nos assets mesmo quando o tamanho do arquivo continua igual.
+
+## Validação da restauração
+
+Nenhum material é promovido diretamente para o estado ativo.
+
+Antes do staging, a aplicação valida:
+
+1. se o SQLite pode ser aberto;
+2. `PRAGMA integrity_check`;
+3. presença de tabelas essenciais do domínio;
+4. versão registrada em `_sqlx_migrations`;
+5. faixa de schema reconhecida pela aplicação;
+6. quando existe manifest, formato e versão do manifest;
+7. correspondência entre schema declarado e banco;
+8. caminhos relativos e confinados à pasta `media/`;
+9. presença, tamanho e SHA-256 de cada asset declarado;
+10. equivalência entre o inventário declarado e a árvore física de mídia.
+
+Links simbólicos não são aceitos na árvore copiada para backup/restauração.
+
+Backups legados podem ser aceitos quando o banco possui schema reconhecido e migrável. Eles são identificados como legados e não recebem a mesma garantia estrutural de um backup completo com manifest.
+
+## Aplicação segura da restauração
+
+A restauração não troca o banco enquanto a aplicação ainda está usando suas conexões.
+
+Fluxo:
+
+1. o conjunto é validado;
+2. banco e mídia são copiados para staging;
+3. a aplicação informa que a restauração será aplicada na próxima abertura;
+4. no startup, o estado atual recebe uma cópia de segurança em `backups/pre-restore-<timestamp>/`;
+5. banco e mídia atuais são movidos para áreas de rollback;
+6. o conjunto staged é promovido;
+7. se uma etapa de troca falhar, o estado anterior é restaurado;
+8. somente após sucesso são removidos rollback e artefatos temporários.
+
+Arquivos `-wal` e `-shm` remanescentes são removidos após a troca concluída.
 
 ## Exportação portátil em JSON
 
-A exportação JSON oferece uma representação portátil dos dados do MeliponarioManager para inspeção, intercâmbio futuro e preservação independente do arquivo SQLite.
+O 5C adota uma exportação **estrutural, versionada e abrangente**.
 
-A exportação não substitui automaticamente um backup completo, porque arquivos de mídia e detalhes de restauração possuem necessidades próprias.
+O JSON inclui:
 
-## Relatório gerencial em Markdown
+- identificação de formato e versão;
+- versão do aplicativo e schema;
+- IDs e relações persistidos;
+- tabelas de domínio e auditoria;
+- metadata de `inspection_photos`;
+- metadata de `managed_attachments`.
 
-O relatório Markdown fornece uma visão textual legível do estado do meliponário.
+Os bytes de fotos e anexos **não são incorporados**. O documento declara `assetsEmbedded: false`.
 
-Seu objetivo é facilitar consulta, arquivamento e compartilhamento de informações sem exigir acesso direto ao SQLite.
+Não existe importador JSON destrutivo no 5C. A recuperação integral permanece responsabilidade do backup completo. Essa separação evita prometer round-trip onde os binários não estão presentes.
 
-Ele é um relatório derivado e não uma nova fonte de verdade para o sistema.
+## Relatórios e CSV
 
-## Restauração
+A Central de Relatórios é uma ferramenta de consulta operacional e gerencial separada da área **Dados**.
 
-A restauração é tratada como uma operação sensível.
+As finalidades são diferentes:
 
-O fluxo atual evita trocar o banco em uso no meio da execução:
+- **Backup completo**: recuperação do estado da instalação;
+- **JSON portátil**: interoperabilidade e inspeção estrutural;
+- **CSV de relatório**: análise humana e planilhas;
+- **Relatório imprimível**: leitura, impressão ou PDF produzido pelo sistema operacional.
 
-1. o conjunto a restaurar é preparado;
-2. a integridade é validada;
-3. a restauração fica agendada;
-4. a aplicação aplica a troca na próxima inicialização;
-5. antes da substituição, o estado atual recebe um backup de segurança automático.
+CSV e impressão não são mecanismos de backup nem novas fontes de verdade. Eles são derivados somente dos registros persistidos.
 
-Essa estratégia reduz o risco de corrupção por substituição de arquivos enquanto conexões com o banco ainda estão abertas.
+Os CSVs usam Save Dialog nativo e ficam no destino escolhido pelo usuário. Eles não passam automaticamente a integrar o armazenamento gerenciado.
 
-## Integridade
+Consulte [REPORTS.md](REPORTS.md).
 
-A restauração não deve ser aplicada cegamente a um arquivo arbitrário.
+## Diagnóstico de arquivos
 
-A implementação valida o material preparado antes da troca e preserva uma cópia de segurança do estado atual. Mesmo assim, versões experimentais devem ser testadas com dados não críticos antes de uso amplo.
+A área **Dados** possui uma verificação explícita de consistência entre SQLite e filesystem.
+
+Ela examina fotos e anexos e informa:
+
+- quantidade registrada;
+- quantidade fisicamente encontrada;
+- registros cujo arquivo está ausente;
+- arquivos físicos sob as áreas gerenciadas que não possuem referência no banco.
+
+O diagnóstico é somente leitura. Nenhum registro ou arquivo órfão é apagado automaticamente. Condições de permissão, destino não gravável, banco inválido e incompatibilidade de schema são tratadas pelos respectivos fluxos de filesystem, backup e restauração com mensagens públicas e sem promover estado inválido.
+
+## Arquivo ausente
+
+Quando um asset registrado não é encontrado no disco:
+
+- a metadata permanece no SQLite;
+- a UI informa **Arquivo não encontrado**;
+- ações que dependem do binário são desabilitadas;
+- o usuário pode usar diagnóstico ou backup para investigar/recuperar o estado.
+
+A ausência física não é tratada como autorização implícita para apagar histórico.
+
+## Relatório gerencial legado em Markdown
+
+O backend ainda contém a saída textual gerencial criada na série anterior para compatibilidade. A interface principal direciona consultas operacionais para a Central de Relatórios dedicada.
+
+Essa saída é derivada e não constitui fonte de verdade.
 
 ## O que não acontece
 
-- o MeliponarioManager não envia automaticamente o banco para um serviço em nuvem;
-- exportações e relatórios não alteram o estado do plantel;
-- a restauração não deve sobrescrever silenciosamente o estado atual sem criar a cópia de segurança prevista;
-- arquivos de mídia não são convertidos em BLOB no SQLite.
+- o MeliponarioManager não envia automaticamente o banco ou arquivos para nuvem;
+- arquivos de mídia não viram BLOB no SQLite;
+- JSON, CSV e impressão não alteram o estado do domínio;
+- JSON não é apresentado como backup completo;
+- não existe importação JSON destrutiva no 5C;
+- restauração não troca silenciosamente o estado ativo sem validação e cópia de segurança;
+- diagnóstico não apaga automaticamente arquivos ou registros;
+- CSV exportado não é tratado como anexo gerenciado.
 
-## Recomendações para testes
+## Validação de campo
 
-Durante a fase experimental:
+Os gates automatizados validam build, lint, testes e contratos de código. A validação real do desktop exige ambiente gráfico e interação com o sistema operacional e permanece uma etapa de campo explícita para tamanhos de janela, temas, teclado, pickers, thumbnails, abertura/revelação, arquivos ausentes, backup → restore após restart e persistência de `window-state`.
 
-- mantenha backups externos periódicos do diretório de dados;
-- teste restaurações usando uma cópia de trabalho antes de depender do fluxo em dados únicos;
-- preserve exportações importantes fora do diretório principal da aplicação;
-- ao reportar falhas de backup ou restauração, informe versão do aplicativo, sistema operacional e sequência exata de passos, evitando anexar dados pessoais ou sensíveis sem necessidade.
+## Recomendações durante a fase experimental
 
-## Evolução futura
+- mantenha também backups externos do diretório de dados;
+- valide restauração com dados de teste antes de depender de uma única cópia;
+- preserve backups importantes em mídia diferente do disco principal;
+- execute periodicamente o diagnóstico de arquivos;
+- ao reportar falhas, registre versão do aplicativo, sistema operacional e sequência de passos sem expor dados pessoais desnecessários.
 
-Compatibilidade de backup entre versões, validações adicionais e maior reprodutibilidade de migrações são áreas previstas para amadurecer conforme o aplicativo for usado em cenários reais.
+## Compatibilidade
+
+O formato de backup e o formato JSON possuem versionamento próprio. Mudanças futuras que alterem seus contratos devem elevar a respectiva versão de formato e manter validação explícita de compatibilidade.
+
+A versão do produto permanece independente desses números de formato.

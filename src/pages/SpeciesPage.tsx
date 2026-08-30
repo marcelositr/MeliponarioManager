@@ -1,92 +1,40 @@
-import { useState, type FormEvent } from "react";
-import type { CreateSpeciesInput, Species } from "../types";
+import { useMemo, useState, type FormEvent } from "react";
+import { Dialog } from "../components/Dialog";
+import { PageToolbar } from "../components/PageToolbar";
+import { ReasonDialog } from "../components/ReasonDialog";
+import { RecordActions } from "../components/RecordActions";
+import { SpeciesImportControl } from "../components/SpeciesImportControl";
+import type { SpeciesImportResult } from "../lib/species-import";
+import type { CreateSpeciesInput, EditSpeciesInput, EntityActionInput, Species } from "../types";
 
-type SpeciesPageProps = {
-  items: Species[];
-  busy: boolean;
-  onCreate: (input: CreateSpeciesInput) => Promise<boolean>;
-};
+type Props = { items: Species[]; busy: boolean; onCreate: (input: CreateSpeciesInput) => Promise<boolean>; onImport: (sourcePath: string) => Promise<SpeciesImportResult | null>; onEdit: (input: EditSpeciesInput) => Promise<boolean>; onArchive: (input: EntityActionInput) => Promise<boolean>; onReactivate: (input: EntityActionInput) => Promise<boolean>; onDelete: (input: EntityActionInput) => Promise<boolean> };
+const initialForm: CreateSpeciesInput = { commonName: "", scientificName: "", genus: "", notes: "" };
+type ReasonAction = { kind: "archive" | "reactivate" | "delete"; item: Species } | null;
 
-const initialForm: CreateSpeciesInput = {
-  commonName: "",
-  scientificName: "",
-  genus: "",
-  notes: "",
-};
-
-export function SpeciesPage({ items, busy, onCreate }: SpeciesPageProps) {
+export function SpeciesPage({ items, busy, onCreate, onImport, onEdit, onArchive, onReactivate, onDelete }: Props) {
   const [form, setForm] = useState<CreateSpeciesInput>(initialForm);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detail, setDetail] = useState<Species | null>(null);
+  const [editForm, setEditForm] = useState<EditSpeciesInput | null>(null);
+  const [reasonAction, setReasonAction] = useState<ReasonAction>(null);
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => { const query = search.trim().toLocaleLowerCase(); return query ? items.filter((item) => [item.commonName, item.scientificName, item.genus].some((value) => value?.toLocaleLowerCase().includes(query))) : items; }, [items, search]);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    if (await onCreate(form)) setForm(initialForm);
-  }
+  async function submitCreate(event: FormEvent) { event.preventDefault(); if (await onCreate(form)) { setForm(initialForm); setCreateOpen(false); } }
+  function beginEdit(item: Species) { setEditForm({ id: item.id, commonName: item.commonName, scientificName: item.scientificName || "", genus: item.genus || "", notes: item.notes || "", reason: "" }); }
+  async function submitEdit(event: FormEvent) { event.preventDefault(); if (editForm && await onEdit(editForm)) setEditForm(null); }
+  async function confirmReason(reason: string) { if (!reasonAction) return false; const input = { id: reasonAction.item.id, reason }; return reasonAction.kind === "archive" ? onArchive(input) : reasonAction.kind === "reactivate" ? onReactivate(input) : onDelete(input); }
 
-  return (
-    <div className="page-stack">
-      <section className="page-heading">
-        <div>
-          <span className="eyebrow">Catálogo</span>
-          <h1>Espécies</h1>
-          <p>Mantenha um catálogo único de espécies para que as colônias usem a mesma referência ao longo de todo o histórico.</p>
-        </div>
-        <span className="count-pill">{items.length} cadastradas</span>
-      </section>
+  return <div className="page-stack">
+    <PageToolbar title="Espécies" description="Catálogo técnico compartilhado por todo o plantel." count={`${items.length} cadastradas`} search={{ value: search, onChange: setSearch, placeholder: "Buscar espécie..." }} primaryAction={{ label: "Nova espécie", onClick: () => setCreateOpen(true), disabled: busy }}><SpeciesImportControl busy={busy} onImport={onImport} /></PageToolbar>
+    <section className="panel wide-list"><div className="panel-heading"><h2>Catálogo atual</h2><p>Espécies arquivadas permanecem para consulta histórica, mas não entram em novas colônias.</p></div>{filtered.length === 0 ? <div className="empty-list">{items.length === 0 ? "Nenhuma espécie cadastrada ainda." : "Nenhum resultado para a busca."}</div> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Nome popular</th><th>Nome científico</th><th>Gênero</th><th>Estado</th><th>Ações</th></tr></thead><tbody>{filtered.map((item) => <tr key={item.id} className={item.archivedAt ? "archived-row" : undefined}><td><strong>{item.commonName}</strong></td><td className="scientific-name">{item.scientificName || "Não informado"}</td><td>{item.genus || "Não informado"}</td><td>{item.archivedAt ? <span className="badge status-archived">Arquivada</span> : <span className="badge status-active">Ativa</span>}</td><td><RecordActions busy={busy} onOpen={() => setDetail(item)} onEdit={() => beginEdit(item)} secondary={[item.archivedAt ? { label: "Reativar", onClick: () => setReasonAction({ kind: "reactivate", item }) } : { label: "Arquivar", onClick: () => setReasonAction({ kind: "archive", item }) }, { label: "Excluir cadastro vazio", onClick: () => setReasonAction({ kind: "delete", item }), danger: true }]} /></td></tr>)}</tbody></table></div>}</section>
 
-      <div className="content-grid">
-        <section className="panel form-panel">
-          <div className="panel-heading">
-            <h2>Nova espécie</h2>
-            <p>Use o nome popular no dia a dia e complete os dados técnicos quando souber.</p>
-          </div>
-          <form className="form-grid" onSubmit={submit}>
-            <label className="field full">
-              <span>Nome popular</span>
-              <input required value={form.commonName} onChange={(e) => setForm({ ...form, commonName: e.target.value })} placeholder="Ex.: Jataí" />
-            </label>
-            <label className="field">
-              <span>Nome científico</span>
-              <input value={form.scientificName} onChange={(e) => setForm({ ...form, scientificName: e.target.value })} placeholder="Ex.: Tetragonisca angustula" />
-            </label>
-            <label className="field">
-              <span>Gênero</span>
-              <input value={form.genus} onChange={(e) => setForm({ ...form, genus: e.target.value })} placeholder="Ex.: Tetragonisca" />
-            </label>
-            <label className="field full">
-              <span>Observações</span>
-              <textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Apelidos locais, características ou notas" />
-            </label>
-            <div className="form-actions full">
-              <button disabled={busy} type="submit">{busy ? "Salvando..." : "Cadastrar espécie"}</button>
-            </div>
-          </form>
-        </section>
+    <Dialog open={createOpen} onClose={() => !busy && setCreateOpen(false)} title="Nova espécie" description="Use o nome popular no dia a dia e complete os dados técnicos quando souber." size="medium"><form className="form-grid" onSubmit={submitCreate}><label className="field full"><span>Nome popular</span><input autoFocus required value={form.commonName} onChange={(e) => setForm({ ...form, commonName: e.target.value })} /></label><label className="field"><span>Nome científico</span><input value={form.scientificName} onChange={(e) => setForm({ ...form, scientificName: e.target.value })} /></label><label className="field"><span>Gênero</span><input value={form.genus} onChange={(e) => setForm({ ...form, genus: e.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={() => setCreateOpen(false)} disabled={busy}>Cancelar</button><button type="submit" disabled={busy}>Salvar espécie</button></div></form></Dialog>
 
-        <section className="panel list-panel">
-          <div className="panel-heading">
-            <h2>Catálogo atual</h2>
-            <p>Referências utilizadas pelas colônias.</p>
-          </div>
-          {items.length === 0 ? (
-            <div className="empty-list">Nenhuma espécie cadastrada ainda.</div>
-          ) : (
-            <div className="record-list">
-              {items.map((item) => (
-                <article className="record-card" key={item.id}>
-                  <div>
-                    <strong>{item.commonName}</strong>
-                    <span className="scientific-name">{item.scientificName || "Nome científico não informado"}</span>
-                  </div>
-                  <dl>
-                    <div><dt>Gênero</dt><dd>{item.genus || "Não informado"}</dd></div>
-                  </dl>
-                  {item.notes && <p>{item.notes}</p>}
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </div>
-  );
+    <Dialog open={Boolean(detail)} onClose={() => setDetail(null)} title={detail?.commonName || "Espécie"} description="Ficha cadastral da espécie." size="medium">{detail && <div className="detail-grid"><div><span>Nome científico</span><strong>{detail.scientificName || "Não informado"}</strong></div><div><span>Gênero</span><strong>{detail.genus || "Não informado"}</strong></div><div className="full"><span>Observações</span><p>{detail.notes || "Sem observações."}</p></div>{detail.archivedAt && <div className="full consequence-note"><strong>Arquivada em {detail.archivedAt}</strong><p>{detail.archiveReason || "Sem motivo informado."}</p></div>}</div>}</Dialog>
+
+    <Dialog open={Boolean(editForm)} onClose={() => !busy && setEditForm(null)} title="Editar espécie" description="A alteração cadastral será auditada." size="medium">{editForm && <form className="form-grid" onSubmit={submitEdit}><label className="field full"><span>Nome popular</span><input autoFocus required value={editForm.commonName} onChange={(e) => setEditForm({ ...editForm, commonName: e.target.value })} /></label><label className="field"><span>Nome científico</span><input value={editForm.scientificName} onChange={(e) => setEditForm({ ...editForm, scientificName: e.target.value })} /></label><label className="field"><span>Gênero</span><input value={editForm.genus} onChange={(e) => setEditForm({ ...editForm, genus: e.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} /></label><label className="field full"><span>Motivo da edição</span><textarea required rows={3} value={editForm.reason} onChange={(e) => setEditForm({ ...editForm, reason: e.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={() => setEditForm(null)} disabled={busy}>Cancelar</button><button type="submit" disabled={busy || !editForm.reason.trim()}>Salvar alteração</button></div></form>}</Dialog>
+
+    <ReasonDialog open={Boolean(reasonAction)} title={reasonAction?.kind === "archive" ? "Arquivar espécie" : reasonAction?.kind === "reactivate" ? "Reativar espécie" : "Excluir cadastro"} description={reasonAction?.item.commonName || ""} confirmLabel={reasonAction?.kind === "archive" ? "Arquivar" : reasonAction?.kind === "reactivate" ? "Reativar" : "Excluir definitivamente"} consequence={reasonAction?.kind === "delete" ? "Só cadastros nunca usados podem ser excluídos. Referências históricas bloqueiam a operação." : "Referências históricas serão preservadas."} danger={reasonAction?.kind === "delete"} busy={busy} onClose={() => setReasonAction(null)} onConfirm={confirmReason} />
+  </div>;
 }

@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { PageToolbar } from "../components/PageToolbar";
 import { listAlerts } from "../lib/api";
-import type { Alert } from "../types";
+import type { Navigate, NavigationIntent } from "../lib/navigation";
+import { formatDateTimeBr } from "../lib/presentation";
+import type { Alert, View } from "../types";
 
-export function AlertsPage() {
+type Props = {
+  activeMeliponaryId: string;
+  onNavigate: Navigate;
+};
+
+export function AlertsPage({ activeMeliponaryId, onNavigate }: Props) {
   const [items, setItems] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,46 +29,71 @@ export function AlertsPage() {
 
   useEffect(() => { void reload(); }, []);
 
+  const scopedItems = useMemo(
+    () => activeMeliponaryId ? items.filter((item) => item.meliponaryId === activeMeliponaryId) : items,
+    [activeMeliponaryId, items],
+  );
+
   return (
     <div className="page-stack">
-      <section className="page-heading">
-        <div>
-          <span className="eyebrow">Acompanhamento</span>
-          <h1>Alertas</h1>
-          <p>Os alertas são calculados a partir dos registros mais recentes. Para fazê-los desaparecer, registre o manejo que realmente mudou a situação.</p>
-        </div>
-        <span className="count-pill">{items.length} pendência{items.length === 1 ? "" : "s"}</span>
-      </section>
+      <PageToolbar
+        title="Alertas"
+        description="Pendências derivadas do manejo e da Agenda; a ação recomendada leva ao fluxo que realmente resolve a situação."
+        count={`${scopedItems.length} pendência${scopedItems.length === 1 ? "" : "s"}`}
+      >
+        <button type="button" className="button-secondary" onClick={() => onNavigate("agenda")}>Abrir Agenda</button>
+        <button type="button" className="button-secondary" onClick={() => void reload()} disabled={loading}>Recalcular</button>
+      </PageToolbar>
 
       <section className="panel">
         <div className="panel-heading">
-          <h2>Pendências do plantel</h2>
-          <p>Inspeções vencidas, alimentação pendente e colônias fracas aparecem aqui sem criar um segundo estado manual.</p>
+          <h2>Pendências do contexto atual</h2>
+          <p>Alertas de tarefa apontam para a própria Agenda; condições observadas apontam para o manejo correspondente.</p>
         </div>
-        {loading ? <div className="empty-list">Calculando alertas...</div> : error ? <div className="inline-notice">{error}</div> : items.length === 0 ? (
+        {loading ? <div className="empty-list" role="status">Calculando alertas...</div> : error ? <div className="inline-notice" role="alert">{error}</div> : scopedItems.length === 0 ? (
           <div className="empty-list">Nenhuma pendência derivada dos registros atuais.</div>
         ) : (
           <div className="record-list">
-            {items.map((item) => (
-              <article className="record-card" key={item.alertKey}>
+            {scopedItems.map((item) => {
+              const actionIntent = recommendedIntent(item);
+              return <article className="record-card" key={item.alertKey}>
                 <div className="record-title-row">
-                  <div><strong>{item.colonyCode} · {item.title}</strong><span>{item.dueAt ? `Previsto para ${formatDateTime(item.dueAt)}` : alertTypeLabel(item.alertType)}</span></div>
-                  <span className="badge">{severityLabel(item.severity)}</span>
+                  <div>
+                    <strong>{contextLabel(item)} · {item.title}</strong>
+                    <span>{item.dueAt ? `Previsto para ${formatDateTimeBr(item.dueAt)}` : alertTypeLabel(item.alertType)}</span>
+                  </div>
+                  <span className={`badge severity-${item.severity}`}>{severityLabel(item.severity)}</span>
                 </div>
                 {item.details && <p>{item.details}</p>}
-              </article>
-            ))}
+                <div className="form-actions">
+                  {item.taskId && <button type="button" onClick={() => onNavigate({ view: "agenda", taskId: item.taskId, colonyId: item.colonyId, boxId: item.boxId, meliponaryId: item.meliponaryId })}>Abrir na Agenda</button>}
+                  <button type="button" className={item.taskId ? "button-secondary" : undefined} onClick={() => onNavigate(actionIntent)}>{recommendedLabel(item.recommendedAction)}</button>
+                </div>
+              </article>;
+            })}
           </div>
         )}
-        <div className="form-actions" style={{ marginTop: 16 }}><button type="button" className="button-secondary" onClick={() => void reload()} disabled={loading}>Recalcular</button></div>
       </section>
     </div>
   );
 }
 
-function formatDateTime(value: string) { return value.replace("T", " ").slice(0, 16); }
+function contextLabel(item: Alert) { return item.colonyCode || item.boxCode || "Meliponário"; }
 function severityLabel(value: string) { return value === "critical" ? "Crítico" : value === "attention" ? "Atenção" : "Informativo"; }
 function alertTypeLabel(value: string) {
-  const labels: Record<string, string> = { inspection_due: "Inspeção pendente", feeding_due: "Alimentação pendente", weak_colony: "Colônia fraca" };
+  const labels: Record<string, string> = { inspection_due: "Inspeção pendente", feeding_due: "Alimentação pendente", maintenance_due: "Manutenção pendente", weak_colony: "Colônia fraca" };
   return labels[value] || value;
+}
+function recommendedView(value: string): View {
+  if (value === "register_feeding") return "feeding";
+  if (value === "register_maintenance") return "assets";
+  return "inspections";
+}
+function recommendedIntent(item: Alert): NavigationIntent {
+  return { view: recommendedView(item.recommendedAction), colonyId: item.colonyId, boxId: item.boxId, meliponaryId: item.meliponaryId, action: "create" };
+}
+function recommendedLabel(value: string) {
+  if (value === "register_feeding") return "Registrar alimentação";
+  if (value === "register_maintenance") return "Registrar manutenção";
+  return "Registrar inspeção";
 }
