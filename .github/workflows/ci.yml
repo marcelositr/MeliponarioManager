@@ -73,7 +73,8 @@ jobs:
         working-directory: src-tauri
         env:
           RUST_BACKTRACE: 1
-        run: cargo test data_management::tests:: -- --nocapture
+        run: |
+          cargo test 'data_management::tests::' -- --nocapture
 
       - name: Test Rust backend
         working-directory: src-tauri
