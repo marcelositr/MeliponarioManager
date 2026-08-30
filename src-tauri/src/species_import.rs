@@ -144,7 +144,8 @@ fn validate_source_path(source_path: &str) -> Result<std::path::PathBuf, String>
         return Err("A importação de espécies aceita somente arquivos .csv.".to_owned());
     }
 
-    let metadata = fs::metadata(path).map_err(|error| format!("Não foi possível acessar o CSV: {error}"))?;
+    let metadata =
+        fs::metadata(path).map_err(|error| format!("Não foi possível acessar o CSV: {error}"))?;
     if !metadata.is_file() {
         return Err("O caminho selecionado não é um arquivo CSV válido.".to_owned());
     }
@@ -156,12 +157,10 @@ fn validate_source_path(source_path: &str) -> Result<std::path::PathBuf, String>
 }
 
 async fn load_existing(pool: &SqlitePool) -> Result<Vec<ExistingSpecies>, String> {
-    sqlx::query_as::<_, ExistingSpecies>(
-        "SELECT common_name, scientific_name, genus FROM species",
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(|error| error.to_string())
+    sqlx::query_as::<_, ExistingSpecies>("SELECT common_name, scientific_name, genus FROM species")
+        .fetch_all(pool)
+        .await
+        .map_err(|error| error.to_string())
 }
 
 fn build_preview(
@@ -218,7 +217,13 @@ fn classify_rows(
 ) -> (Vec<RowStatus>, usize, usize, usize) {
     let mut known = existing
         .iter()
-        .map(|item| duplicate_key(&item.common_name, item.scientific_name.as_deref(), item.genus.as_deref()))
+        .map(|item| {
+            duplicate_key(
+                &item.common_name,
+                item.scientific_name.as_deref(),
+                item.genus.as_deref(),
+            )
+        })
         .collect::<HashSet<_>>();
 
     let mut statuses = Vec::with_capacity(rows.len());
@@ -252,7 +257,10 @@ fn classify_rows(
 }
 
 fn duplicate_key(common_name: &str, scientific_name: Option<&str>, genus: Option<&str>) -> String {
-    if let Some(scientific_name) = scientific_name.map(str::trim).filter(|value| !value.is_empty()) {
+    if let Some(scientific_name) = scientific_name
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
         return format!("scientific:{}", normalize_value(scientific_name));
     }
 
@@ -284,11 +292,18 @@ fn parse_csv(bytes: &[u8]) -> Result<Vec<ParsedSpeciesRow>, String> {
     let mut rows = Vec::new();
     for (index, record) in reader.records().enumerate() {
         let row_number = index + 2;
-        let record = record.map_err(|error| format!("CSV inválido na linha {row_number}: {error}"))?;
+        let record =
+            record.map_err(|error| format!("CSV inválido na linha {row_number}: {error}"))?;
         let common_name = field(&record, columns.common_name).unwrap_or_default();
-        let scientific_name = columns.scientific_name.and_then(|column| optional_field(&record, column));
-        let genus = columns.genus.and_then(|column| optional_field(&record, column));
-        let notes = columns.notes.and_then(|column| optional_field(&record, column));
+        let scientific_name = columns
+            .scientific_name
+            .and_then(|column| optional_field(&record, column));
+        let genus = columns
+            .genus
+            .and_then(|column| optional_field(&record, column));
+        let notes = columns
+            .notes
+            .and_then(|column| optional_field(&record, column));
         let error = if common_name.trim().is_empty() {
             Some("Nome popular é obrigatório.".to_owned())
         } else {
@@ -323,8 +338,10 @@ struct HeaderColumns {
 impl HeaderColumns {
     fn from_headers(headers: &StringRecord) -> Result<Self, String> {
         let normalized = headers.iter().map(normalize_header).collect::<Vec<_>>();
-        let common_name = find_column(&normalized, &["nome_popular", "common_name"])
-            .ok_or_else(|| "O CSV precisa da coluna 'nome_popular' (ou 'common_name').".to_owned())?;
+        let common_name =
+            find_column(&normalized, &["nome_popular", "common_name"]).ok_or_else(|| {
+                "O CSV precisa da coluna 'nome_popular' (ou 'common_name').".to_owned()
+            })?;
 
         Ok(Self {
             common_name,
@@ -357,7 +374,11 @@ fn detect_delimiter(bytes: &[u8]) -> u8 {
     let first_line = bytes.split(|byte| *byte == b'\n').next().unwrap_or(bytes);
     let semicolons = first_line.iter().filter(|byte| **byte == b';').count();
     let commas = first_line.iter().filter(|byte| **byte == b',').count();
-    if semicolons >= commas { b';' } else { b',' }
+    if semicolons >= commas {
+        b';'
+    } else {
+        b','
+    }
 }
 
 fn normalize_header(value: &str) -> String {
@@ -397,7 +418,10 @@ mod tests {
         let rows = parse_csv(csv.as_bytes()).expect("CSV should parse");
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].common_name, "Jataí");
-        assert_eq!(rows[0].scientific_name.as_deref(), Some("Tetragonisca angustula"));
+        assert_eq!(
+            rows[0].scientific_name.as_deref(),
+            Some("Tetragonisca angustula")
+        );
         assert!(rows[0].error.is_none());
     }
 
@@ -411,7 +435,11 @@ mod tests {
     #[test]
     fn duplicate_key_prefers_scientific_name() {
         assert_eq!(
-            duplicate_key("Jataí", Some("Tetragonisca angustula"), Some("Tetragonisca")),
+            duplicate_key(
+                "Jataí",
+                Some("Tetragonisca angustula"),
+                Some("Tetragonisca")
+            ),
             "scientific:tetragonisca angustula"
         );
         assert_eq!(
