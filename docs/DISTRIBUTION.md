@@ -156,13 +156,11 @@ Enquanto essa limitação existir:
 
 ## Dependências reproduzíveis
 
-`package-lock.json` e `Cargo.lock` ainda não estão versionados.
+`package-lock.json` e `src-tauri/Cargo.lock` são versionados e gerados pelas ferramentas oficiais.
 
-Enquanto isso, os workflows usam `npm install` e a resolução normal do Cargo. Essa situação é aceitável para a fase experimental atual, mas reduz a reprodutibilidade exata dos builds.
+Os workflows usam `npm ci` e comandos Cargo com `--locked`. Assim, um build falha se os manifests e os lockfiles estiverem dessincronizados, em vez de resolver silenciosamente dependências diferentes das revisadas.
 
-Os lockfiles devem ser gerados pelas ferramentas oficiais com acesso aos registries e versionados em uma alteração própria. Não devem ser montados manualmente.
-
-Depois que `package-lock.json` estiver versionado, o pipeline pode migrar de `npm install` para `npm ci`.
+Atualizações de dependências devem incluir os lockfiles correspondentes. Eles não devem ser montados ou corrigidos manualmente.
 
 ## Fluxo recomendado
 

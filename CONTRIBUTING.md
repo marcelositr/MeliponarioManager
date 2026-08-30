@@ -55,7 +55,7 @@ Antes de abrir ou atualizar um Pull Request relevante, execute os checks aplicá
 Frontend:
 
 ```bash
-npm install
+npm ci
 npm run icons
 npm run build
 ```
@@ -65,9 +65,9 @@ Backend Rust:
 ```bash
 cd src-tauri
 cargo fmt --all -- --check
-cargo check
-cargo clippy --all-targets -- -D warnings
-cargo test
+cargo check --locked
+cargo clippy --locked --all-targets -- -D warnings
+cargo test --locked
 ```
 
 Validação do desktop sem gerar instaladores:

@@ -111,7 +111,7 @@ O MeliponarioManager **não substitui sistemas oficiais, não emite autorizaçõ
 Instale as dependências do frontend:
 
 ```bash
-npm install
+npm ci
 ```
 
 Execute apenas o frontend:
@@ -141,9 +141,9 @@ Pull Requests para `main` passam pelo workflow de CI, que valida:
 - configuração e existência dos ícones exigidos pelos bundles;
 - build React/TypeScript;
 - formatação Rust com `cargo fmt --check`;
-- `cargo check`;
-- `cargo clippy --all-targets -- -D warnings`;
-- `cargo test`;
+- `cargo check --locked`;
+- `cargo clippy --locked --all-targets -- -D warnings`;
+- `cargo test --locked`;
 - build Tauri sem bundle para validar o binário desktop.
 
 ## Distribuição
@@ -164,6 +164,8 @@ Consulte [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) e [docs/RELEASES.md](docs/
 - [Gerenciamento e segurança dos dados](docs/DATA-MANAGEMENT.md)
 - [Distribuição desktop](docs/DISTRIBUTION.md)
 - [Política de versões e releases](docs/RELEASES.md)
+- [Operação do repositório no GitHub](docs/GITHUB-OPERATIONS.md)
+- [Política de segurança](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [Guia de contribuição](CONTRIBUTING.md)
 

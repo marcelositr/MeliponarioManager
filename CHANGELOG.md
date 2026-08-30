@@ -6,6 +6,18 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+### Added
+
+- Dependabot semanal para dependências npm, Cargo e GitHub Actions.
+- Política de segurança, canal de relato responsável e guia de operação do repositório no GitHub.
+
+### Changed
+
+- Versiona `package-lock.json` e `src-tauri/Cargo.lock` para tornar a resolução de dependências reproduzível.
+- CI e pipeline de bundles passam a usar `npm ci`; validações Cargo passam a exigir o lockfile com `--locked`.
+- CI recebe permissões mínimas, cancelamento de execuções obsoletas e gatilho de Pull Request limitado à branch `main`.
+- Checkout dos workflows deixa de persistir credenciais no workspace dos jobs.
+
 ## [0.8.0] - 2026-08-30
 
 ### Added

@@ -2,9 +2,16 @@ name: CI
 
 on:
   pull_request:
-    branches: [main, feat/v0.8-foundation-integrity, feat/v0.8-enterprise-shell, feat/v0.8-operational-actions, feat/v0.8-agenda-record-centers]
+    branches: [main]
   push:
     branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -13,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install system dependencies
         run: |
@@ -23,6 +32,7 @@ jobs:
             curl \
             wget \
             file \
+            pkg-config \
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
@@ -32,6 +42,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -43,7 +54,7 @@ jobs:
         run: npm run version:check
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate desktop icons
         run: npm run icons
@@ -63,15 +74,15 @@ jobs:
 
       - name: Check Rust backend
         working-directory: src-tauri
-        run: cargo check
+        run: cargo check --locked
 
       - name: Clippy
         working-directory: src-tauri
-        run: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --locked --all-targets -- -D warnings
 
       - name: Test Rust backend
         working-directory: src-tauri
-        run: cargo test
+        run: cargo test --locked
 
       - name: Build Tauri desktop binary
         run: npm run tauri -- build --no-bundle
