@@ -4,7 +4,7 @@ O MeliponarioManager permanecerá em desenvolvimento contínuo na série `0.x`.
 
 Este roadmap registra a evolução planejada do produto, mas **não representa uma sequência de releases históricas publicadas**. Antes da primeira distribuição pública, o projeto percorreu internamente vários marcos de escopo sem criar tags intermediárias.
 
-A primeira versão preparada para distribuição pública consolida esse trabalho em `v0.7.0` como GitHub Pre-release.
+A primeira versão preparada para distribuição pública consolidou esse trabalho em `v0.7.0` como GitHub Pre-release. A `v0.8.0` consolida o ciclo seguinte de robustez operacional, interface desktop, Agenda, relatórios e gerenciamento local de arquivos.
 
 ## Escopo consolidado até v0.7.0
 
@@ -90,13 +90,13 @@ Uma experiência dedicada de comparação visual lado a lado permanece como poss
 - restauração preparada com validação de integridade;
 - hardening de CI e pipeline de bundles Linux e Windows.
 
-## Etapa experimental v0.8
+## v0.8.0 - robustez operacional e informação gerencial
 
-A série seguinte amplia robustez operacional e informação gerencial sem transformar o aplicativo em serviço web ou BI pesado.
+A `v0.8.0` amplia robustez operacional e informação gerencial sem transformar o aplicativo em serviço web ou BI pesado.
 
 ### Fundação, shell, operação e Agenda
 
-**Implementados no trabalho acumulado da v0.8.**
+**Concluído na v0.8.0.**
 
 - integridade e hardening de domínio;
 - shell desktop enterprise e acessibilidade;
@@ -135,7 +135,7 @@ Relatórios são derivados dos dados existentes e não criam uma nova fonte de v
 
 ### Bloco 5C - Arquivos, portabilidade e acabamento local
 
-**Implementado tecnicamente no trabalho acumulado da v0.8.**
+**Concluído na v0.8.0.**
 
 - anexos gerenciados no contexto do Record Center de Meliponário;
 - migration aditiva `0017_managed_attachments.sql`;
@@ -151,7 +151,7 @@ Relatórios são derivados dos dados existentes e não criam uma nova fonte de v
 - restauração de estado da janela pelo plugin oficial `tauri-plugin-window-state`;
 - testes de backend, migrations e estrutura frontend específicos do bloco.
 
-A validação visual/runtime em desktop gráfico é uma etapa separada da CI. Quando o ambiente de execução automatizado não disponibiliza sessão gráfica real, essa parte permanece explicitamente para teste de campo e não é considerada comprovada pelo build.
+A implementação acumulada da `v0.8.0` concluiu também a validação de campo antes da preparação final de release. A CI continua responsável pelos gates automatizados de compilação, testes, lint e build desktop.
 
 Consulte [FILES.md](FILES.md), [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) e [REPORTS.md](REPORTS.md).
 

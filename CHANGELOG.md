@@ -6,6 +6,8 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-29
+
 ### Added
 
 - Fundação histórica para estados físicos de caixas, com transições `active`, `maintenance` e `retired`, consulta de histórico e proteção SQLite contra nova ocupação em caixa não ativa.
@@ -129,6 +131,7 @@ O pipeline chegou a gerar o `.deb` no Linux e o instalador NSIS no Windows, mas 
 - Content Security Policy configurada para restringir a aplicação ao conteúdo local e aos protocolos necessários ao IPC e aos assets do Tauri.
 - Cabeçalho `X-Content-Type-Options: nosniff` habilitado na configuração da aplicação.
 
-[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/marcelositr/MeliponarioManager/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/marcelositr/MeliponarioManager/releases/tag/v0.7.1
 [0.7.0]: https://github.com/marcelositr/MeliponarioManager/tree/v0.7.0
