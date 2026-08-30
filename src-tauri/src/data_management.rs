@@ -1014,7 +1014,7 @@ mod tests {
         fs::create_dir_all(root.join("media/attachments/meliponaries/m1")).unwrap();
         fs::write(root.join(photo_rel), b"photo-bytes").unwrap();
         fs::write(root.join(attachment_rel), b"attachment-bytes").unwrap();
-        sqlx::query("INSERT INTO inspection_photos(id,inspection_id,relative_path,original_name,mime_type,byte_size) VALUES('ph1','i1',?,'foto.jpg','image/jpeg',11)")
+        sqlx::query("INSERT INTO inspection_photos(id,inspection_id,relative_path,original_name,mime_type,byte_size,captured_at) VALUES('ph1','i1',?,'foto.jpg','image/jpeg',11,'2026-01-02 09:00:00')")
             .bind(photo_rel)
             .execute(&pool)
             .await
