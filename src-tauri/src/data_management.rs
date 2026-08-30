@@ -130,6 +130,16 @@ fn ensure_plain_relative_path(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+fn lower_hex(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut output = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        output.push(HEX[(byte >> 4) as usize] as char);
+        output.push(HEX[(byte & 0x0f) as usize] as char);
+    }
+    output
+}
+
 fn sha256_file(path: &Path) -> Result<String, String> {
     let mut file = fs::File::open(path)
         .map_err(|_| storage_error("Não foi possível verificar um arquivo do backup."))?;
@@ -144,7 +154,7 @@ fn sha256_file(path: &Path) -> Result<String, String> {
         }
         hasher.update(&buffer[..read]);
     }
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(lower_hex(hasher.finalize().as_ref()))
 }
 
 fn copy_tree(source: &Path, target: &Path) -> Result<(), String> {
@@ -940,6 +950,21 @@ mod tests {
 
     fn temp_root(label: &str) -> PathBuf {
         std::env::temp_dir().join(format!("meliponariomanager-{label}-{}", Uuid::new_v4()))
+    }
+
+    #[test]
+    fn sha256_file_returns_known_lowercase_hex_digest() {
+        let root = temp_root("sha256-file");
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("payload.bin");
+        fs::write(&path, b"abc").unwrap();
+
+        assert_eq!(
+            sha256_file(&path).unwrap(),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+
+        let _ = fs::remove_dir_all(root);
     }
 
     async fn seeded_installation(root: &Path) -> SqlitePool {
