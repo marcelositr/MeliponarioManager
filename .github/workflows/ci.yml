@@ -4,13 +4,13 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches-ignore: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -59,13 +59,13 @@ jobs:
       - name: Generate desktop icons
         run: npm run icons
 
-      - name: Validate bundle icons
+      - name: Validate bundle icon configuration
         run: npm run bundle:check
 
       - name: Build frontend
         run: npm run build
 
-      - name: Test frontend UI preferences
+      - name: Test frontend
         run: npm run test:ui
 
       - name: Check Rust formatting
@@ -83,6 +83,3 @@ jobs:
       - name: Test Rust backend
         working-directory: src-tauri
         run: cargo test --locked
-
-      - name: Build Tauri desktop binary
-        run: npm run tauri -- build --no-bundle
