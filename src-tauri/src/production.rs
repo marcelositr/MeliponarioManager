@@ -241,12 +241,7 @@ mod tests {
 
         let record = create(
             &pool,
-            production_input(
-                colony_id,
-                Some("2026-01-15 12:00:00"),
-                "honey",
-                120.0,
-            ),
+            production_input(colony_id, Some("2026-01-15 12:00:00"), "honey", 120.0),
         )
         .await
         .unwrap();
@@ -275,11 +270,7 @@ mod tests {
             let pool = test_pool().await;
             let (colony_id, _) = seed_with_box_history(&pool).await;
 
-            let result = create(
-                &pool,
-                production_input(colony_id, None, "pollen", quantity),
-            )
-            .await;
+            let result = create(&pool, production_input(colony_id, None, "pollen", quantity)).await;
 
             assert!(matches!(result, Err(AppError::Validation(_))));
         }
@@ -303,6 +294,8 @@ mod tests {
         .unwrap();
 
         let entries = timeline::by_colony(&pool, &colony_id).await.unwrap();
-        assert!(entries.iter().any(|entry| entry.source_type == "production"));
+        assert!(entries
+            .iter()
+            .any(|entry| entry.source_type == "production"));
     }
 }
