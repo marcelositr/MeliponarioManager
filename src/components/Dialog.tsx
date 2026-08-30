@@ -34,6 +34,8 @@ export function Dialog({ open, title, description, size = "medium", children, fo
   const descriptionId = useId();
   const backdropRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const { body, promotedFooter } = splitDialogActions(children, titleId);
   const footerContent = footer || promotedFooter;
 
@@ -54,7 +56,7 @@ export function Dialog({ open, title, description, size = "medium", children, fo
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopImmediatePropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -81,17 +83,17 @@ export function Dialog({ open, title, description, size = "medium", children, fo
       window.removeEventListener("keydown", onKeyDown);
       if (isVisible(previousFocus)) previousFocus.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
   return <div ref={backdropRef} className="dialog-backdrop" role="presentation" onMouseDown={(event) => {
-    if (closeOnBackdrop && event.currentTarget === event.target && isTopDialog(backdropRef.current)) onClose();
+    if (closeOnBackdrop && event.currentTarget === event.target && isTopDialog(backdropRef.current)) onCloseRef.current();
   }}>
     <section ref={dialogRef} tabIndex={-1} className={`dialog dialog-${size}`} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={description ? descriptionId : undefined}>
       <header className="dialog-header">
         <div><h2 id={titleId}>{title}</h2>{description && <p id={descriptionId}>{description}</p>}</div>
-        <button className="icon-button" type="button" onClick={onClose} aria-label="Fechar"><Icon name="close" /></button>
+        <button className="icon-button" type="button" onClick={() => onCloseRef.current()} aria-label="Fechar"><Icon name="close" /></button>
       </header>
       <div className="dialog-body">{body}</div>
       {footerContent && <footer className="dialog-footer">{footerContent}</footer>}

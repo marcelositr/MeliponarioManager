@@ -9,7 +9,8 @@ import { WorkspaceRouter } from "./components/WorkspaceRouter";
 import { useAppData } from "./hooks/useAppData";
 import { reconcileManualMeliponaryChange, toNavigationIntent, type Navigate, type NavigationIntent, type View } from "./lib/navigation";
 import { normalizeActiveMeliponary, normalizeTheme, readSidebarCollapsed, resolveTheme, UI_STORAGE, type ThemeMode } from "./lib/ui-preferences";
-import "./hardening.css";
+
+const COMPACT_VIEWPORT_WIDTH = 900;
 
 const viewTitles: Record<View, string> = {
   dashboard: "Visão geral", agenda: "Agenda", meliponaries: "Meliponários", species: "Espécies", colonies: "Colônias", boxes: "Caixas", inspections: "Inspeções", feeding: "Alimentação", production: "Produção", history: "Histórico", alerts: "Alertas", genealogy: "Divisões e genealogia", movements: "Movimentações", assets: "Manutenção", lifecycle: "Ciclo de vida", reports: "Relatórios", data: "Dados",
@@ -41,7 +42,7 @@ function App() {
 
   useEffect(() => {
     const update = () => {
-      const compact = window.innerWidth < 1080;
+      const compact = window.innerWidth < COMPACT_VIEWPORT_WIDTH;
       setCompactViewport(compact);
       if (!compact) setCompactSidebarOverride(false);
     };
