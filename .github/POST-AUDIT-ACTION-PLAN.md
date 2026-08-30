@@ -6,6 +6,32 @@
 
 Este arquivo é o ponto de retomada caso a sessão seja interrompida. Ele é temporário e não representa documentação permanente do produto.
 
+## Estado atual
+
+**Implementação dos passos 1 a 7 concluída na branch, aguardando validação final para receber `[x]`.**
+
+Já aplicado:
+
+- `dialog:allow-save` e teste de contrato das capabilities usadas pelo frontend;
+- correção da Wiki sobre o destino automático dos backups;
+- remoção dos módulos/testes Rust órfãos identificados na auditoria;
+- recuperação dos quatro testes úteis de regressão de produção em módulo ativo;
+- remoção do ícone gerado versionado e inclusão de `src-tauri/icons/` no `.gitignore`;
+- separação de CI rápido para branch/PR, validação completa para `main` e manutenção do workflow de bundles/releases;
+- documentação do novo modelo de CI em `CONTRIBUTING.md`, `docs/GITHUB-OPERATIONS.md` e `docs/DISTRIBUTION.md`;
+- sanitização central de `AppError::Database` antes da fronteira IPC, com testes de regressão;
+- primeira execução do CI rápido validou versão, dependências, ícones, frontend e testes de UI; a única falha encontrada foi formatação Rust dos novos testes, já corrigida.
+
+Estado de validação:
+
+- branch baseada na `main` após o merge do PR #44;
+- branch está à frente de `main` e não está atrasada;
+- nenhuma migration foi modificada;
+- diff atual está limitado ao plano, CI, documentação relacionada, capability, higiene de ícones, limpeza/testes Rust, hardening de erro e correção pontual da Wiki;
+- CI rápido mais recente está em execução após as correções de `rustfmt`;
+- **não abrir/mergear o pacote ainda**;
+- próximo marco: CI rápido verde, revisão final do diff e teste manual da aplicação pelo usuário.
+
 ## 1. Correções funcionais e permissões Tauri
 
 - [ ] Adicionar `dialog:allow-save` à capability desktop usada pela janela principal.
@@ -117,5 +143,6 @@ Quando uma nova sessão precisar continuar este trabalho:
 1. abrir esta branch;
 2. ler este arquivo;
 3. considerar concluídos **somente** os itens marcados `[x]`;
-4. conferir o último diff/commit antes de continuar;
-5. não iniciar dívida técnica enquanto houver item obrigatório acima em aberto, salvo correção necessária para desbloquear o pacote.
+4. ler também a seção **Estado atual** para saber o que já foi implementado mas ainda aguarda validação;
+5. conferir o último diff/commit antes de continuar;
+6. não iniciar dívida técnica enquanto houver item obrigatório acima em aberto, salvo correção necessária para desbloquear o pacote.
