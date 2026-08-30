@@ -10,6 +10,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 - Dependabot semanal para dependências npm, Cargo e GitHub Actions.
 - Política de segurança, canal de relato responsável e guia de operação do repositório no GitHub.
+- Índice oficial da documentação e visão consolidada da arquitetura da aplicação.
 
 ### Changed
 
@@ -17,6 +18,14 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - CI e pipeline de bundles passam a usar `npm ci`; validações Cargo passam a exigir o lockfile com `--locked`.
 - CI recebe permissões mínimas, cancelamento de execuções obsoletas e gatilho de Pull Request limitado à branch `main`.
 - Checkout dos workflows deixa de persistir credenciais no workspace dos jobs.
+- GitHub Actions de checkout, Node.js e upload de artefatos são atualizadas para a série `v7`.
+- TypeScript é atualizado de `6.0.3` para `7.0.2`.
+- `sha2` é atualizado de `0.10.9` para `0.11.0`.
+- Documentação técnica e operacional é reorganizada para separar comportamento atual, políticas, roadmap e histórico de releases.
+
+### Fixed
+
+- Formatação do digest SHA-256 é adaptada à API do `sha2` 0.11 e recebe teste de regressão com valor conhecido.
 
 ## [0.8.0] - 2026-08-30
 
@@ -39,7 +48,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Reconciliação idempotente de tarefas derivadas de `next_inspection_at`, `next_feeding_at` e `next_maintenance_at`, incluindo recuperação de compromisso ausente sem duplicação.
 - Centros operacionais dedicados de Colônia, Caixa e Meliponário, expondo Agenda, alertas e projeções contextuais sem criar nova fonte de verdade.
 - Integração da Agenda ao shell/sidebar/router e atalhos de navegação entre Agenda, alertas, colônias e caixas.
-- Testes frontend específicos da Etapa 4 para rota da Agenda, contexto ativo, alertas acionáveis, conjunto de ações e consumo dos record centers.
+- Testes frontend para rota da Agenda, contexto ativo, alertas acionáveis, conjunto de ações e consumo das fichas operacionais.
 - Documentação dedicada da Agenda em `docs/AGENDA.md`.
 - Central de Relatórios dedicada com visão operacional, produção, custos registrados, Agenda, histórico de colônia e consolidação por meliponário, calculados por serviços Rust tipados.
 - Exportação CSV UTF-8 com separador `;`, ordem determinística, cabeçalhos humanos, escaping de conteúdo e proteção contra formula injection em campos textuais.
@@ -52,7 +61,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Exportação JSON estrutural versionada com IDs, relações e metadata de fotos/anexos, declarando explicitamente que binários não estão incorporados.
 - Estado da janela persistido pelo plugin oficial `tauri-plugin-window-state`.
 - Thumbnails lazy para fotos de inspeção com limite de bytes para prévia e estados explícitos de arquivo ausente ou prévia indisponível.
-- Documentação dedicada de arquivos gerenciados em `docs/FILES.md` e testes frontend específicos do Bloco 5C.
+- Documentação dedicada de arquivos gerenciados em `docs/FILES.md` e testes frontend dos fluxos de arquivos.
 - Importação dedicada de listas de espécies em CSV, com seleção nativa, prévia antes da gravação, detecção de duplicidades e importação transacional sem alterar cadastros existentes nem assumir validação legal por estado.
 
 ### Changed
@@ -89,7 +98,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Registros de arquivos ausentes permanecem preservados e são sinalizados em vez de serem apagados silenciosamente.
 - Falhas na gravação de metadata de anexo compensam a cópia física recém-criada, evitando arquivo gerenciado órfão no fluxo normal de importação.
 - Dialogs preservam foco durante edição, menus de ações passam a flutuar sem deslocar tabelas e grupos de controles recebem espaçamento/wrapping consistente na camada visual compartilhada.
-- Contraste dos temas claro/escuro, seleção de texto da superfície desktop e composição responsiva recebem hardening após o field test da release candidate.
+- Contraste dos temas claro/escuro, seleção de texto e composição responsiva recebem ajustes após testes manuais da release candidate.
 
 ## [0.7.1] - 2026-08-27
 

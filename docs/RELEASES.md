@@ -1,186 +1,124 @@
 # Política de versões e releases
 
-Este documento define como o MeliponarioManager transforma o estado integrado de `main` em uma versão distribuível.
+Este documento define como um estado aprovado de `main` se torna uma versão distribuível do MeliponarioManager.
 
-## Princípios
+## Versionamento
 
-O projeto segue Semantic Versioning, mas permanece intencionalmente na série `0.x`.
+O projeto segue Semantic Versioning e permanece na série experimental `0.x`.
 
-Isso significa:
+- `PATCH`: correção compatível;
+- `MINOR`: funcionalidade compatível ou evolução relevante do produto;
+- `MAJOR`: não usado enquanto o projeto permanecer em `0.x`.
 
-- `PATCH` para correções compatíveis;
-- `MINOR` para novas funcionalidades compatíveis;
-- ausência de meta de versão `1.0.0`;
-- evolução contínua guiada por uso real e maturidade do domínio.
+A série `0.x` pode introduzir mudanças de formato ou comportamento entre versões. Compatibilidade de dados deve ser tratada explicitamente por migrations e validações, não presumida pelo número da versão.
 
-## Versão, tag e release
+## Identificadores da versão
 
-Esses conceitos são relacionados, mas diferentes.
-
-### Versão
-
-É a identidade técnica da aplicação e deve permanecer sincronizada em:
+A versão deve permanecer sincronizada em:
 
 - `package.json`;
 - `src-tauri/Cargo.toml`;
 - `src-tauri/tauri.conf.json`.
 
-### Tag
+`npm run version:check` valida essa consistência. Em builds disparados por tag, o mesmo script também compara a versão com o nome da tag.
 
-É o marcador imutável do commit distribuído.
+## Tags
 
-Formato:
+Tags distribuídas usam o formato:
 
 ```text
 v0.x.y
 ```
 
-Exemplo:
+A tag deve apontar para um commit já integrado em `main`. Tags públicas são imutáveis: não devem ser movidas, recriadas ou reaproveitadas depois de uma falha.
 
-```text
-v0.7.1
-```
+Se uma versão marcada apresentar problema compatível, prepare o próximo `PATCH`.
 
-Depois que uma tag pública é criada, ela não deve ser movida ou recriada para esconder uma falha de distribuição. Se o problema for compatível, a correção segue em um novo `PATCH`.
+## GitHub Releases
 
-### GitHub Release
+Cada tag `v0.*` dispara o workflow `Build desktop bundles`. O workflow cria ou atualiza uma GitHub Release com:
 
-É a página de distribuição associada à tag. Contém título, notas públicas e bundles gerados pelo pipeline.
+- título `MeliponarioManager v0.x.y`;
+- notas versionadas do repositório;
+- status inicial `Draft`;
+- marcação `Pre-release`;
+- bundles Linux e Windows.
 
-Uma tag pode existir sem que uma GitHub Release tenha sido concluída. Isso aconteceu com `v0.7.0`: a tag disparou o pipeline, mas os bundles completos falharam antes da criação da release.
-
-## Por que usamos GitHub Pre-release sem sufixo `-rc`
-
-Enquanto o MeliponarioManager estiver em fase experimental, as releases públicas são marcadas como **Pre-release** no GitHub.
-
-A versão interna continua usando SemVer simples, como `0.7.1`, em vez de `0.7.1-rc.1`.
-
-Essa política mantém a mesma versão entre frontend, Cargo, Tauri e instaladores de todas as plataformas. Em especial, evita criar uma segunda regra apenas para o versionamento numérico exigido pelo MSI/WiX no Windows.
-
-O caráter experimental fica explícito em três lugares:
-
-- a série `0.x`;
-- o status do projeto na documentação;
-- a marcação `Pre-release` do GitHub.
-
-## Primeiras tags públicas
-
-A primeira tag pública do projeto foi:
-
-```text
-v0.7.0
-```
-
-Ela marcou a primeira tentativa de distribuição, mas não resultou em uma GitHub Release porque o AppImage e o MSI falharam por ausência de ícones explicitamente configurados no bundle.
-
-A correção foi preparada como:
-
-```text
-v0.7.1
-```
-
-Isso preserva a imutabilidade da `v0.7.0` e usa `PATCH` para uma correção compatível de empacotamento.
-
-Os números `0.1` a `0.6` foram usados como marcos de roadmap durante o desenvolvimento inicial, mas não foram publicados como tags ou releases.
-
-Não serão criadas releases retroativas apenas para preencher uma sequência numérica. O histórico real desse período permanece nos commits e Pull Requests.
-
-## Integração da v0.8.0
-
-A `v0.8.0` consolida um ciclo acumulado que foi desenvolvido e revisado em Pull Requests empilhados. A integração final é feita por uma única branch de release e um único Pull Request contra `main`, preservando o HEAD funcional aprovado sem rebase, reconstrução ou merge sequencial das etapas intermediárias.
-
-Os Pull Requests empilhados permanecem como histórico de desenvolvimento e revisão e podem ser encerrados como superseded somente depois da integração final autorizada.
+O draft só deve ser publicado depois da conferência das notas e dos artefatos.
 
 ## Notas de release
 
-Cada versão distribuída precisa de um arquivo em:
+Cada versão precisa do arquivo:
 
 ```text
-docs/releases/<tag>.md
+docs/releases/v0.x.y.md
 ```
 
-Exemplo:
+As notas são o texto público daquela versão e devem conter, quando aplicável:
 
-```text
-docs/releases/v0.7.1.md
-```
-
-Esse arquivo é a fonte versionada da descrição pública da release.
-
-As notas devem conter, quando aplicável:
-
-- resumo da versão;
-- principais funcionalidades;
-- mudanças relevantes;
+- resumo e destaques;
+- mudanças de comportamento;
+- compatibilidade e migração de dados;
 - plataformas e artefatos;
 - limitações conhecidas;
-- observações de compatibilidade ou dados;
-- instruções para reportar problemas.
+- orientação de backup e relato de problemas.
 
-Evite transformar notas de release em um dump de commits.
-
-## Preparação de uma release
-
-Antes da tag:
-
-1. confirmar a origem aprovada da branch de preparação e o estado atual de `main`;
-2. sincronizar a versão nos três arquivos do projeto;
-3. atualizar `CHANGELOG.md`;
-4. criar `docs/releases/<tag>.md`;
-5. atualizar README ou documentação caso a versão mude o comportamento público;
-6. abrir Pull Request para `main`;
-7. confirmar CI verde;
-8. integrar a PR.
-
-Depois do merge:
-
-1. confirmar que `main` aponta para o commit esperado;
-2. criar a tag `v0.x.y` nesse commit;
-3. aguardar o workflow `Build desktop bundles`;
-4. revisar a GitHub Release em draft;
-5. validar os artefatos produzidos;
-6. publicar a release como Pre-release.
-
-## Título da release
-
-Padrão:
-
-```text
-MeliponarioManager v0.x.y
-```
-
-Exemplo:
-
-```text
-MeliponarioManager v0.7.1
-```
+Notas de release não são dump de commits nem manual da versão atual. Depois da publicação, correções editoriais devem ser mínimas e não podem reescrever o comportamento histórico da versão.
 
 ## Changelog
 
-`CHANGELOG.md` registra a evolução relevante do produto.
+`CHANGELOG.md` registra mudanças relevantes do produto. Durante o desenvolvimento, novas entradas ficam em `[Unreleased]`.
 
-A seção da versão deve estar pronta antes da tag. O changelog pode ser mais técnico e completo do que as notas públicas de release.
+Ao preparar uma versão:
 
-## Correções após uma tag ou release
+1. mova as entradas correspondentes para uma seção `[x.y.z] - AAAA-MM-DD`;
+2. organize-as em categorias compatíveis com Keep a Changelog;
+3. atualize os links de comparação no fim do arquivo;
+4. confirme que a seção descreve o código que será marcado.
 
-Se `v0.8.0` revelar um bug compatível, a correção deve seguir para:
+O changelog pode ser mais técnico e completo que as notas públicas.
 
-```text
-v0.8.1
-```
+## Preparação
 
-Se o próximo ciclo introduzir novas funcionalidades compatíveis:
+Antes do merge da versão:
 
-```text
-v0.9.0
-```
+1. confirme a `main` de origem;
+2. defina o incremento SemVer;
+3. sincronize os três campos de versão;
+4. execute `npm run version:check`;
+5. atualize `CHANGELOG.md`;
+6. crie `docs/releases/<tag>.md`;
+7. atualize a documentação afetada;
+8. abra um Pull Request de release;
+9. valide o conjunto aplicável de testes e builds;
+10. integre por squash merge.
 
-Não é necessário reutilizar o mesmo número tentando transformar uma Pre-release anterior em uma release estável. Enquanto o projeto estiver nessa fase, cada versão pública continua sendo identificada como experimental no GitHub.
+Depois do merge:
+
+1. confirme o commit exato em `main`;
+2. crie a tag anotada `v0.x.y`;
+3. envie a tag ao GitHub;
+4. aguarde o workflow de bundles;
+5. revise o draft da GitHub Release;
+6. confira nomes, tamanhos e plataformas dos artefatos;
+7. publique como Pre-release.
+
+## Falha durante a distribuição
+
+Se o pipeline falhar antes da publicação:
+
+- preserve a tag;
+- diagnostique o erro na execução do GitHub Actions;
+- corrija em uma nova branch;
+- prepare um novo `PATCH`;
+- registre o incidente no changelog ou nas notas quando relevante para usuários.
+
+Uma tag pode existir sem uma GitHub Release concluída. Isso não autoriza reescrever o histórico.
 
 ## Reprodutibilidade e assinatura
 
-Os lockfiles npm e Cargo são versionados e validados pelo CI. A ausência atual de assinatura de código Windows deve ser explicitada nas notas da release enquanto permanecer verdadeira.
+Os lockfiles npm e Cargo são versionados e exigidos pelos workflows. Atualizações de dependências devem incluir os lockfiles correspondentes.
 
-Essa limitação não impede testes públicos, mas faz parte do estado técnico da distribuição e não deve ser escondida.
+Os instaladores Windows permanecem sem assinatura de código enquanto nenhum certificado estiver configurado. Essa limitação deve continuar explícita nas notas de cada release afetada.
 
 Consulte [DISTRIBUTION.md](DISTRIBUTION.md) para detalhes do pipeline e dos bundles.

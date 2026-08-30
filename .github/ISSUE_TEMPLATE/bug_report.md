@@ -1,33 +1,52 @@
 ---
-name: Bug report
+name: Relato de bug
 about: Relatar um problema reproduzível
 title: "bug: "
 labels: bug
 assignees: ''
 ---
 
-## Problema
+## Resumo
 
-Descreva o que aconteceu.
+Descreva o problema em uma frase.
+
+## Ambiente
+
+- Versão do MeliponarioManager:
+- Sistema operacional e versão:
+- Formato instalado (`deb`, AppImage, NSIS, MSI ou desenvolvimento):
+- Origem da atualização, quando aplicável:
 
 ## Como reproduzir
 
-1. 
-2. 
-3. 
+1.
+2.
+3.
+
+Use dados fictícios ou remova informações pessoais antes de anexar exemplos.
 
 ## Resultado esperado
 
-Descreva o comportamento esperado.
+Descreva o comportamento correto.
 
-## Resultado atual
+## Resultado observado
 
-Descreva o comportamento observado.
+Descreva o que aconteceu, incluindo a mensagem exibida pela aplicação.
 
-## Contexto
+## Frequência
 
-Informe versão, sistema operacional e demais detalhes úteis.
+Informe se ocorre sempre, de forma intermitente ou apenas com uma base específica.
 
 ## Impacto nos dados
 
-Informe se o problema afeta histórico, rastreabilidade, colônias, caixas, inspeções ou movimentações.
+- [ ] Não afeta dados persistidos
+- [ ] Impede uma operação
+- [ ] Pode alterar ou perder histórico
+- [ ] Afeta backup, restauração ou arquivos
+- [ ] Ainda não determinado
+
+Explique o impacto e informe se existe backup recente. Não anexe banco, backup, caminhos pessoais ou documentos reais em uma Issue pública.
+
+## Evidências adicionais
+
+Inclua capturas ou logs sanitizados somente quando ajudarem a reprodução. Para vulnerabilidades, use o [canal privado de segurança](https://github.com/marcelositr/MeliponarioManager/security/policy).

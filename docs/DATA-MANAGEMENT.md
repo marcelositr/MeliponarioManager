@@ -49,15 +49,15 @@ O banco é criado por uma cópia consistente do SQLite. A árvore `media/` inclu
 - versão do schema;
 - nome do banco;
 - raiz da mídia;
-- inventário dos assets com caminho relativo, tamanho em bytes e checksum SHA-256.
+- inventário dos arquivos com caminho relativo, tamanho em bytes e hash SHA-256.
 
-O manifest torna possível distinguir um backup completo atual de um diretório arbitrário ou de formatos legados e detectar alterações nos assets mesmo quando o tamanho do arquivo continua igual.
+O manifest permite distinguir um backup completo atual de um diretório arbitrário ou de formatos legados e detectar alterações nos arquivos mesmo quando o tamanho continua igual.
 
 ## Validação da restauração
 
 Nenhum material é promovido diretamente para o estado ativo.
 
-Antes do staging, a aplicação valida:
+Antes de preparar a restauração, a aplicação valida:
 
 1. se o SQLite pode ser aberto;
 2. `PRAGMA integrity_check`;
@@ -81,19 +81,19 @@ A restauração não troca o banco enquanto a aplicação ainda está usando sua
 Fluxo:
 
 1. o conjunto é validado;
-2. banco e mídia são copiados para staging;
+2. banco e mídia são copiados para uma área de preparação;
 3. a aplicação informa que a restauração será aplicada na próxima abertura;
 4. no startup, o estado atual recebe uma cópia de segurança em `backups/pre-restore-<timestamp>/`;
-5. banco e mídia atuais são movidos para áreas de rollback;
+5. banco e mídia atuais são movidos para áreas de reversão;
 6. o conjunto staged é promovido;
 7. se uma etapa de troca falhar, o estado anterior é restaurado;
-8. somente após sucesso são removidos rollback e artefatos temporários.
+8. somente após sucesso são removidas as áreas de reversão e os artefatos temporários.
 
 Arquivos `-wal` e `-shm` remanescentes são removidos após a troca concluída.
 
 ## Exportação portátil em JSON
 
-O 5C adota uma exportação **estrutural, versionada e abrangente**.
+A exportação JSON é **estrutural, versionada e abrangente**.
 
 O JSON inclui:
 
@@ -101,12 +101,12 @@ O JSON inclui:
 - versão do aplicativo e schema;
 - IDs e relações persistidos;
 - tabelas de domínio e auditoria;
-- metadata de `inspection_photos`;
-- metadata de `managed_attachments`.
+- metadados de `inspection_photos`;
+- metadados de `managed_attachments`.
 
 Os bytes de fotos e anexos **não são incorporados**. O documento declara `assetsEmbedded: false`.
 
-Não existe importador JSON destrutivo no 5C. A recuperação integral permanece responsabilidade do backup completo. Essa separação evita prometer round-trip onde os binários não estão presentes.
+Não existe importador JSON destrutivo. A recuperação integral permanece responsabilidade do backup completo. Essa separação evita prometer uma restauração completa quando os binários não estão presentes.
 
 ## Relatórios e CSV
 
@@ -121,13 +121,13 @@ As finalidades são diferentes:
 
 CSV e impressão não são mecanismos de backup nem novas fontes de verdade. Eles são derivados somente dos registros persistidos.
 
-Os CSVs usam Save Dialog nativo e ficam no destino escolhido pelo usuário. Eles não passam automaticamente a integrar o armazenamento gerenciado.
+Os CSVs usam a caixa de diálogo nativa para salvar e ficam no destino escolhido pelo usuário. Eles não passam automaticamente a integrar o armazenamento gerenciado.
 
 Consulte [REPORTS.md](REPORTS.md).
 
 ## Diagnóstico de arquivos
 
-A área **Dados** possui uma verificação explícita de consistência entre SQLite e filesystem.
+A área **Dados** possui uma verificação explícita de consistência entre SQLite e sistema de arquivos.
 
 Ela examina fotos e anexos e informa:
 
@@ -136,13 +136,13 @@ Ela examina fotos e anexos e informa:
 - registros cujo arquivo está ausente;
 - arquivos físicos sob as áreas gerenciadas que não possuem referência no banco.
 
-O diagnóstico é somente leitura. Nenhum registro ou arquivo órfão é apagado automaticamente. Condições de permissão, destino não gravável, banco inválido e incompatibilidade de schema são tratadas pelos respectivos fluxos de filesystem, backup e restauração com mensagens públicas e sem promover estado inválido.
+O diagnóstico é somente leitura. Nenhum registro ou arquivo órfão é apagado automaticamente. Condições de permissão, destino não gravável, banco inválido e incompatibilidade de schema são tratadas pelos fluxos de sistema de arquivos, backup e restauração com mensagens públicas e sem promover estado inválido.
 
 ## Arquivo ausente
 
 Quando um asset registrado não é encontrado no disco:
 
-- a metadata permanece no SQLite;
+- os metadados permanecem no SQLite;
 - a UI informa **Arquivo não encontrado**;
 - ações que dependem do binário são desabilitadas;
 - o usuário pode usar diagnóstico ou backup para investigar/recuperar o estado.
@@ -161,14 +161,14 @@ Essa saída é derivada e não constitui fonte de verdade.
 - arquivos de mídia não viram BLOB no SQLite;
 - JSON, CSV e impressão não alteram o estado do domínio;
 - JSON não é apresentado como backup completo;
-- não existe importação JSON destrutiva no 5C;
+- não existe importação JSON destrutiva;
 - restauração não troca silenciosamente o estado ativo sem validação e cópia de segurança;
 - diagnóstico não apaga automaticamente arquivos ou registros;
 - CSV exportado não é tratado como anexo gerenciado.
 
 ## Validação de campo
 
-Os gates automatizados validam build, lint, testes e contratos de código. A validação real do desktop exige ambiente gráfico e interação com o sistema operacional e permanece uma etapa de campo explícita para tamanhos de janela, temas, teclado, pickers, thumbnails, abertura/revelação, arquivos ausentes, backup → restore após restart e persistência de `window-state`.
+As verificações automatizadas validam build, lint, testes e contratos de código. A validação real do desktop exige ambiente gráfico e interação com o sistema operacional. Testes manuais devem cobrir tamanhos de janela, temas, teclado, seletores nativos, prévias, abertura/revelação, arquivos ausentes, backup e restauração após reinício e persistência de `window-state`.
 
 ## Recomendações durante a fase experimental
 

@@ -106,7 +106,7 @@ Regras principais:
 - os formatos iniciais aceitos são JPG, PNG e WebP;
 - a exclusão protege o caminho para que apenas a área gerenciada de mídia possa ser afetada;
 - a interface pode carregar uma prévia limitada e sob demanda, sem transformar o binário em estado persistido do frontend;
-- ausência física do arquivo não autoriza apagar automaticamente a metadata histórica.
+- ausência física do arquivo não autoriza apagar automaticamente os metadados históricos.
 
 ### Anexo gerenciado de meliponário
 
@@ -130,8 +130,8 @@ Regras principais:
 - a aplicação copia a origem para `media/attachments/meliponaries/<meliponary-id>/`;
 - o nome físico é gerado por UUID, permitindo arquivos distintos com o mesmo nome original;
 - o caminho de origem não é mantido como dependência permanente;
-- a remoção afeta apenas a cópia gerenciada e sua metadata, nunca o arquivo original usado na importação;
-- a ausência física preserva a metadata e é exposta pelo diagnóstico de arquivos;
+- a remoção afeta apenas a cópia gerenciada e seus metadados, nunca o arquivo original usado na importação;
+- a ausência física preserva os metadados e é exposta pelo diagnóstico de arquivos;
 - paths absolutos, travessia de diretório e escapes da área `media/` são rejeitados.
 
 Consulte [FILES.md](FILES.md) para a política completa de armazenamento, diagnóstico, backup e abertura dos arquivos.
@@ -251,7 +251,7 @@ A fronteira backend normaliza valores recebidos de controles `datetime-local`, a
 
 Registros históricos existentes não são reescritos em massa. `created_at` técnico pode permanecer com a semântica histórica do schema; a política central se aplica principalmente aos timestamps de domínio usados para ordenação, contexto histórico e alertas.
 
-Campos sugeridos `next_inspection_at`, `next_feeding_at` e `next_maintenance_at` permanecem nesta fase e não podem anteceder o fato que os originou.
+Os campos sugeridos `next_inspection_at`, `next_feeding_at` e `next_maintenance_at` não podem anteceder o fato que os originou.
 
 ## Manejo retroativo e disponibilidade histórica
 
@@ -297,7 +297,7 @@ Consulte [AGENDA.md](AGENDA.md) para a política operacional completa.
 
 ## Contexto de meliponário na interface
 
-O meliponário ativo no shell é um **escopo de leitura e operação da interface**.
+O meliponário ativo na estrutura principal da interface é um **escopo de leitura e operação**.
 
 Selecionar uma unidade filtra Agenda, alertas, Dashboard, colônias, caixas e fluxos de manejo compatíveis. A seleção não altera a propriedade de entidades nem registra movimentação.
 
@@ -305,7 +305,7 @@ Fluxos que precisam conhecer destinos externos ao contexto, como transferência 
 
 ## Fichas operacionais
 
-As fichas de Colônia, Caixa e Meliponário são projeções de leitura construídas pelo backend e usadas como hubs de navegação.
+As fichas de Colônia, Caixa e Meliponário são projeções de leitura construídas pelo backend e usadas como pontos centrais de navegação.
 
 Elas consolidam somente dados já existentes em suas fontes:
 
@@ -313,7 +313,7 @@ Elas consolidam somente dados já existentes em suas fontes:
 - Caixa: estado físico, ocupação, manutenção, Agenda e fotos cujo contexto histórico pertence à caixa;
 - Meliponário: plantel, caixas, Agenda, atrasos, alertas, produção recente e arquivos administrativos associados ao próprio meliponário.
 
-Essas fichas não criam tabelas paralelas nem se tornam novas fontes de verdade. Arquivos exibidos no Record Center permanecem entidades de suporte, com metadata própria e binários gerenciados fora do SQLite.
+Essas fichas não criam tabelas paralelas nem se tornam novas fontes de verdade. Arquivos exibidos na ficha do meliponário permanecem entidades de suporte, com metadados próprios e binários gerenciados fora do SQLite.
 
 ## Visões derivadas
 

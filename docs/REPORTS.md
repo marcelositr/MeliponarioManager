@@ -147,7 +147,7 @@ Campos textuais potencialmente controlados pelo usuário que começam, depois de
 
 recebem prefixo `'` antes da codificação CSV. Campos numéricos gerados pelo sistema não passam por essa proteção, portanto números negativos legítimos não são alterados.
 
-A gravação usa o path escolhido pelo Save Dialog nativo, sem montar comandos de shell.
+A gravação usa o caminho escolhido pela caixa de diálogo nativa, sem montar comandos de shell.
 
 CSV é saída para planilha e análise humana. Ele **não substitui** backup nem JSON portável.
 
@@ -183,4 +183,4 @@ Consultas de relatório são somente leitura. Visualizar, imprimir ou exportar r
 - não há XLSX;
 - não há gráficos obrigatórios;
 - não há motor próprio de PDF;
-- arquivos CSV exportados são artefatos do usuário e não entram no futuro gerenciamento de anexos do Bloco 5C.
+- arquivos CSV exportados são artefatos do usuário e não são adicionados automaticamente aos anexos gerenciados.

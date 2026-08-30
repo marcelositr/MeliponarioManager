@@ -1,60 +1,108 @@
 # Operação do repositório no GitHub
 
-Este documento resume o fluxo usado para manter o MeliponarioManager produtivo sem adicionar burocracia desnecessária.
+Este documento define a rotina de manutenção do MeliponarioManager no GitHub. O objetivo é manter `main` integrável, rastreável e protegida sem criar burocracia desnecessária.
 
-## Fluxo cotidiano
+## Fluxo de trabalho
 
-1. registre bugs e melhorias como Issues quando precisarem de acompanhamento;
-2. crie uma branch curta a partir de `main`;
-3. desenvolva e valide uma única mudança coerente;
+1. registre em uma Issue o trabalho que precisa de acompanhamento;
+2. crie uma branch curta a partir da `main` atual;
+3. implemente uma única mudança coerente;
 4. abra um Pull Request para `main`;
-5. aguarde o CI obrigatório;
-6. integre por squash merge;
-7. remova a branch integrada.
+5. atualize a branch caso `main` avance;
+6. aguarde o status check obrigatório `check`;
+7. resolva conversas de revisão;
+8. integre por squash merge;
+9. remova a branch temporária.
 
-Branches temporárias não são linhas paralelas permanentes. O estado distribuível continua em `main`, e tags imutáveis identificam releases.
+Mudanças pequenas e autocontidas podem começar diretamente em uma branch e ser explicadas no Pull Request, sem Issue separada.
 
-## O que cada recurso resolve
+## Responsabilidade de cada recurso
 
-- **Issues:** backlog de bugs, melhorias e trabalho que precisa sobreviver a uma conversa;
-- **Pull Requests:** revisão, registro da decisão e porta de entrada protegida para `main`;
-- **Actions:** CI, testes, builds e bundles sem depender da máquina do mantenedor;
-- **Dependabot:** Pull Requests semanais para dependências npm, Cargo e GitHub Actions;
-- **Releases:** página pública, notas e instaladores associados a uma tag imutável;
-- **Ruleset:** impede exclusão, force push e integração fora do fluxo definido para `main`;
-- **Projects:** quadro opcional para organizar muitas Issues; não é necessário enquanto o backlog for pequeno.
+| Recurso | Uso |
+| --- | --- |
+| Issues | Bugs, melhorias e trabalho que precisa permanecer no backlog |
+| Pull Requests | Revisão, decisão técnica e porta de entrada para `main` |
+| Actions | CI, build dos bundles e evidência automatizada |
+| Dependabot | Atualizações semanais de npm, Cargo e GitHub Actions |
+| Releases | Notas e instaladores associados a uma tag imutável |
+| Ruleset | Proteção da branch padrão e exigência do fluxo de integração |
+| Projects | Organização opcional quando o volume do backlog justificar |
 
-## CI e reprodutibilidade
+## Branches e Pull Requests
 
-Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` fazem parte do código da aplicação. O CI usa `npm ci` e comandos Cargo com `--locked`, impedindo que uma validação resolva dependências diferentes das revisadas no Pull Request.
+Use branches temporárias com os prefixos definidos em [CONTRIBUTING.md](../CONTRIBUTING.md). Não mantenha branches de desenvolvimento paralelas por tempo indeterminado.
 
-Execuções antigas de CI no mesmo Pull Request são canceladas quando um novo commit chega. Builds de release não são cancelados automaticamente.
+O Pull Request deve declarar:
 
-## Configuração recomendada em Settings
+- problema e solução;
+- validações executadas;
+- impacto no domínio, schema e dados;
+- documentação alterada;
+- limitações ou riscos conhecidos.
 
-O ruleset da branch padrão deve manter:
+O título deve ser adequado para virar a mensagem principal do squash commit.
 
-- Pull Request obrigatório;
-- apenas squash merge;
+## Proteção de `main`
+
+O ruleset esperado para a branch padrão exige:
+
+- Pull Request antes da atualização de `main`;
+- status check `check` do workflow `CI`;
+- branch atualizada com o topo de `main`;
+- resolução das conversas de revisão;
 - histórico linear;
-- resolução obrigatória das conversas de revisão;
-- bloqueio de exclusão e force push;
-- status check `check` do workflow `CI` obrigatório antes do merge.
+- bloqueio de exclusão e force push.
 
-Nas configurações gerais do repositório, mantenha apenas squash merge e ative:
+A criação de uma nova branch pode ser permitida sem status prévio; a proteção é aplicada quando ela tenta atualizar a referência protegida.
 
-- exclusão automática da branch depois do merge;
-- permissão para atualizar uma branch de Pull Request atrasada em relação a `main`.
+Nas configurações gerais do repositório:
 
-Na área **Security**, habilite quando disponível:
+- permita apenas squash merge;
+- sugira a atualização de branches atrasadas;
+- exclua automaticamente a branch depois do merge;
+- mantenha auto-merge desativado enquanto as atualizações ainda exigirem avaliação manual frequente.
+
+Alterações nessas regras devem ser refletidas neste documento.
+
+## CI e dependências reproduzíveis
+
+Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. O CI usa `npm ci` e comandos Cargo com `--locked`; manifests e lockfiles divergentes causam falha em vez de resolver versões não revisadas.
+
+O workflow `CI` roda em Pull Requests e pushes para `main`. Novos commits cancelam execuções obsoletas da mesma referência. Builds de release não são cancelados automaticamente.
+
+## Dependabot
+
+O Dependabot abre grupos semanais para:
+
+- dependências npm;
+- crates Cargo;
+- GitHub Actions.
+
+### Triagem
+
+1. confirme se a atualização é `PATCH`, `MINOR` ou `MAJOR`;
+2. leia mudanças incompatíveis da dependência quando a atualização for relevante;
+3. confira os manifests, lockfiles e o diff gerado;
+4. use o CI como evidência, não como substituto da revisão;
+5. faça squash merge apenas quando o impacto estiver entendido.
+
+Se o CI falhar por incompatibilidade real, adapte o código na própria branch e adicione cobertura para o comportamento corrigido. Depois de uma alteração manual, o Dependabot deixa de garantir a manutenção automática de conflitos nessa branch.
+
+Comandos como `@dependabot recreate` podem sobrescrever correções manuais. Use-os somente quando descartar essas alterações for intencional.
+
+## Segurança
+
+Mantenha habilitados, quando disponíveis:
 
 - Dependency graph;
 - Dependabot alerts;
 - Dependabot security updates;
 - private vulnerability reporting.
 
+Vulnerabilidades não devem ser discutidas com detalhes exploráveis em Issues públicas. Consulte [SECURITY.md](../SECURITY.md).
+
 ## Releases
 
-O procedimento completo está em [RELEASES.md](RELEASES.md). Em resumo: a versão é preparada por Pull Request, integrada em `main`, marcada por uma tag `v0.x.y` e transformada em GitHub Pre-release depois da revisão dos bundles.
+A versão é preparada em Pull Request, integrada em `main`, marcada por uma tag `v0.x.y` e publicada como GitHub Pre-release depois da revisão dos bundles.
 
-Nunca mova uma tag pública para esconder uma falha. Corrija em uma nova versão.
+Nunca mova uma tag pública para ocultar falha de empacotamento ou de produto. Prepare uma nova versão conforme [RELEASES.md](RELEASES.md).

@@ -2,7 +2,7 @@ blank_issues_enabled: false
 
 contact_links:
   - name: Documentação do projeto
-    url: https://github.com/marcelositr/MeliponarioManager/tree/main/docs
+    url: https://github.com/marcelositr/MeliponarioManager/blob/main/docs/README.md
     about: Consulte o domínio, os fluxos operacionais e as políticas do projeto antes de abrir uma issue.
   - name: Relatar vulnerabilidade
     url: https://github.com/marcelositr/MeliponarioManager/security/policy
