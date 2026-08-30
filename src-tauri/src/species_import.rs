@@ -176,21 +176,24 @@ fn build_preview(
         .into_iter()
         .zip(statuses)
         .take(MAX_PREVIEW_ROWS)
-        .map(|(row, status)| SpeciesImportPreviewRow {
-            row_number: row.row_number,
-            common_name: row.common_name,
-            scientific_name: row.scientific_name,
-            genus: row.genus,
-            status: match status {
-                RowStatus::New => "new".to_owned(),
-                RowStatus::Duplicate => "duplicate".to_owned(),
-                RowStatus::Invalid(_) => "invalid".to_owned(),
-            },
-            message: match status {
-                RowStatus::Invalid(message) => Some(message),
-                RowStatus::Duplicate => Some("Já existe no catálogo ou está repetida no CSV.".to_owned()),
-                RowStatus::New => None,
-            },
+        .map(|(row, status)| {
+            let (status, message) = match status {
+                RowStatus::New => ("new".to_owned(), None),
+                RowStatus::Duplicate => (
+                    "duplicate".to_owned(),
+                    Some("Já existe no catálogo ou está repetida no CSV.".to_owned()),
+                ),
+                RowStatus::Invalid(message) => ("invalid".to_owned(), Some(message)),
+            };
+
+            SpeciesImportPreviewRow {
+                row_number: row.row_number,
+                common_name: row.common_name,
+                scientific_name: row.scientific_name,
+                genus: row.genus,
+                status,
+                message,
+            }
         })
         .collect();
 
