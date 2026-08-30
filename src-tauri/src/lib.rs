@@ -37,6 +37,7 @@ mod reversals;
 mod stage4_migration_tests;
 #[cfg(test)]
 mod stage5c_migration_tests;
+mod species_import;
 mod time;
 mod timeline;
 mod transport;
@@ -105,6 +106,8 @@ pub fn run() {
             attachments::list_meliponary_attachments,
             attachments::update_meliponary_attachment,
             attachments::remove_meliponary_attachment,
+            species_import::analyze_species_csv,
+            species_import::import_species_csv,
             commands::list_alerts,
             commands::create_meliponary,
             commands::list_meliponaries,
