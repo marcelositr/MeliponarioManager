@@ -1,0 +1,62 @@
+name: Publish user wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wiki/**"
+      - ".github/workflows/wiki.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-user-wiki
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Publish Wiki
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Verify Wiki initialization
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if ! git ls-remote "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" >/dev/null 2>&1; then
+            echo "::error::The GitHub Wiki is enabled but has not been initialized. Create the first Wiki page once in the GitHub UI and run this workflow again."
+            exit 1
+          fi
+
+      - name: Clone Wiki repository
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git clone \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" \
+            .wiki-publish
+
+      - name: Synchronize user documentation
+        run: |
+          rsync -a --delete --exclude='.git/' wiki/ .wiki-publish/
+
+      - name: Publish changes
+        working-directory: .wiki-publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "Wiki is already up to date."
+            exit 0
+          fi
+
+          git commit -m "docs: sync user wiki from ${GITHUB_SHA}"
+          git push
