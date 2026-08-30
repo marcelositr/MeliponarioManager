@@ -17,6 +17,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Versiona `package-lock.json` e `src-tauri/Cargo.lock` para tornar a resolução de dependências reproduzível.
 - CI e pipeline de bundles passam a usar `npm ci`; validações Cargo passam a exigir o lockfile com `--locked`.
 - CI recebe permissões mínimas, cancelamento de execuções obsoletas e gatilho de Pull Request limitado à branch `main`.
+- Validação de branches e Pull Requests fica focada em build/testes rápidos, enquanto a `main` recebe uma validação completa separada com build Tauri desktop.
 - Checkout dos workflows deixa de persistir credenciais no workspace dos jobs.
 - GitHub Actions de checkout, Node.js e upload de artefatos são atualizadas para a série `v7`.
 - TypeScript é atualizado de `6.0.3` para `7.0.2`.
@@ -26,6 +27,8 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 ### Fixed
 
 - Formatação do digest SHA-256 é adaptada à API do `sha2` 0.11 e recebe teste de regressão com valor conhecido.
+- Exportação CSV passa a declarar explicitamente a permissão Tauri necessária para o diálogo nativo de salvamento.
+- Erros internos de SQLite/SQLx deixam de atravessar a fronteira IPC como mensagens técnicas, preservando mensagens de validação úteis ao usuário.
 
 ## [0.8.0] - 2026-08-30
 
