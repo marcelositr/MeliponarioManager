@@ -1,74 +1,120 @@
 # Interface desktop
 
-A interface da série `0.8.x` segue uma interpretação de **Material 3 com densidade enterprise e comportamento desktop**. O objetivo é parecer um sistema de gestão usado diariamente, não uma página web ampliada dentro do WebView.
+A interface combina princípios de Material 3, densidade de sistemas de gestão e comportamento desktop. O objetivo é oferecer operação diária compacta, legível e previsível dentro da WebView do Tauri.
+
+## Estrutura principal
+
+O shell contém:
+
+1. menu superior;
+2. barra de contexto, com seletor de meliponário;
+3. sidebar agrupada e recolhível;
+4. workspace principal rolável;
+5. barra de status.
+
+A sidebar organiza:
+
+- Operação;
+- Plantel;
+- Manejo;
+- Rastreabilidade;
+- Administração.
+
+Fotos de inspeção permanecem acessíveis no fluxo de Manutenção e nas fichas contextuais; não possuem item global próprio na navegação.
 
 ## Princípios visuais
 
-- superfícies hierarquizadas por borda, contraste e elevação discreta;
-- tipografia de sistema, compacta e legível;
-- controles com altura reduzida e espaçamento previsível;
-- tabelas para conjuntos de registros e cards apenas para indicadores e resumos;
-- cor de identidade em âmbar/ocre sóbrio;
-- vermelho reservado a erro, criticidade e confirmação destrutiva;
-- ícones SVG internos com o mesmo traço, sem mistura de emoji ou bibliotecas visuais.
+- hierarquia por borda, contraste e elevação discreta;
+- tipografia do sistema;
+- controles compactos e com espaçamento previsível;
+- tabelas para coleções de registros;
+- cards para indicadores e resumos;
+- âmbar/ocre como identidade;
+- vermelho reservado a erro, criticidade e ação destrutiva;
+- ícones SVG internos com linguagem consistente.
 
 ## Temas
 
-Há três preferências: `light`, `dark` e `system`. A preferência fica no `localStorage` e todo o aplicativo muda por tokens CSS compartilhados. O modo escuro usa grafite e cinzas profundos, sem preto absoluto ou cores neon.
+Preferências disponíveis:
 
-Os temas possuem contratos explícitos de foreground e background. Em particular, superfícies, textos primário/secundário/muted, ações primárias e ações destrutivas usam tokens semânticos próprios para manter legibilidade em ambos os modos.
+- `light`;
+- `dark`;
+- `system`.
 
-## Shell
+Tema, estado da sidebar e meliponário ativo são preferências locais da interface. O plugin `tauri-plugin-window-state` mantém o estado da janela separadamente.
 
-O shell é composto por:
+Cores devem usar tokens semânticos, incluindo `surface`, `text-primary`, `primary`, `danger`, `warning`, `success`, `info` e `focus-ring`. Componentes não devem depender de cores literais para comunicar estado.
 
-1. menu superior desktop;
-2. barra de contexto da tela, incluindo o seletor de meliponário;
-3. sidebar semântica e recolhível;
-4. workspace principal rolável;
-5. status bar inferior.
+## Contexto de meliponário
 
-A sidebar agrupa Operação, Plantel, Manejo, Rastreabilidade e Administração. Fotos deixam de ser uma seção principal e permanecem acessíveis de forma transitória dentro de Manutenção até a consolidação das fichas completas.
+O seletor global oferece todos os meliponários ou uma unidade específica.
 
-## Meliponário ativo
+O contexto filtra módulos que possuem contrato confiável para isso, como Agenda, alertas, colônias, caixas e fluxos de manejo. Catálogos necessários a operações entre unidades continuam completos; uma transferência precisa enxergar destinos fora do meliponário ativo.
 
-O shell mantém um contexto global visual com `Todos os meliponários` ou uma unidade específica. A preferência é persistida localmente. Nesta etapa o contexto **não força filtros silenciosos** em módulos cujo backend ainda não oferece filtragem confiável; portanto o usuário sempre enxerga quando está em visão consolidada sem risco de dados desaparecerem apenas na interface.
+Quando uma projeção consolidada não pode ser corretamente filtrada, a interface informa a limitação em vez de misturar números globais com o contexto selecionado.
+
+Selecionar um contexto não altera dados de domínio.
+
+## Navegação
+
+`WorkspaceRouter` escolhe a página ativa. Atalhos contextuais usam `NavigationIntent` para transportar, quando necessário:
+
+- tarefa;
+- colônia;
+- caixa;
+- meliponário;
+- intenção de criar ou abrir.
+
+Uma troca manual de meliponário remove intents incompatíveis, evitando aplicar contexto antigo sobre a nova seleção.
 
 ## Dialogs e confirmações
 
-Cadastros e operações principais deixam de ocupar permanentemente as telas e passam a abrir em dialogs reutilizáveis. Dialogs aceitam `Esc`, bloqueiam o fundo e não fecham por clique externo por padrão. Confirmações destrutivas descrevem a consequência antes da ação.
+Dialogs reutilizáveis:
 
-O ciclo de foco é inicializado uma vez por abertura do dialog. Renderizações normais provocadas por edição de campos não reinicializam autofocus. `Tab` e `Shift+Tab` permanecem contidos no dialog superior e, ao fechar, o foco retorna ao controle anterior quando ainda estiver disponível.
+- bloqueiam interação com o fundo;
+- não fecham por clique externo por padrão;
+- aceitam `Esc`;
+- mantêm `Tab` e `Shift+Tab` no dialog superior;
+- restauram o foco anterior ao fechar;
+- não reinicializam autofocus durante edição normal.
 
-## Fichas internas
+Confirmações destrutivas devem explicar a consequência da operação. Ações administrativas que exigem motivo usam um dialog próprio e não prompts genéricos do navegador.
 
-`RecordWorkspace` estabelece o padrão para abrir uma entidade em área interna. A primeira aplicação é a ficha-resumo da colônia, usando somente dados já existentes. Novas abas operacionais serão adicionadas quando houver conteúdo real, evitando telas vazias ou promessas de funcionalidade futura.
+## Fichas operacionais
 
-## Responsividade desktop
+`RecordWorkspace` hospeda fichas de Colônia, Caixa e Meliponário. As fichas consolidam projeções do backend e oferecem navegação para fluxos especializados.
 
-O layout continua desktop-first, mas não depende de uma resolução única.
-
-- `1024x768` ou superior é a faixa de primeira classe, com composição completa;
-- `800x600` é compatibilidade operacional: todas as operações essenciais devem permanecer acessíveis, mesmo com composição mais compacta;
-- Full HD, 1440p e superiores preservam largura máxima de conteúdo quando isso melhora leitura, em vez de esticar painéis indefinidamente;
-- a janela Tauri pode ser reduzida até `760x520` como margem de resiliência, sem transformar essa dimensão em alvo de primeira classe.
-
-A linguagem de composição usa três estados principais: wide acima de `1199px`, medium entre `900px` e `1199px`, e compact abaixo de `900px`. Alturas reduzidas também recebem ajustes próprios para manter headers, corpos roláveis e ações de dialogs acessíveis.
-
-A sidebar recolhe automaticamente no estado compact. Grids e formulários reduzem colunas conforme o espaço disponível, toolbars e grupos de ações aceitam quebra de linha e tabelas podem ter scroll horizontal local. A aplicação inteira não deve exigir scroll horizontal para acessar operações.
+Elas não criam estado paralelo e não devem exibir abas vazias ou funcionalidades prometidas mas ainda inexistentes.
 
 ## Menus e seleção de texto
 
-Menus de ações de registros são superfícies flutuantes ancoradas ao controle, renderizadas fora de containers de tabela para não deslocar linhas nem serem cortadas por `overflow` local. A posição é recalculada para permanecer dentro da viewport.
+Menus de ações são superfícies flutuantes ancoradas ao controle. Eles ficam fora de containers com `overflow` para não deslocar ou cortar linhas da tabela e reposicionam-se dentro da viewport.
 
-A superfície comum da aplicação usa comportamento de seleção típico de software desktop. Inputs, textareas, conteúdo editável e regiões explicitamente marcadas como `.selectable` continuam permitindo seleção e cópia.
+A superfície geral segue o comportamento de seleção de um aplicativo desktop. Inputs, textareas, conteúdo editável e regiões `.selectable` continuam permitindo seleção e cópia.
 
-## Estrutura de estilos
+## Responsividade
 
-- `src/styles.css`: tokens, temas, shell, primitives compartilhados, dialogs, action groups e responsividade global;
-- `src/styles/enterprise.css`: fichas, estados semânticos e componentes enterprise;
-- `src/styles/operations.css`: ajustes dos workspaces operacionais;
-- `src/styles/reports.css`: composição e impressão dos relatórios;
-- `src/styles/files.css`: arquivos gerenciados, diagnósticos e composição de fotos.
+Faixas adotadas:
 
-As cores funcionais são referenciadas por tokens como `surface`, `surface-secondary`, `surface-raised`, `border`, `text-primary`, `text-secondary`, `text-muted`, `primary`, `on-primary`, `danger`, `on-danger`, `warning`, `success`, `info` e `focus-ring`.
+| Faixa | Comportamento |
+| --- | --- |
+| Acima de `1199px` | Composição ampla |
+| `900px` a `1199px` | Composição intermediária |
+| Abaixo de `900px` | Composição compacta e sidebar recolhida |
+| `1024x768` ou superior | Alvo principal |
+| `800x600` | Compatibilidade operacional |
+| Mínimo da janela `760x520` | Margem de resiliência |
+
+Toolbars e grupos de ação podem quebrar linha. Tabelas usam rolagem horizontal local quando necessário; o shell completo não deve exigir rolagem horizontal para alcançar operações essenciais.
+
+## Estilos
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `src/styles.css` | Tokens, temas, shell, primitives, dialogs e responsividade global |
+| `src/styles/enterprise.css` | Fichas, estados semânticos e componentes de gestão |
+| `src/styles/operations.css` | Workspaces operacionais |
+| `src/styles/reports.css` | Relatórios e impressão |
+| `src/styles/files.css` | Arquivos, diagnóstico e fotos |
+
+Mudanças visuais devem ser testadas em temas claro e escuro, com teclado e em pelo menos uma faixa compacta e uma faixa ampla.

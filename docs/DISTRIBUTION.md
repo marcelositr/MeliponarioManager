@@ -1,178 +1,113 @@
 # Distribuição desktop
 
-O MeliponarioManager permanece experimental na série `0.x`. Os bundles desta fase são destinados a teste e validação e são publicados como **GitHub Pre-release**.
+O pipeline de distribuição gera bundles experimentais para Linux e Windows. Versões públicas são associadas a tags `v0.x.y` e publicadas como GitHub Pre-release.
 
-## Validação em Pull Request
+## Validação contínua
 
-O workflow `CI` valida a aplicação antes da integração em `main`.
+O workflow `CI` roda em Pull Requests para `main` e em pushes para `main`.
 
-A sequência geral inclui:
+O job obrigatório `check` executa:
 
-- checkout do repositório;
-- dependências de sistema necessárias ao Tauri em Linux;
-- Node.js 22;
-- Rust 1.94.1 com `rustfmt` e `clippy`;
-- instalação das dependências do frontend;
-- geração dos ícones desktop a partir de `assets/app-icon.svg`;
-- validação da configuração e dos arquivos de ícone usados pelos bundles;
-- build React/TypeScript;
-- `cargo fmt --all -- --check`;
-- `cargo check`;
-- `cargo clippy --all-targets -- -D warnings`;
-- `cargo test`;
-- build Tauri com `--no-bundle` para validar o binário desktop sem produzir instaladores.
+1. validação dos metadados de versão;
+2. instalação reproduzível com `npm ci`;
+3. geração e validação dos ícones;
+4. build React/TypeScript;
+5. testes da interface;
+6. `cargo fmt --all -- --check`;
+7. `cargo check --locked`;
+8. `cargo clippy --locked --all-targets -- -D warnings`;
+9. `cargo test --locked`;
+10. build Tauri com `--no-bundle`.
 
-Rust também é fixado em `1.94.1` por `rust-toolchain.toml`.
+O ambiente Linux usa Node.js 22 e Rust 1.94.1. A mesma versão Rust está fixada em `rust-toolchain.toml`.
 
-## Bundles Linux e Windows
+## Workflow de bundles
 
-O workflow `Build desktop bundles` pode ser executado manualmente na aba Actions ou disparado por uma tag de versão.
+O workflow `Build desktop bundles` aceita:
 
-Plataformas atuais:
+- execução manual por `workflow_dispatch`;
+- execução automática para tags `v0.*`.
 
-- Linux `ubuntu-22.04`: `deb` e AppImage;
-- Windows `windows-latest`: NSIS e MSI.
+Matriz atual:
 
-Em execução manual, os bundles são anexados à própria execução do GitHub Actions como artefatos para teste.
+| Plataforma | Runner | Formatos |
+| --- | --- | --- |
+| Linux | `ubuntu-22.04` | `.deb` e AppImage |
+| Windows | `windows-latest` | NSIS e MSI |
 
-## Troubleshooting Linux · WebKitGTK
+Em execução manual, os bundles são anexados à execução como artefatos de teste. Em execução por tag, também são anexados à GitHub Release em draft.
 
-Em algumas combinações específicas de driver gráfico, WebKitGTK e ambiente desktop, a janela do aplicativo pode apresentar falha ou corrupção de renderização. Em teste real foi confirmado que iniciar o aplicativo com as variáveis abaixo pode contornar esse problema:
+## Versão e notas
 
-```bash
-GIO_MODULE_DIR= WEBKIT_DISABLE_DMABUF_RENDERER=1 <comando-do-aplicativo>
-```
-
-Esse é um **workaround**, não uma configuração padrão do MeliponarioManager.
-
-- `GIO_MODULE_DIR=` está intencionalmente vazio e evita o carregamento de módulos GIO problemáticos naquele processo;
-- `WEBKIT_DISABLE_DMABUF_RENDERER=1` desativa o caminho DMABUF do renderer WebKitGTK;
-- as variáveis devem ser usadas somente quando houver problema de renderização compatível com esse cenário;
-- não devem ser exportadas globalmente nem impostas a todos os usuários;
-- se a aplicação renderiza normalmente, não há motivo para ativá-las.
-
-## Tags de distribuição
-
-Tags públicas seguem a convenção:
-
-```text
-v0.x.y
-```
-
-Exemplo:
-
-```text
-v0.7.1
-```
-
-O workflow de bundles reage a tags `v0.*`.
-
-Antes de criar uma tag, a versão precisa estar sincronizada em:
+Antes da tag, mantenha sincronizados:
 
 - `package.json`;
 - `src-tauri/Cargo.toml`;
 - `src-tauri/tauri.conf.json`.
 
-A tag deve apontar para um commit já integrado em `main` e com CI verde.
+A tag deve usar `v0.x.y` e apontar para `main`. O workflow compara o nome da tag com os metadados do aplicativo.
 
-Tags publicadas são tratadas como imutáveis. Se uma tentativa de distribuição revelar um erro de empacotamento após a criação da tag, a correção segue em um novo `PATCH` em vez de reescrever a tag anterior.
-
-## Notas de release versionadas
-
-Cada versão distribuída deve possuir um arquivo correspondente em:
+As notas devem existir em:
 
 ```text
-docs/releases/v0.x.y.md
+docs/releases/<tag>.md
 ```
 
-Exemplo:
-
-```text
-docs/releases/v0.7.1.md
-```
-
-Durante um build disparado por tag, o workflow carrega esse arquivo e usa seu conteúdo como descrição da GitHub Release. Se as notas correspondentes à tag estiverem ausentes, o build de release deve falhar em vez de publicar uma descrição improvisada.
-
-## GitHub Release
-
-Para tags `v0.*`, o pipeline cria ou atualiza uma release com:
-
-- título `MeliponarioManager <tag>`;
-- conteúdo vindo de `docs/releases/<tag>.md`;
-- `Draft` habilitado inicialmente;
-- `Pre-release` habilitado;
-- bundles Linux e Windows anexados à mesma release.
-
-O draft permite revisar título, notas e arquivos antes da publicação manual da pré-release.
+A ausência desse arquivo interrompe o build de release. O conteúdo é usado diretamente no corpo da GitHub Release.
 
 ## Ícones
 
-A fonte oficial dos ícones desktop é:
+A fonte oficial do ícone é:
 
 ```text
 assets/app-icon.svg
 ```
 
-O script `npm run icons` executa `tauri icon` para gerar os formatos exigidos pelas plataformas antes dos builds e bundles.
+`npm run icons` gera os formatos de plataforma em `src-tauri/icons/`. A configuração `bundle.icon` de `src-tauri/tauri.conf.json` declara os PNGs, `.ico` e `.icns` consumidos pelos empacotadores.
 
-Além de gerar os arquivos, `src-tauri/tauri.conf.json` precisa declarar explicitamente os ícones usados pelo bundler:
-
-```json
-"bundle": {
-  "active": true,
-  "targets": "all",
-  "icon": [
-    "icons/32x32.png",
-    "icons/128x128.png",
-    "icons/128x128@2x.png",
-    "icons/icon.icns",
-    "icons/icon.ico"
-  ]
-}
-```
-
-Essa declaração é necessária porque diferentes empacotadores exigem formatos específicos. O AppImage precisa localizar um ícone PNG quadrado e o MSI/WiX precisa localizar um `.ico`.
-
-O comando `npm run bundle:check` valida tanto a lista de `bundle.icon` quanto a existência dos arquivos gerados. O CI e o workflow de bundles executam essa verificação imediatamente após `npm run icons`.
-
-Arquivos gerados em `src-tauri/icons/` não são tratados como fonte de design independente.
-
-### Incidente da tag `v0.7.0`
-
-A primeira tentativa de distribuição confirmou que apenas gerar os ícones não era suficiente. O `.deb` e o NSIS chegaram a ser produzidos, mas o AppImage falhou por não encontrar um ícone quadrado configurado e o MSI/WiX falhou por não encontrar um `.ico` declarado.
-
-A tag `v0.7.0` foi preservada sem reescrita. A correção foi preparada como `v0.7.1`, com configuração explícita e validação preventiva no CI.
-
-## Assinatura Windows
-
-Os instaladores Windows ainda não possuem certificado de assinatura de código configurado.
-
-Enquanto essa limitação existir:
-
-- builds Windows devem ser tratados como experimentais;
-- a release deve informar claramente que os instaladores não são assinados;
-- credenciais futuras de assinatura devem ser armazenadas apenas em GitHub Secrets ou mecanismo equivalente;
-- chaves e certificados privados nunca devem ser adicionados ao repositório.
+`npm run bundle:check` valida a configuração e a presença dos arquivos gerados. Arquivos em `src-tauri/icons/` não são fontes de design independentes.
 
 ## Dependências reproduzíveis
 
-`package-lock.json` e `src-tauri/Cargo.lock` são versionados e gerados pelas ferramentas oficiais.
+`package-lock.json` e `src-tauri/Cargo.lock` são versionados. Os workflows usam `npm ci` e comandos Cargo com `--locked`.
 
-Os workflows usam `npm ci` e comandos Cargo com `--locked`. Assim, um build falha se os manifests e os lockfiles estiverem dessincronizados, em vez de resolver silenciosamente dependências diferentes das revisadas.
+Atualizações devem ser feitas pelas ferramentas dos respectivos ecossistemas. Não edite lockfiles manualmente.
 
-Atualizações de dependências devem incluir os lockfiles correspondentes. Eles não devem ser montados ou corrigidos manualmente.
+## Diagnóstico no Linux
 
-## Fluxo recomendado
+Algumas combinações de driver gráfico, ambiente desktop e WebKitGTK podem causar falha ou corrupção de renderização. O seguinte workaround pode ser testado somente para confirmar esse cenário:
 
-1. concluir a alteração em uma branch curta;
-2. atualizar documentação e changelog quando necessário;
-3. abrir Pull Request para `main`;
-4. aguardar CI verde;
-5. integrar a PR;
-6. confirmar a versão e as notas em `docs/releases/`;
-7. criar a tag `v0.x.y` a partir de `main`;
-8. aguardar os bundles Linux e Windows;
-9. revisar a release em draft;
-10. publicar como Pre-release.
+```bash
+GIO_MODULE_DIR= WEBKIT_DISABLE_DMABUF_RENDERER=1 <comando-do-aplicativo>
+```
 
-A política de versionamento e publicação está detalhada em [RELEASES.md](RELEASES.md).
+- `GIO_MODULE_DIR=` evita carregar módulos GIO problemáticos naquele processo;
+- `WEBKIT_DISABLE_DMABUF_RENDERER=1` desativa o caminho DMABUF do WebKitGTK;
+- não exporte essas variáveis globalmente;
+- não aplique o workaround quando a renderização funciona normalmente.
+
+Esse ajuste não corrige falhas de build, dependências ausentes ou problemas gerais da aplicação.
+
+## Assinatura no Windows
+
+Nenhum certificado de assinatura de código está configurado.
+
+Enquanto isso:
+
+- instaladores Windows devem ser tratados como experimentais;
+- a limitação deve aparecer nas notas de release;
+- certificados e chaves privadas devem permanecer fora do repositório;
+- uma integração futura deve usar GitHub Secrets ou mecanismo equivalente.
+
+## Checklist de publicação
+
+1. integrar o Pull Request de release em `main`;
+2. confirmar versão, changelog e notas;
+3. criar a tag no commit aprovado;
+4. aguardar todos os jobs da matriz;
+5. baixar e inspecionar os artefatos;
+6. conferir o draft da GitHub Release;
+7. realizar teste manual mínimo dos bundles;
+8. publicar como Pre-release.
+
+A política completa está em [RELEASES.md](RELEASES.md).

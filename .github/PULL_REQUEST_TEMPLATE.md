@@ -1,37 +1,59 @@
-## O que mudou
+## Resumo
 
-Descreva objetivamente a alteração.
+Descreva objetivamente a mudança.
 
-## Por que
+## Motivação
 
-Explique o problema ou necessidade atendida.
+Explique o problema ou a necessidade atendida.
 
-## Como foi validado
+## Solução
 
-- [ ] Build frontend
-- [ ] `cargo fmt --check`
+Registre as decisões relevantes e os limites desta alteração.
+
+## Impacto
+
+- Domínio:
+- Schema ou migrations:
+- Dados existentes:
+- Interface:
+- Compatibilidade:
+- Riscos conhecidos:
+
+Use `Não se aplica` quando necessário.
+
+## Validação
+
+- [ ] `npm run version:check`
+- [ ] `npm ci`
+- [ ] `npm run icons && npm run bundle:check`
+- [ ] `npm run build`
+- [ ] `npm run test:ui`
+- [ ] `cargo fmt --all -- --check`
 - [ ] `cargo check --locked`
 - [ ] `cargo clippy --locked --all-targets -- -D warnings`
 - [ ] `cargo test --locked`
-- [ ] Build Tauri sem bundle
+- [ ] Build Tauri com `--no-bundle`
 - [ ] Teste manual
-- [ ] Não aplicável
+- [ ] Itens não executados estão explicados abaixo
 
-## Impacto no domínio
+### Observações da validação
 
-- [ ] Não altera o modelo de domínio
-- [ ] Altera o modelo de domínio e `docs/DOMAIN.md` foi atualizado
+Informe ambiente, comandos omitidos e motivo de qualquer falha conhecida.
 
-## Impacto em versão ou release
+## Documentação e release
 
-- [ ] Não exige atualização de changelog
-- [ ] `CHANGELOG.md` foi atualizado
-- [ ] É preparação de release e inclui `docs/releases/<tag>.md`
-- [ ] Versões em `package.json`, `Cargo.toml` e `tauri.conf.json` estão sincronizadas
+- [ ] Documentação temática atualizada
+- [ ] `docs/ARCHITECTURE.md` atualizado quando a estrutura mudou
+- [ ] `CHANGELOG.md` atualizado quando relevante
+- [ ] Notas e versões atualizadas quando esta é uma preparação de release
+- [ ] Não há impacto documental ou de release
 
-## Checklist
+## Checklist final
 
-- [ ] A alteração tem escopo claro
-- [ ] Não remove histórico ou rastreabilidade indevidamente
-- [ ] Documentação foi atualizada quando necessário
-- [ ] O CI esperado está verde ou a falha está explicada
+- [ ] O escopo é único e claro
+- [ ] O histórico não é removido indevidamente
+- [ ] Operações relacionadas permanecem transacionais
+- [ ] Migrations já integradas não foram alteradas
+- [ ] Erros públicos não expõem detalhes internos ou dados pessoais
+- [ ] A branch está atualizada com `main`
+- [ ] O status check obrigatório está aprovado

@@ -1,181 +1,92 @@
-# Roadmap experimental
+# Roadmap
 
-O MeliponarioManager permanecerá em desenvolvimento contínuo na série `0.x`.
+O roadmap registra direções de evolução do MeliponarioManager. Ele não é promessa de prazo, sequência obrigatória de versões nem fonte de verdade sobre funcionalidades já entregues.
 
-Este roadmap registra a evolução planejada do produto, mas **não representa uma sequência de releases históricas publicadas**. Antes da primeira distribuição pública, o projeto percorreu internamente vários marcos de escopo sem criar tags intermediárias.
+O comportamento atual está documentado nos manuais temáticos. O histórico de entregas está no [changelog](../CHANGELOG.md) e nas [notas de release](releases/).
 
-A primeira versão preparada para distribuição pública consolidou esse trabalho em `v0.7.0` como GitHub Pre-release. A `v0.8.0` consolida o ciclo seguinte de robustez operacional, interface desktop, Agenda, relatórios e gerenciamento local de arquivos.
+## Base atual
 
-## Escopo consolidado até v0.7.0
+A linha `0.8.x` oferece uma aplicação desktop local-first com:
 
-### Marco 0.1 - Núcleo utilizável
+- cadastros de meliponários, espécies, colônias e caixas;
+- inspeções, alimentação, produção, eventos e manutenção;
+- ocupações, divisões, genealogia, movimentações e ciclo de vida;
+- Agenda, alertas, Dashboard e fichas operacionais;
+- relatórios, CSV e impressão;
+- fotos e anexos gerenciados;
+- backup completo, restauração validada e exportação estrutural;
+- auditoria, correções, anulações e reversões;
+- bundles experimentais para Linux e Windows.
 
-**Concluído no desenvolvimento pré-release.**
+Essa lista estabelece o ponto de partida. Detalhes e limitações pertencem aos documentos temáticos.
 
-- meliponários;
-- espécies;
-- colônias;
-- caixas físicas;
-- inspeções;
-- eventos;
-- histórico por colônia;
-- plantel atual derivado dos registros.
+## Critérios de priorização
 
-### Marco 0.2 - Manejo
+Novos trabalhos devem ser avaliados nesta ordem:
 
-**Concluído no desenvolvimento pré-release.**
+1. integridade e recuperação dos dados;
+2. correção de regras de domínio e rastreabilidade;
+3. falhas que impedem operações de manejo;
+4. usabilidade dos fluxos existentes;
+5. desempenho com bases maiores;
+6. novas funcionalidades comprovadas por uso real.
 
-- alimentação e suplementação;
-- manutenção de caixas;
-- troca de caixa preservando ocupações anteriores;
-- alertas básicos de acompanhamento derivados dos registros.
+Uma ideia não entra no produto apenas por ser tecnicamente possível. Ela precisa resolver um problema observável sem criar uma segunda fonte de verdade ou comprometer o uso local-first.
 
-### Marco 0.3 - Multiplicação e genealogia
+## Próximas frentes
 
-**Núcleo concluído no desenvolvimento pré-release.**
+### Validação prática
 
-- divisões e multiplicações;
-- relação entre colônia de origem e descendentes;
-- consulta de genealogia por gerações;
-- interface de registro e histórico de divisões.
+- testar atualização e restauração com bases reais e cópias de trabalho;
+- ampliar cenários de migrations e regressão;
+- validar fluxos completos nos bundles distribuídos;
+- registrar problemas reproduzíveis como Issues.
 
-Acompanhamentos pós-divisão mais especializados podem evoluir em ciclos futuros a partir do uso real.
+### Usabilidade e escala
 
-### Marco 0.4 - Movimentações e rastreabilidade
+- melhorar busca, filtros e navegação em conjuntos maiores;
+- reduzir atrito em correções e operações repetitivas;
+- aprimorar acessibilidade por teclado;
+- revisar comportamento em diferentes resoluções e ambientes gráficos.
 
-**Concluído no desenvolvimento pré-release.**
+### Dados e portabilidade
 
-- transferências internas entre meliponários cadastrados;
-- transferências externas;
-- transportes temporários;
-- baixas, perdas, inativações e reativações com histórico;
-- documentos e referências vinculados às movimentações;
-- estrutura inspirada conceitualmente em fluxos de GEFAU, GEDAVE e GTA sem substituir sistemas oficiais.
+- ampliar testes de backup, rollback e diagnóstico de arquivos;
+- documentar compatibilidade entre formatos quando eles evoluírem;
+- avaliar importações adicionais somente com contratos seguros e não destrutivos;
+- manter exportações derivadas separadas dos mecanismos de recuperação.
 
-### Marco 0.5 - Produção
+### Distribuição
 
-**Concluído no desenvolvimento pré-release.**
+- amadurecer os testes dos instaladores Linux e Windows;
+- avaliar assinatura de código para Windows;
+- melhorar diagnóstico de falhas específicas de plataforma;
+- revisar suporte a plataformas conforme houver ambiente real de teste.
 
-- mel;
-- pólen;
-- própolis;
-- cera e cerume;
-- outros produtos;
-- histórico por colônia.
+### Informação operacional
 
-### Marco 0.6 - Fotos e evolução visual
+- evoluir relatórios a partir de perguntas reais de manejo;
+- considerar comparação visual de inspeções quando o fluxo estiver definido;
+- evitar agregações que misturem unidades, períodos ou estados incompatíveis;
+- não introduzir BI ou sincronização remota sem necessidade demonstrada.
 
-**Base concluída no desenvolvimento pré-release.**
+## Fora do escopo atual
 
-- fotos associadas às inspeções;
-- armazenamento local gerenciado;
-- consulta de fotos no contexto histórico da colônia.
+Não fazem parte do compromisso atual:
 
-Uma experiência dedicada de comparação visual lado a lado permanece como possibilidade futura e não é tratada como requisito já entregue.
+- serviço em nuvem ou sincronização entre máquinas;
+- aplicação web multiusuário;
+- integração automática com GEFAU, GEDAVE, GTA ou sistemas equivalentes;
+- emissão ou certificação jurídica de documentos;
+- notificações push ou calendário externo;
+- editor de documentos;
+- conversão automática entre unidades de produção;
+- reconstrução histórica completa do plantel sem suporte suficiente no schema.
 
-### Marco 0.7 - Dashboard, operação e dados
+Esses itens só devem ser reavaliados com requisitos concretos, impacto de segurança conhecido e estratégia de compatibilidade de dados.
 
-**Concluído para a primeira pré-release pública.**
+## Gestão do roadmap
 
-- dashboard operacional do plantel;
-- situação e força das colônias;
-- distribuição por espécie;
-- ocupação de caixas;
-- pendências e alertas;
-- produção e movimentações recentes;
-- interfaces operacionais para os módulos já implementados;
-- backup do SQLite e da mídia;
-- exportação JSON;
-- relatório Markdown;
-- restauração preparada com validação de integridade;
-- hardening de CI e pipeline de bundles Linux e Windows.
+Trabalho executável deve ser registrado em Issues. Quando o volume justificar, um GitHub Project pode organizar prioridade e estado.
 
-## v0.8.0 - robustez operacional e informação gerencial
-
-A `v0.8.0` amplia robustez operacional e informação gerencial sem transformar o aplicativo em serviço web ou BI pesado.
-
-### Fundação, shell, operação e Agenda
-
-**Concluído na v0.8.0.**
-
-- integridade e hardening de domínio;
-- shell desktop enterprise e acessibilidade;
-- correções/reversões auditáveis;
-- Agenda operacional;
-- centros de registro de Colônia, Caixa e Meliponário;
-- lifecycle completo de transporte temporário com retorno e reabertura auditada.
-
-### Bloco 5A - Product hardening
-
-**Concluído tecnicamente.**
-
-- comportamento de menubar e navegação contextual refinados;
-- dialogs e menus de ações endurecidos para teclado e foco;
-- mensagens técnicas reduzidas na superfície do produto;
-- Agenda protegida contra respostas obsoletas;
-- semântica de transporte temporário fechada com no máximo um transporte aberto por colônia;
-- criação e reabertura protegidas por backend e SQLite;
-- testes de regressão para o lifecycle de transporte.
-
-### Bloco 5B - Relatórios, CSV e impressão
-
-**Concluído tecnicamente.**
-
-- Central de Relatórios dedicada;
-- visão operacional por período e contexto;
-- produção sem mistura de unidades;
-- custos limitados aos valores realmente persistidos;
-- desempenho da Agenda com estados semanticamente explícitos;
-- histórico operacional de colônia e modo completo/auditoria;
-- consolidação por meliponário;
-- CSV UTF-8 seguro para planilhas;
-- impressão pela WebView/sistema operacional com layout próprio para papel.
-
-Relatórios são derivados dos dados existentes e não criam uma nova fonte de verdade nem exigem migration própria.
-
-### Bloco 5C - Arquivos, portabilidade e acabamento local
-
-**Concluído na v0.8.0.**
-
-- anexos gerenciados no contexto do Record Center de Meliponário;
-- migration aditiva `0017_managed_attachments.sql`;
-- armazenamento binário fora do SQLite com nomes internos por UUID e caminhos relativos;
-- seleção de arquivos por Dialog nativo;
-- abertura e revelação pelo plugin oficial do desktop;
-- tratamento explícito de arquivos ausentes sem apagar metadata;
-- diagnóstico entre registros SQLite e filesystem;
-- fotos de inspeção com picker nativo, contexto humano, thumbnails lazy e limite de prévia;
-- backup completo com manifest versionado e inventário de assets;
-- restauração validada com staging, cópia de segurança e rollback da troca;
-- exportação JSON estrutural versionada sem incorporar binários e sem importador destrutivo;
-- restauração de estado da janela pelo plugin oficial `tauri-plugin-window-state`;
-- testes de backend, migrations e estrutura frontend específicos do bloco.
-
-A implementação acumulada da `v0.8.0` foi tecnicamente validada por revisão, testes automatizados, CI e build desktop. A validação prática em desktop e uso real permanece uma atividade separada de acompanhamento da pre-release.
-
-Consulte [FILES.md](FILES.md), [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) e [REPORTS.md](REPORTS.md).
-
-## Próximos ciclos 0.x
-
-As próximas versões serão definidas pelo uso real do sistema e não por uma corrida artificial de números.
-
-Temas prováveis de evolução:
-
-- polimento de UX e fluxos de edição;
-- filtros, busca e navegação em bases maiores;
-- validação prática com dados reais de meliponários;
-- testes de regressão e migração mais amplos;
-- maior reprodutibilidade de builds e dependências;
-- refinamento de backup, restauração e portabilidade entre versões;
-- assinatura de código e amadurecimento da distribuição desktop;
-- melhorias de análise e acompanhamento conforme surgirem necessidades reais de manejo.
-
-## Política de versão
-
-- o projeto permanece em `0.x` por decisão de produto;
-- novas funcionalidades compatíveis incrementam `MINOR`;
-- correções compatíveis incrementam `PATCH`;
-- não existe meta de lançamento `v1.0.0`;
-- versões anteriores a `v0.7.0` são marcos de planejamento interno, não releases públicas retroativas.
-
-Consulte [RELEASES.md](RELEASES.md) para a política de tags e publicação.
+Este arquivo deve permanecer curto e estratégico. Planos concluídos migram para changelog/notas de release; decisões técnicas permanentes migram para o documento temático correspondente.

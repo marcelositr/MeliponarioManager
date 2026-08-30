@@ -1,6 +1,6 @@
 # Arquivos gerenciados
 
-O Bloco 5C introduz armazenamento local gerenciado para documentos associados aos meliponários e consolida o tratamento de fotos de inspeção como assets do aplicativo.
+O armazenamento local gerenciado mantém documentos associados aos meliponários e fotos de inspeção como arquivos controlados pela aplicação.
 
 O objetivo é manter os binários fora do SQLite, preservar relações e metadados no banco e permitir backup/restauração coerentes do conjunto completo.
 
@@ -10,7 +10,7 @@ O objetivo é manter os binários fora do SQLite, preservar relações e metadad
 - arquivos binários ficam no diretório de dados da aplicação;
 - caminhos persistidos no banco são relativos ao diretório de dados;
 - nomes internos são gerados pela aplicação e não dependem do nome original;
-- o nome original é preservado apenas como metadata de apresentação;
+- o nome original é preservado apenas como metadado de apresentação;
 - não existe dependência permanente do caminho de origem escolhido pelo usuário;
 - anexar um arquivo significa copiar uma versão para a área gerenciada;
 - abrir ou revelar um arquivo usa APIs oficiais do desktop, sem executar shell construído pelo usuário.
@@ -40,7 +40,7 @@ Arquivos diferentes com o mesmo nome original podem coexistir porque o nome fís
 
 ## Importação
 
-O usuário seleciona o arquivo pelo Dialog nativo do sistema.
+O usuário seleciona o arquivo pela caixa de diálogo nativa do sistema.
 
 O backend:
 
@@ -64,7 +64,7 @@ O arquivo original usado na importação nunca é removido pelo aplicativo.
 
 ## Arquivo ausente
 
-Se um binário registrado desaparecer do disco, a metadata não é apagada automaticamente.
+Se um binário registrado desaparecer do disco, os metadados não são apagados automaticamente.
 
 A interface apresenta **Arquivo não encontrado**, desabilita ações que exigem o binário e preserva o registro para diagnóstico e recuperação por backup.
 
@@ -89,7 +89,7 @@ O resultado informa:
 - registros cujo binário está ausente;
 - arquivos físicos sem referência no SQLite.
 
-O diagnóstico é somente leitura. Ele não apaga automaticamente metadata nem arquivos órfãos. Falhas de permissão ou de acesso ao filesystem são tratadas pelos fluxos de leitura, importação, backup e restauração com erros públicos, sem transformar diagnóstico em ferramenta de reparo destrutivo.
+O diagnóstico é somente leitura. Ele não apaga automaticamente metadados nem arquivos órfãos. Falhas de permissão ou de acesso ao sistema de arquivos são tratadas pelos fluxos de leitura, importação, backup e restauração com erros públicos, sem transformar diagnóstico em ferramenta de reparo destrutivo.
 
 ## Fotos de inspeção
 
@@ -99,12 +99,12 @@ Fotos continuam pertencendo às inspeções e permanecem em:
 media/inspections/<inspection-id>/
 ```
 
-O 5C acrescenta:
+O fluxo atual oferece:
 
-- seleção por Dialog nativo em vez de digitação de caminho;
+- seleção por caixa de diálogo nativa em vez de digitação de caminho;
 - ações **Abrir** e **Mostrar no local**;
 - contexto humano de inspeção, data e caixa em vez de fragmentos de UUID na UI;
-- thumbnails lazy na lista;
+- prévias carregadas sob demanda na lista;
 - limite de 384 KiB para bytes carregados como prévia, evitando transportar imagens maiores só para renderizar listas;
 - estado explícito quando a prévia está limitada, indisponível ou o arquivo não existe.
 
@@ -134,7 +134,7 @@ backup-<timestamp>-<id>/
 └── media/
 ```
 
-O `manifest.json` v1 registra formato, versão do formato, versão do aplicativo, versão do schema e inventário de assets com caminho relativo, tamanho e checksum SHA-256. A restauração rejeita asset ausente, tamanho divergente, conteúdo alterado mesmo com o mesmo tamanho, caminho fora de `media/` ou árvore física diferente do inventário declarado.
+O `manifest.json` v1 registra formato, versão do formato, versão do aplicativo, versão do schema e inventário de arquivos com caminho relativo, tamanho e hash SHA-256. A restauração rejeita arquivo ausente, tamanho divergente, conteúdo alterado mesmo com o mesmo tamanho, caminho fora de `media/` ou árvore física diferente do inventário declarado.
 
 O backup completo inclui fotos e anexos. Consulte [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) para as regras de validação e restauração.
 
@@ -145,27 +145,27 @@ O JSON portátil é estrutural e versionado. Ele preserva IDs, relações e meta
 Por isso:
 
 - JSON não substitui backup completo;
-- não existe importador JSON destrutivo no 5C;
+- não existe importador JSON destrutivo;
 - recuperação completa de uma instalação continua sendo responsabilidade do backup.
 
 ## Estado da janela
 
 O desktop usa o plugin oficial `tauri-plugin-window-state` para restaurar estado da janela entre sessões. Isso é independente dos arquivos de domínio e não altera o SQLite.
 
-## Validação técnica e teste de campo
+## Validação técnica e teste manual
 
-O fechamento técnico do 5C depende dos gates de build, lint e testes automatizados no mesmo HEAD. A validação visual/runtime real permanece separada porque exige um desktop gráfico e interação com os dialogs do sistema.
+Build, lint e testes automatizados validam os contratos de código. A validação visual e em execução permanece separada porque exige um desktop gráfico e interação com as caixas de diálogo do sistema.
 
 Devem ser conferidos em teste de campo:
 
-- 900×600, 1280×720, 1366×768 e 1920×1080;
+- 800×600, 1024×768, 1366×768 e 1920×1080;
 - Light, Dark e System;
 - navegação por teclado;
-- pickers nativos;
-- thumbnails;
+- seletores nativos;
+- prévias de imagens;
 - Abrir e Mostrar no local;
 - arquivos ausentes;
-- backup → restore com restart;
+- backup e restauração após reinício;
 - persistência de `window-state`.
 
 ## Limitações atuais
@@ -173,7 +173,7 @@ Devem ser conferidos em teste de campo:
 - anexos gerais existem apenas no contexto do meliponário;
 - não há sincronização em nuvem;
 - não há editor embutido de documentos;
-- não há thumbnails para anexos genéricos;
+- não há prévias para anexos genéricos;
 - o diagnóstico não repara automaticamente inconsistências;
 - JSON não carrega binários e não possui importador;
 - a validação visual final do desktop depende de execução em ambiente gráfico real.

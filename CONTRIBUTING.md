@@ -1,63 +1,98 @@
 # Contribuindo com o MeliponarioManager
 
-O MeliponarioManager usa um fluxo simples baseado em branches curtas, Pull Requests e validação automatizada antes da integração em `main`.
+O projeto usa branches curtas, Pull Requests e validação automatizada antes da integração em `main`. Mudanças devem preservar a integridade histórica do domínio e manter a documentação correspondente atualizada.
+
+## Antes de começar
+
+Consulte o [índice da documentação](docs/README.md) e, para mudanças funcionais, o [modelo de domínio](docs/DOMAIN.md).
+
+Requisitos de desenvolvimento:
+
+- Node.js 22;
+- Rust 1.94.1 com `rustfmt` e `clippy`;
+- dependências nativas exigidas pelo Tauri 2 na plataforma usada;
+- npm para instalar as dependências fixadas em `package-lock.json`.
+
+Instale as dependências com:
+
+```bash
+npm ci
+```
+
+Para abrir a aplicação desktop em desenvolvimento:
+
+```bash
+npm run desktop:dev
+```
+
+O frontend isolado pode ser iniciado com `npm run dev`, mas os recursos que dependem de SQLite, sistema de arquivos ou plugins desktop só funcionam pelo Tauri.
 
 ## Branches
 
-Use nomes objetivos e relacionados a um único propósito:
+Crie a branch a partir da `main` atual e mantenha um único propósito por branch.
 
-- `feat/...` para novas funcionalidades;
-- `fix/...` para correções;
-- `docs/...` para documentação;
-- `refactor/...` para refatorações;
-- `test/...` para testes;
-- `chore/...` para manutenção do projeto, CI e distribuição.
+Prefixos adotados:
+
+- `feat/`: funcionalidade;
+- `fix/`: correção;
+- `docs/`: documentação;
+- `refactor/`: refatoração sem mudança funcional intencional;
+- `test/`: cobertura de testes;
+- `chore/`: dependências, CI, distribuição e manutenção.
 
 Exemplos:
 
-- `feat/colony-inspections`
-- `fix/feeding-history`
-- `docs/domain-model`
-- `chore/repository-polish`
+```text
+feat/colony-inspections
+fix/feeding-history
+docs/domain-model
+chore/update-tauri
+```
 
-Evite desenvolver diretamente em `main` quando a alteração for relevante.
+Não desenvolva diretamente em `main`.
+
+## Commits
+
+Use mensagens curtas no estilo Conventional Commits:
+
+```text
+feat: add colony inspection flow
+fix: preserve colony history on box transfer
+docs: document release policy
+refactor: separate colony and box rules
+test: cover backup manifest validation
+chore: update desktop dependencies
+```
+
+Commits devem explicar uma mudança coerente. Evite misturar formatação ampla, atualização de dependências e alteração funcional no mesmo commit.
 
 ## Pull Requests
 
 Cada Pull Request deve:
 
 - resolver um objetivo claro;
-- evitar misturar mudanças não relacionadas;
-- explicar o que mudou e por quê;
-- informar como a alteração foi validada;
-- preservar a rastreabilidade histórica do domínio;
-- atualizar documentação quando comportamento, arquitetura ou fluxo de uso mudar;
-- atualizar o changelog quando a mudança for relevante para uma futura release.
+- explicar o problema e a solução;
+- informar as validações executadas;
+- registrar impactos no domínio, schema, dados e compatibilidade;
+- atualizar a documentação e o changelog quando aplicável;
+- manter a branch atualizada com `main` antes do merge;
+- passar pelo status check obrigatório `check`.
 
-Mudanças de domínio devem ser documentadas em [docs/DOMAIN.md](docs/DOMAIN.md).
-
-## Commits
-
-Preferimos mensagens curtas no estilo Conventional Commits:
-
-- `feat: add colony inspection flow`
-- `fix: preserve colony history on box transfer`
-- `docs: document release policy`
-- `refactor: separate colony and hive box models`
-- `chore: harden desktop distribution`
-
-Essa convenção organiza o histórico, mas não depende de uma ferramenta específica.
+A integração é feita por squash merge. A branch temporária é removida depois do merge.
 
 ## Validação local
 
-Antes de abrir ou atualizar um Pull Request relevante, execute os checks aplicáveis.
+Execute as verificações compatíveis com a mudança.
 
-Frontend:
+Metadados, dependências e frontend:
 
 ```bash
+npm run version:check
 npm ci
 npm run icons
+npm run bundle:check
 npm run build
+npm run test:ui
 ```
 
 Backend Rust:
@@ -70,56 +105,50 @@ cargo clippy --locked --all-targets -- -D warnings
 cargo test --locked
 ```
 
-Validação do desktop sem gerar instaladores:
+Aplicação desktop sem gerar instaladores:
 
 ```bash
 npm run tauri -- build --no-bundle
 ```
 
-O workflow `CI` executa a mesma linha geral de validação em Pull Requests para `main`.
+O workflow `CI` executa esse conjunto em Pull Requests e pushes para `main`. Uma validação não executada deve ser marcada como não aplicável ou explicada no Pull Request.
 
-## Modelo de domínio
+## Regras de domínio e dados
 
-A rastreabilidade tem prioridade sobre atalhos de implementação.
+- colônia e caixa são entidades distintas;
+- mudanças históricas geram registros, transições ou novas ocupações;
+- fatos anulados e operações revertidas permanecem auditáveis;
+- alertas, Dashboard, timeline e relatórios são projeções, não fontes paralelas de verdade;
+- operações com múltiplos efeitos devem ser transacionais;
+- migrations integradas são imutáveis.
 
-Exemplos:
+Uma alteração de schema deve usar a próxima migration numerada e incluir cobertura para instalação nova e upgrade quando houver impacto em dados existentes.
 
-- trocar uma colônia de caixa cria uma nova ocupação e encerra a anterior;
-- uma manutenção pertence à caixa física, mesmo quando preserva o contexto da colônia ocupante;
-- uma foto pertence à inspeção que lhe dá contexto;
-- documentos pertencem à movimentação correspondente;
-- alertas são derivados dos dados de manejo e não mantidos como um segundo estado independente.
+## Atualização da documentação
 
-A interface pode usar linguagem popular e direta, mas o domínio e os dados devem permanecer tecnicamente consistentes.
+Use a matriz de responsabilidade em [docs/README.md](docs/README.md). Em resumo:
 
-## Versionamento
+- regras de domínio: `docs/DOMAIN.md` e documento temático;
+- arquitetura ou persistência: `docs/ARCHITECTURE.md`;
+- interface: `docs/UI.md`;
+- mudança relevante para usuários: `CHANGELOG.md`;
+- preparação de versão: `CHANGELOG.md` e `docs/releases/<tag>.md`.
 
-O projeto segue Semantic Versioning e permanece intencionalmente na série `0.x`.
+Não registre na documentação oficial prompts, conversas de desenvolvimento, caminhos pessoais, resultados temporários de uma ferramenta ou planos já abandonados.
 
-- correções compatíveis incrementam `PATCH`;
-- novas funcionalidades compatíveis incrementam `MINOR`;
-- versões distribuídas usam tags `v0.x.y`;
-- não existe meta de lançamento `v1.0.0`.
+## Versionamento e releases
 
-Os campos de versão devem permanecer sincronizados em:
+O projeto segue Semantic Versioning na série `0.x`:
+
+- correção compatível incrementa `PATCH`;
+- funcionalidade compatível incrementa `MINOR`;
+- tags distribuídas usam `v0.x.y`;
+- releases públicas são marcadas como GitHub Pre-release enquanto o projeto permanecer experimental.
+
+A versão deve permanecer sincronizada em:
 
 - `package.json`;
 - `src-tauri/Cargo.toml`;
 - `src-tauri/tauri.conf.json`.
 
-Enquanto o projeto estiver em fase experimental, releases públicas no GitHub são marcadas como **Pre-release**, mesmo quando a versão interna usa o formato normal `0.x.y`.
-
-A política completa está em [docs/RELEASES.md](docs/RELEASES.md).
-
-## Mudanças destinadas a uma release
-
-Uma preparação de release deve, no mínimo:
-
-- sincronizar a versão nos três arquivos do projeto;
-- criar ou atualizar a seção correspondente em `CHANGELOG.md`;
-- adicionar `docs/releases/v0.x.y.md` com as notas públicas daquela versão;
-- confirmar que README e documentação refletem o comportamento real;
-- passar pelo CI antes da criação da tag;
-- criar a tag somente a partir de `main` já integrada.
-
-O pipeline de bundles e os formatos gerados estão descritos em [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md).
+Consulte [Política de releases](docs/RELEASES.md) e [Distribuição desktop](docs/DISTRIBUTION.md).

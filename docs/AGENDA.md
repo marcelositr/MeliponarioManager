@@ -1,190 +1,144 @@
 # Agenda operacional
 
-A Agenda do MeliponarioManager organiza **compromissos futuros** sem transformar planejamento em fato histórico.
+A Agenda organiza compromissos futuros sem confundir planejamento com fatos históricos de manejo.
 
-Ela faz parte da Etapa 4 da série experimental `0.x` e trabalha em conjunto com inspeções, alimentação, manutenção, alertas, Dashboard e fichas operacionais.
+## Conceito
 
-## Regra principal
-
-Uma tarefa diz **o que precisa ser feito**. Um registro de inspeção, alimentação, manutenção ou outro fato diz **o que realmente aconteceu**.
-
-Esses conceitos não são intercambiáveis.
-
-Exemplo:
+Uma tarefa informa o que precisa ser feito. Inspeções, alimentações e manutenções registram o que realmente aconteceu.
 
 ```text
-próxima inspeção sugerida
+fato com próxima data sugerida
         ↓
-tarefa pendente na Agenda
+tarefa pendente
         ↓
 execução da tarefa
         ↓
-inspeção factual registrada
+novo fato registrado
         ↓
 tarefa concluída
 ```
 
-A conclusão de uma tarefa especializada só ocorre junto do fato correspondente. O sistema não marca uma inspeção, alimentação ou manutenção como realizada sem criar o registro factual válido.
+Uma tarefa especializada só é concluída na mesma operação que cria o fato correspondente. A Agenda não pode marcar um manejo como realizado sem o registro factual válido.
 
-## Estados de tarefa
+## Tipos de tarefa
 
-As tarefas possuem estados operacionais explícitos:
+| Tipo | Finalidade | Forma de conclusão |
+| --- | --- | --- |
+| `inspection` | Inspeção de colônia | Registra uma inspeção |
+| `feeding` | Alimentação ou suplementação | Registra uma alimentação |
+| `maintenance` | Manutenção de caixa | Registra uma manutenção |
+| `generic` | Compromisso operacional geral | Conclui a própria tarefa |
 
-- `pending`: compromisso ainda aberto;
-- `completed`: concluído por uma execução válida;
-- `cancelled`: cancelado com motivo, preservando o registro original;
-- `rescheduled`: substituído por um novo compromisso em outra data;
-- `skipped`: deliberadamente ignorado com motivo.
+A prioridade pode ser `normal`, `attention` ou `critical`. Prioridade influencia a ordenação, mas não altera regras de data ou de domínio.
 
-Atraso não é um estado persistido separado. Uma tarefa pendente está atrasada quando `scheduled_for` é anterior à referência temporal atual.
+## Estados
 
-## Tipos
+| Estado | Significado |
+| --- | --- |
+| `pending` | Compromisso aberto |
+| `completed` | Concluído por uma execução válida |
+| `cancelled` | Cancelado com motivo |
+| `rescheduled` | Substituído por outro compromisso |
+| `skipped` | Ignorado deliberadamente com motivo |
 
-A Agenda trabalha inicialmente com:
+Atraso é derivado: uma tarefa `pending` está atrasada quando `scheduled_for` é anterior ao horário atual. Não existe estado persistido `overdue`.
 
-- `inspection`: inspeção;
-- `feeding`: alimentação;
-- `maintenance`: manutenção de caixa;
-- `generic`: compromisso operacional que não cria automaticamente um fato especializado.
+## Origem
 
-Tarefas genéricas podem ser concluídas diretamente. Tarefas de inspeção, alimentação e manutenção usam os fluxos de execução correspondentes.
+Tarefas podem ser:
 
-## Prioridades
+- manuais, criadas diretamente pelo usuário;
+- derivadas de `next_inspection_at`;
+- derivadas de `next_feeding_at`;
+- derivadas de `next_maintenance_at`.
 
-Prioridades disponíveis:
-
-- `normal`;
-- `attention`;
-- `critical`.
-
-A prioridade ajuda a ordenar o trabalho, mas não substitui data, contexto ou regras de domínio.
-
-## Tarefas manuais e tarefas derivadas
-
-Uma tarefa pode ser criada manualmente pelo usuário ou derivada de um campo `next_*` de um fato válido.
-
-Fontes derivadas atuais:
-
-- `next_inspection_at` de inspeções;
-- `next_feeding_at` de alimentações;
-- `next_maintenance_at` de manutenções.
-
-A tarefa derivada mantém linhagem com o fato de origem. Essa linhagem permite que uma correção real do fato continue tendo autoridade sobre o planejamento derivado.
-
-Um simples reagendamento operacional não apaga essa origem.
+Uma tarefa derivada preserva a relação com o fato de origem. Essa linhagem permite atualizar o planejamento quando o fato é corrigido ou anulado.
 
 ## Reconciliação
 
-Na inicialização, o backend executa uma reconciliação idempotente da Agenda.
+Na inicialização, o backend executa `reconcile_all()`.
 
-A reconciliação pode reconstruir uma tarefa derivada ausente quando o fato de origem continua válido e possui um `next_*` aplicável. Executar a reconciliação repetidamente não deve criar duplicatas.
+A reconciliação recria uma tarefa derivada ausente quando:
 
-Propriedade esperada:
+- o fato de origem continua válido;
+- existe um `next_*` aplicável;
+- nenhuma tarefa correspondente já representa o compromisso.
 
-```text
-fato válido com next_*
-        ↓
-tarefa derivada ausente
-        ↓
-reconcile_all()
-reconcile_all()
-        ↓
-exatamente uma tarefa pendente
-```
+O processo é idempotente. Executá-lo várias vezes produz no máximo uma tarefa pendente para a mesma origem e finalidade.
 
-Registros anulados não devem continuar produzindo compromissos operacionais válidos.
+Fatos anulados ou revertidos não podem sustentar uma tarefa derivada válida.
 
-## Reagendamento
+## Operações
 
-Reagendar preserva a tarefa original e cria a continuidade do compromisso.
+### Reagendamento
 
-O objetivo é manter a cadeia de decisão visível em vez de sobrescrever silenciosamente a data anterior.
+Reagendar encerra a tarefa original como `rescheduled` e cria uma sucessora ligada por `rescheduled_from_id`. A data anterior e a decisão permanecem consultáveis.
 
-A tarefa reagendada preserva a relação com a linhagem operacional necessária para que o fato de origem continue rastreável.
+### Cancelamento e tarefa ignorada
 
-## Cancelar e ignorar
+Cancelar ou ignorar exige motivo. A tarefa original permanece armazenada com o estado correspondente.
 
-Cancelar e ignorar não apagam a tarefa.
+### Duplicação
 
-Ambos exigem motivo e preservam o registro original para que o histórico mostre por que o compromisso deixou de estar pendente.
+Duplicar cria outro compromisso a partir de uma tarefa existente sem alterar a original. Essa operação é adequada para repetição intencional que não possui um campo factual `next_*`.
 
-## Duplicar
+### Execução especializada
 
-Duplicar cria um novo compromisso a partir de outro, sem alterar o registro original.
+A execução de inspeção, alimentação ou manutenção:
 
-É útil para repetir uma atividade planejada quando não existe um campo factual `next_*` apropriado para representar essa intenção.
+1. valida a tarefa e seu contexto;
+2. aplica as regras do fluxo factual correspondente;
+3. cria o fato;
+4. cria eventual compromisso derivado da próxima data;
+5. conclui a tarefa original;
+6. confirma tudo na mesma transação.
 
-## Execução
+Se qualquer etapa falhar, a tarefa permanece aberta e nenhum fato parcial é promovido.
 
-### Inspeção
+### Execução genérica
 
-Executar uma tarefa de inspeção cria uma inspeção factual usando as mesmas regras de integridade do fluxo normal. A tarefa só é concluída junto dessa operação válida.
-
-### Alimentação
-
-Executar uma tarefa de alimentação cria o registro factual de alimentação e permite informar a próxima alimentação, que pode gerar o compromisso derivado seguinte.
-
-### Manutenção
-
-Executar uma tarefa de manutenção registra a manutenção da caixa e pode definir a próxima manutenção.
-
-### Tarefa geral
-
-Uma tarefa `generic` pode ser concluída sem criar uma entidade factual especializada. Ela registra apenas a conclusão do próprio compromisso.
+Uma tarefa `generic` pode ser concluída diretamente. Ela registra apenas o cumprimento do compromisso e não cria uma entidade de manejo.
 
 ## Contexto de meliponário
 
-O seletor de meliponário do shell aplica escopo operacional à Agenda.
+O meliponário ativo no shell filtra:
 
-- `Todos os meliponários`: visão consolidada;
-- um meliponário selecionado: tarefas, resumo e opções de colônia/caixa ficam limitados àquela unidade.
+- lista e resumo da Agenda;
+- opções de colônia e caixa;
+- alertas e atalhos relacionados;
+- fichas operacionais que exibem tarefas.
 
-Esse contexto é **filtro de interface**, não movimentação de domínio. Selecionar outro meliponário não altera vínculo de colônia, caixa ou tarefa.
+Esse contexto é um filtro de leitura e operação. Ele não altera a propriedade de colônias, caixas ou tarefas.
 
-## Alertas
+## Integração com alertas e Dashboard
 
-Alertas de vencimento de inspeção, alimentação e manutenção usam as tarefas pendentes da Agenda como fonte operacional.
+Alertas de inspeção, alimentação e manutenção vencidas usam tarefas pendentes como fonte operacional. Isso evita representar o mesmo vencimento por uma tarefa e por um segundo cálculo independente.
 
-Isso evita manter, em paralelo, uma tarefa vencida e um segundo alerta de `next_*` calculado de forma independente para o mesmo compromisso.
+Alertas podem carregar `task_id`, colônia, caixa, meliponário e ação recomendada. A interface usa esse contexto para abrir a Agenda ou o fluxo de manejo correto.
 
-A central de alertas pode apontar para:
-
-- a Agenda, quando existe `task_id`;
-- o fluxo recomendado de manejo, conforme `recommended_action`;
-- ambos, quando o usuário precisa decidir entre revisar o compromisso e executar a ação factual.
-
-## Dashboard
-
-O Dashboard mostra o resumo da Agenda no contexto ativo:
-
-- atrasadas;
-- hoje;
-- próximos sete dias;
-- futuras.
-
-Alertas exibidos no Dashboard preservam ações contextuais e não criam estados próprios.
+O Dashboard resume tarefas atrasadas, de hoje, dos próximos sete dias e futuras no contexto ativo.
 
 ## Fichas operacionais
 
-As fichas de Colônia, Caixa e Meliponário utilizam projeções dedicadas do backend.
+As fichas de Colônia, Caixa e Meliponário consultam projeções do backend para exibir tarefas e alertas relacionados. Elas não copiam esses registros para tabelas próprias.
 
-Elas podem apresentar tarefas e alertas relacionados, mas não copiam esses dados para tabelas próprias.
+## Integridade
 
-A ficha funciona como um **hub de leitura e navegação** para os fluxos especializados.
+- planejamento e fato histórico são conceitos distintos;
+- conclusão especializada exige criação factual válida;
+- transições preservam a tarefa original;
+- tarefas derivadas mantêm vínculo com a origem;
+- reconciliação não cria duplicatas;
+- fatos anulados ou revertidos deixam de produzir planejamento válido;
+- projeções da Agenda não substituem as entidades de domínio.
 
-## Relação com fatos corrigidos ou anulados
+## Limites atuais
 
-A Etapa 4 preserva a política da Etapa 3:
+A Agenda é local e integrada ao SQLite. Não há:
 
-- correção altera o fato válido com auditoria;
-- anulação mantém o registro no histórico, mas o exclui das projeções operacionais;
-- reversões seguras preservam o registro original;
-- a Agenda deve refletir apenas fatos operacionais válidos para derivação futura.
+- sincronização com calendário externo;
+- notificações push;
+- automação remota;
+- serviço em nuvem.
 
-## Fronteira da Etapa 4
-
-A Agenda não é calendário externo, sincronização em nuvem, notificação push ou automação remota.
-
-Nesta etapa ela é um planejador operacional local, integrado ao SQLite e aos fluxos Tauri existentes.
-
-Funcionalidades posteriores pertencem a etapas futuras e não devem ser antecipadas dentro desta implementação.
+Esses recursos não devem ser presumidos por outros documentos ou pela interface.
