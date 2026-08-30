@@ -111,7 +111,9 @@ Aplicação desktop sem gerar instaladores:
 npm run tauri -- build --no-bundle
 ```
 
-O workflow `CI` executa esse conjunto em Pull Requests e pushes para `main`. Uma validação não executada deve ser marcada como não aplicável ou explicada no Pull Request.
+O workflow `CI` executa nas branches e Pull Requests o conjunto rápido que sustenta o status obrigatório `check`: versão, dependências, ícones, frontend, testes e verificações Rust. O build Tauri completo com `--no-bundle` é executado pelo workflow `Main validation` depois da integração em `main`. Os bundles de distribuição permanecem sob responsabilidade do workflow de release.
+
+Uma validação local não executada deve ser marcada como não aplicável ou explicada no Pull Request.
 
 ## Regras de domínio e dados
 
