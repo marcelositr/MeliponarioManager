@@ -46,7 +46,7 @@ test("dialog lifecycle does not restart autofocus when parent callbacks are recr
   assert.match(dialog, /onCloseRef\.current\(\)/);
   assert.match(dialog, /}, \[open\]\);/);
   assert.doesNotMatch(dialog, /\[open,\s*onClose\]/);
-  assert.match(dialog, /event\.key === "Tab"/);
+  assert.match(dialog, /event\.key !== "Tab"\) return;/);
   assert.match(dialog, /isTopDialog/);
   assert.match(dialog, /previousFocus\.focus\(\)/);
 });
