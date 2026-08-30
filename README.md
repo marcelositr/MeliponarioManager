@@ -4,184 +4,47 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-experimental-orange.svg)](docs/ROADMAP.md)
 
-Aplicação desktop local-first para gerenciamento de meliponários, com foco em manejo, histórico e rastreabilidade de colônias de abelhas sem ferrão.
+Aplicação desktop **local-first** para organização, manejo e rastreabilidade de meliponários. O MeliponarioManager mantém a colônia como uma entidade histórica separada da caixa física, preservando trocas de caixa, manejos, divisões, movimentações e demais eventos ao longo do tempo.
 
-> **Status:** projeto experimental em desenvolvimento contínuo. O MeliponarioManager permanecerá na série `0.x` e não possui meta de chegar à versão `1.0.0`.
+Os dados permanecem no computador do usuário, com persistência em SQLite e arquivos de mídia gerenciados localmente. Não é necessária conta ou serviço em nuvem para utilizar a aplicação.
 
-## Visão geral
+## Principais recursos
 
-O MeliponarioManager organiza o plantel sem confundir a colônia biológica com a caixa física que ela ocupa. Mudanças de caixa, divisões, movimentações, perdas, inspeções e demais fatos relevantes preservam o histórico em vez de sobrescrever o passado.
+- múltiplos meliponários, espécies, colônias e caixas físicas;
+- histórico de ocupação de caixas sem perder a identidade da colônia;
+- inspeções, alimentação, produção, manutenção, eventos e fotos;
+- divisões, genealogia, ciclo de vida e histórico consolidado;
+- transferências, transportes temporários e documentos de movimentação;
+- Agenda, alertas, Dashboard e relatórios com exportação CSV e impressão;
+- backup completo, restauração validada e diagnóstico de arquivos locais.
 
-A aplicação é desktop e local-first. O frontend React conversa com o backend Rust através do IPC do Tauri; regras de domínio e persistência permanecem no backend. Os dados estruturados ficam em SQLite e os arquivos de mídia ficam no diretório de dados da aplicação.
+## Instalação e uso
 
-## Recursos atuais
+Builds experimentais para **Linux** (`.deb` e AppImage) e **Windows** (NSIS e MSI) são publicados na página de [Releases](https://github.com/marcelositr/MeliponarioManager/releases).
 
-### Plantel e estrutura
+O manual de instalação e uso está na [GitHub Wiki](https://github.com/marcelositr/MeliponarioManager/wiki).
 
-- múltiplos meliponários;
-- cadastro de espécies;
-- colônias com origem, situação, data de instalação e relação de colônia-mãe;
-- caixas físicas separadas das colônias;
-- histórico de ocupação de caixas;
-- movimentação de colônias entre caixas livres sem apagar ocupações anteriores.
+## Executar a partir do código
 
-### Manejo
+O projeto utiliza Node.js 22 e o toolchain Rust definido em `rust-toolchain.toml`.
 
-- inspeções com força da colônia, rainha, postura, reservas, crias, pragas, observações, ações realizadas e próxima inspeção;
-- alimentação e suplementação com quantidade, unidade, resposta observada e próximo manejo;
-- manutenção de caixas físicas com preservação do contexto histórico da colônia ocupante;
-- fotos associadas às inspeções, armazenadas fora do banco em área de mídia gerenciada;
-- produção de mel, pólen, própolis, cera, cerume e outros produtos.
-
-### Histórico e rastreabilidade
-
-- eventos operacionais e biológicos por colônia;
-- timeline unificada com ocupações, inspeções, eventos, alimentação, produção, movimentações, manutenção e ciclo de vida;
-- divisões e multiplicações com criação de descendentes e genealogia;
-- transferências internas, transferências externas e transportes temporários;
-- documentos estruturados associados às movimentações, incluindo GTA, autorizações, notas fiscais, recibos, declarações, protocolos, certificados e outros registros;
-- baixa por perda, inativação e reativação como transições explícitas de ciclo de vida;
-- alertas derivados dos dados atuais de manejo, sem tabela paralela de pendências.
-
-### Operação e dados
-
-- dashboard operacional com situação do plantel, força das últimas inspeções, distribuição por espécie, ocupação de caixas, alertas, produção e movimentações recentes;
-- backup do SQLite e da mídia;
-- exportação portátil em JSON;
-- relatório gerencial em Markdown;
-- restauração preparada com validação de integridade e backup de segurança antes da troca dos dados.
-
-## Arquitetura
-
-```text
-React + TypeScript
-        |
-        | Tauri IPC
-        v
-Rust / regras de domínio
-        |
-        | SQLx
-        v
-SQLite + arquivos locais de mídia
-```
-
-Princípios principais:
-
-- o frontend não acessa o SQLite diretamente;
-- a colônia é uma entidade histórica;
-- caixa física e colônia são entidades distintas;
-- fatos históricos relevantes não são sobrescritos;
-- alertas, timeline e dashboard são visões derivadas dos registros reais;
-- arquivos binários não são armazenados como BLOB no SQLite.
-
-A documentação detalhada do modelo está em [docs/DOMAIN.md](docs/DOMAIN.md).
-
-## Dados locais
-
-O banco SQLite é criado automaticamente no diretório de dados da aplicação e recebe as migrations durante a inicialização.
-
-Fotos importadas pelo backend são mantidas em `media/inspections/<inspection-id>/`, enquanto o SQLite armazena apenas metadados e caminhos relativos.
-
-Recursos de backup, exportação, relatório e restauração são descritos em [docs/DATA-MANAGEMENT.md](docs/DATA-MANAGEMENT.md).
-
-## Referências de rastreabilidade
-
-A modelagem de origem, plantel, movimentações e documentos considera como referência conceitual fluxos utilizados por GEFAU, GEDAVE e GTA no Estado de São Paulo.
-
-O MeliponarioManager **não substitui sistemas oficiais, não emite autorizações e não certifica validade jurídica de documentos**. Essas referências servem para estruturar os dados e preservar rastreabilidade sem importar burocracia desnecessária para o uso cotidiano.
-
-## Tecnologias
-
-- Rust 1.94.1;
-- Tauri 2;
-- React 19;
-- TypeScript;
-- Vite 8;
-- SQLite;
-- SQLx 0.9.
-
-## Desenvolvimento local
-
-### Pré-requisitos
-
-- Node.js 22;
-- Rust 1.94.1;
-- dependências de sistema exigidas pelo Tauri para a plataforma utilizada.
-
-Instale as dependências do frontend:
-
-```bash
+```sh
 npm ci
-```
-
-Execute apenas o frontend:
-
-```bash
-npm run dev
-```
-
-Execute a aplicação desktop em modo de desenvolvimento:
-
-```bash
 npm run desktop:dev
 ```
 
-Gere um build desktop local:
-
-```bash
-npm run desktop:build
-```
-
-## Qualidade e CI
-
-Pull Requests para `main` passam pelo workflow de CI, que valida:
-
-- consistência da versão entre os metadados do projeto;
-- geração dos ícones desktop;
-- configuração e existência dos ícones exigidos pelos bundles;
-- build React/TypeScript;
-- formatação Rust com `cargo fmt --check`;
-- `cargo check --locked`;
-- `cargo clippy --locked --all-targets -- -D warnings`;
-- `cargo test --locked`;
-- build Tauri sem bundle para validar o binário desktop.
-
-## Distribuição
-
-O projeto possui pipeline para gerar:
-
-- Linux: `.deb` e AppImage;
-- Windows: NSIS e MSI.
-
-Enquanto o projeto permanecer experimental, as versões publicadas no GitHub são tratadas como **Pre-release**. Instaladores Windows ainda não possuem assinatura de código e devem ser considerados builds de teste.
-
-Consulte [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md) e [docs/RELEASES.md](docs/RELEASES.md) para o fluxo completo.
-
 ## Documentação
 
-- [Modelo de domínio](docs/DOMAIN.md)
-- [Roadmap experimental](docs/ROADMAP.md)
-- [Gerenciamento e segurança dos dados](docs/DATA-MANAGEMENT.md)
-- [Distribuição desktop](docs/DISTRIBUTION.md)
-- [Política de versões e releases](docs/RELEASES.md)
-- [Operação do repositório no GitHub](docs/GITHUB-OPERATIONS.md)
-- [Política de segurança](SECURITY.md)
-- [Changelog](CHANGELOG.md)
-- [Guia de contribuição](CONTRIBUTING.md)
+A [Wiki](https://github.com/marcelositr/MeliponarioManager/wiki) concentra a documentação para usuários. A documentação de engenharia está organizada em [docs/](docs/README.md), com arquitetura, domínio, persistência, distribuição e processo de release.
 
-## Versionamento
+Consulte também o [changelog](CHANGELOG.md), o [guia de contribuição](CONTRIBUTING.md) e a [política de segurança](SECURITY.md).
 
-O projeto segue Semantic Versioning no formato `vMAJOR.MINOR.PATCH`, permanecendo intencionalmente na série `0.x`.
+## Status do projeto
 
-- correções compatíveis incrementam `PATCH`;
-- novas funcionalidades compatíveis incrementam `MINOR`;
-- tags de distribuição usam o formato `v0.x.y`;
-- o histórico de desenvolvimento anterior à primeira release pública permanece registrado em commits e Pull Requests, sem criação retroativa de tags artificiais.
+O MeliponarioManager está em desenvolvimento experimental na série `0.x`. As versões distribuídas devem ser tratadas como **Pre-release** e podem receber mudanças de interface, fluxos e formato de dados entre versões.
 
-## Contribuição
-
-Alterações relevantes são desenvolvidas em branches curtas e entram em `main` por Pull Request. Convenções de branches, commits, testes e documentação estão em [CONTRIBUTING.md](CONTRIBUTING.md).
+Mantenha backups atualizados, especialmente antes de instalar uma nova versão.
 
 ## Licença
 
-Distribuído sob a licença MIT. Consulte [LICENSE](LICENSE).
+Distribuído sob a [MIT License](LICENSE).

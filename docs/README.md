@@ -1,6 +1,8 @@
 # Documentação do MeliponarioManager
 
-Este diretório concentra a documentação técnica e operacional do projeto. O `README.md` da raiz apresenta o produto; os documentos abaixo registram o comportamento atual, as decisões de domínio e os procedimentos de manutenção.
+Este diretório concentra a documentação de **engenharia, arquitetura e manutenção** do projeto. Para instalação e uso cotidiano da aplicação, consulte a [Wiki do MeliponarioManager](https://github.com/marcelositr/MeliponarioManager/wiki).
+
+O `README.md` da raiz apresenta o produto; os documentos abaixo registram o comportamento atual, as decisões de domínio e os procedimentos de manutenção.
 
 ## Guia de leitura
 

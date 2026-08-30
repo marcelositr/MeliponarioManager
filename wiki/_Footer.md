@@ -1,0 +1,1 @@
+MeliponarioManager · Manual do usuário · Projeto experimental `0.x` · [Repositório oficial](https://github.com/marcelositr/MeliponarioManager) · [Releases](https://github.com/marcelositr/MeliponarioManager/releases)
