@@ -69,6 +69,12 @@ jobs:
         working-directory: src-tauri
         run: cargo clippy --all-targets -- -D warnings
 
+      - name: Test data management backend
+        working-directory: src-tauri
+        env:
+          RUST_BACKTRACE: 1
+        run: cargo test data_management::tests:: -- --nocapture
+
       - name: Test Rust backend
         working-directory: src-tauri
         env:
