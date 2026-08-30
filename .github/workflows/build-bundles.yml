@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: bundles-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     strategy:
@@ -25,6 +29,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
@@ -36,6 +42,7 @@ jobs:
             curl \
             wget \
             file \
+            pkg-config \
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
@@ -46,6 +53,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -57,7 +65,7 @@ jobs:
         run: npm run version:check -- --tag "${{ github.ref_name }}"
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate platform icons
         run: npm run icons

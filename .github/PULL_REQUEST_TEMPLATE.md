@@ -10,9 +10,9 @@ Explique o problema ou necessidade atendida.
 
 - [ ] Build frontend
 - [ ] `cargo fmt --check`
-- [ ] `cargo check`
-- [ ] `cargo clippy -- -D warnings`
-- [ ] `cargo test`
+- [ ] `cargo check --locked`
+- [ ] `cargo clippy --locked --all-targets -- -D warnings`
+- [ ] `cargo test --locked`
 - [ ] Build Tauri sem bundle
 - [ ] Teste manual
 - [ ] Não aplicável

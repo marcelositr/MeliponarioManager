@@ -179,8 +179,8 @@ Não é necessário reutilizar o mesmo número tentando transformar uma Pre-rele
 
 ## Reprodutibilidade e assinatura
 
-A ausência atual de lockfiles versionados e de assinatura de código Windows deve ser explicitada nas notas da release enquanto permanecer verdadeira.
+Os lockfiles npm e Cargo são versionados e validados pelo CI. A ausência atual de assinatura de código Windows deve ser explicitada nas notas da release enquanto permanecer verdadeira.
 
-Essas limitações não impedem testes públicos, mas fazem parte do estado técnico da distribuição e não devem ser escondidas.
+Essa limitação não impede testes públicos, mas faz parte do estado técnico da distribuição e não deve ser escondida.
 
 Consulte [DISTRIBUTION.md](DISTRIBUTION.md) para detalhes do pipeline e dos bundles.
