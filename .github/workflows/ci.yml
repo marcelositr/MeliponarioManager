@@ -5,6 +5,8 @@ on:
     branches: [main]
   push:
     branches-ignore: [main]
+    paths-ignore:
+      - ".github/POST-AUDIT-ACTION-PLAN.md"
 
 permissions:
   contents: read
