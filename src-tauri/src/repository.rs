@@ -442,7 +442,10 @@ mod tests {
     #[test]
     fn database_error_display_is_safe_for_ipc() {
         let error = AppError::Database(sqlx::Error::RowNotFound);
-        assert_eq!(error.to_string(), "Não foi possível acessar os dados locais.");
+        assert_eq!(
+            error.to_string(),
+            "Não foi possível acessar os dados locais."
+        );
     }
 
     #[test]
