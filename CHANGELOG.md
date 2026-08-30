@@ -6,7 +6,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
-## [0.8.0] - 2026-08-29
+## [0.8.0] - 2026-08-30
 
 ### Added
 
@@ -41,6 +41,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Estado da janela persistido pelo plugin oficial `tauri-plugin-window-state`.
 - Thumbnails lazy para fotos de inspeção com limite de bytes para prévia e estados explícitos de arquivo ausente ou prévia indisponível.
 - Documentação dedicada de arquivos gerenciados em `docs/FILES.md` e testes frontend específicos do Bloco 5C.
+- Importação dedicada de listas de espécies em CSV, com seleção nativa, prévia antes da gravação, detecção de duplicidades e importação transacional sem alterar cadastros existentes nem assumir validação legal por estado.
 
 ### Changed
 
@@ -52,7 +53,7 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Dashboard passa a priorizar indicadores executivos, situação do plantel, ocupação, alertas, produção e movimentações em uma composição mais compacta.
 - Meliponários, espécies, caixas, colônias, inspeções, alimentação, produção, histórico, divisões, movimentações, manutenção e ciclo de vida adotam toolbars, tabelas e dialogs no lugar de formulários permanentes nas telas principais.
 - Fotos deixam de ocupar um conceito principal de navegação e permanecem acessíveis como contexto transitório dentro de Manutenção, sem perda de funcionalidade.
-- A interface passa a usar densidade desktop, identidade âmbar/ocre discreta, estados semânticos por texto/forma/cor e comportamento responsivo a partir de aproximadamente `900x600`.
+- A interface mantém abordagem desktop-first, mas passa a adaptar shell, sidebar, grids, toolbars, dialogs e tabelas sem depender de um piso estrutural de 900 px; `1024x768` é a faixa de primeira classe e `800x600` permanece operacionalmente suportado.
 - Fatos anulados e operações revertidas deixam de participar das projeções operacionais atuais, mas permanecem visíveis em histórico e auditoria.
 - Alertas de inspeção, alimentação e manutenção vencidas passam a usar tarefas pendentes da Agenda como fonte operacional, evitando um segundo vencimento derivado em paralelo.
 - Alertas passam a transportar `task_id`, contexto de meliponário/caixa/colônia e `recommended_action`, permitindo navegação direta para Agenda ou manejo recomendado.
@@ -75,6 +76,8 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - Reabertura de transporte temporário não pode criar dois transportes abertos para a mesma colônia, incluindo proteção contra bypass direto pelo SQLite.
 - Registros de arquivos ausentes permanecem preservados e são sinalizados em vez de serem apagados silenciosamente.
 - Falhas na gravação de metadata de anexo compensam a cópia física recém-criada, evitando arquivo gerenciado órfão no fluxo normal de importação.
+- Dialogs preservam foco durante edição, menus de ações passam a flutuar sem deslocar tabelas e grupos de controles recebem espaçamento/wrapping consistente na camada visual compartilhada.
+- Contraste dos temas claro/escuro, seleção de texto da superfície desktop e composição responsiva recebem hardening após o field test da release candidate.
 
 ## [0.7.1] - 2026-08-27
 
