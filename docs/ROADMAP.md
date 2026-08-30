@@ -151,7 +151,7 @@ Relatórios são derivados dos dados existentes e não criam uma nova fonte de v
 - restauração de estado da janela pelo plugin oficial `tauri-plugin-window-state`;
 - testes de backend, migrations e estrutura frontend específicos do bloco.
 
-A implementação acumulada da `v0.8.0` concluiu também a validação de campo antes da preparação final de release. A CI continua responsável pelos gates automatizados de compilação, testes, lint e build desktop.
+A implementação acumulada da `v0.8.0` foi tecnicamente validada por revisão, testes automatizados, CI e build desktop. A validação prática em desktop e uso real permanece uma atividade separada de acompanhamento da pre-release.
 
 Consulte [FILES.md](FILES.md), [DATA-MANAGEMENT.md](DATA-MANAGEMENT.md) e [REPORTS.md](REPORTS.md).
 
