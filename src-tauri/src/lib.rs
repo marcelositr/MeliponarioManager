@@ -33,11 +33,11 @@ mod record_states;
 mod reports;
 mod repository;
 mod reversals;
+mod species_import;
 #[cfg(test)]
 mod stage4_migration_tests;
 #[cfg(test)]
 mod stage5c_migration_tests;
-mod species_import;
 mod time;
 mod timeline;
 mod transport;
