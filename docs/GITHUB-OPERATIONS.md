@@ -22,7 +22,7 @@ Mudanças pequenas e autocontidas podem começar diretamente em uma branch e ser
 | --- | --- |
 | Issues | Bugs, melhorias e trabalho que precisa permanecer no backlog |
 | Pull Requests | Revisão, decisão técnica e porta de entrada para `main` |
-| Actions | CI, build dos bundles e evidência automatizada |
+| Actions | CI, validação completa da `main`, build dos bundles e evidência automatizada |
 | Dependabot | Atualizações semanais de npm, Cargo e GitHub Actions |
 | Releases | Notas e instaladores associados a uma tag imutável |
 | Ruleset | Proteção da branch padrão e exigência do fluxo de integração |
@@ -66,9 +66,17 @@ Alterações nessas regras devem ser refletidas neste documento.
 
 ## CI e dependências reproduzíveis
 
-Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. O CI usa `npm ci` e comandos Cargo com `--locked`; manifests e lockfiles divergentes causam falha em vez de resolver versões não revisadas.
+Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. Os workflows usam `npm ci` e comandos Cargo com `--locked`; manifests e lockfiles divergentes causam falha em vez de resolver versões não revisadas.
 
-O workflow `CI` roda em Pull Requests e pushes para `main`. Novos commits cancelam execuções obsoletas da mesma referência. Builds de release não são cancelados automaticamente.
+O pipeline é dividido por finalidade:
+
+- `CI` roda em branches de trabalho e Pull Requests para `main`, produz o status obrigatório `check` e executa as validações rápidas de versão, frontend e Rust;
+- `Main validation` roda após pushes para `main` e repete as validações essenciais, acrescentando o build Tauri desktop completo com `--no-bundle`;
+- `Build desktop bundles` permanece reservado a execuções manuais e tags de release, produzindo os artefatos distribuíveis por plataforma.
+
+Execuções obsoletas do mesmo fluxo de desenvolvimento podem ser canceladas. Builds de release não são cancelados automaticamente.
+
+O workflow obrigatório não usa filtros globais que deixem de criar o status `check` em mudanças somente documentais. Isso evita Pull Requests presos aguardando um status obrigatório inexistente.
 
 ## Dependabot
 
