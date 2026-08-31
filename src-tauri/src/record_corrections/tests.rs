@@ -335,14 +335,13 @@ async fn occupancy_overlap_is_rejected() {
     )
     .await
     .unwrap();
-    let first_id: String = sqlx::query_scalar(
-        "SELECT id FROM colony_box_occupancies WHERE colony_id=? AND box_id=?",
-    )
-    .bind(&colony_id)
-    .bind(first_box)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let first_id: String =
+        sqlx::query_scalar("SELECT id FROM colony_box_occupancies WHERE colony_id=? AND box_id=?")
+            .bind(&colony_id)
+            .bind(first_box)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert!(correct_occupancy(
         &pool,
         CorrectOccupancy {

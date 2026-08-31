@@ -194,8 +194,7 @@ async fn backup_manifest_restore_recovers_database_and_assets() {
 }
 
 #[tokio::test]
-async fn restore_rejects_corrupt_incompatible_and_incomplete_backups_without_touching_current()
-{
+async fn restore_rejects_corrupt_incompatible_and_incomplete_backups_without_touching_current() {
     let root = temp_root("restore-invalid");
     fs::create_dir_all(&root).unwrap();
     let current = root.join(DATABASE_FILE);
