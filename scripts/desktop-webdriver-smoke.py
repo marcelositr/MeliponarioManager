@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -30,7 +31,7 @@ def request(method: str, path: str, payload: dict[str, Any] | None = None) -> di
     return json.loads(raw.decode("utf-8")) if raw else {}
 
 
-def wait_for_driver(process: subprocess.Popen[str]) -> None:
+def wait_for_driver(process: subprocess.Popen[bytes]) -> None:
     deadline = time.monotonic() + 20
     last_error: Exception | None = None
     while time.monotonic() < deadline:
@@ -103,6 +104,23 @@ def wait_for_heading(session_id: str, expected: str) -> None:
     raise AssertionError(f"expected desktop heading {expected!r}, got {last_text!r}")
 
 
+def stop_process_group(process: subprocess.Popen[bytes]) -> None:
+    if process.poll() is not None:
+        return
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+        process.wait(timeout=5)
+    except (ProcessLookupError, subprocess.TimeoutExpired):
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(f"usage: {Path(sys.argv[0]).name} <tauri-application>", file=sys.stderr)
@@ -114,9 +132,9 @@ def main() -> int:
 
     driver = subprocess.Popen(
         ["tauri-driver"],
-        stdout=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
         stderr=subprocess.STDOUT,
-        text=True,
+        start_new_session=True,
     )
     session_id: str | None = None
     try:
@@ -132,7 +150,7 @@ def main() -> int:
         request("POST", f"/session/{session_id}/element/{agenda_button}/click", {})
         wait_for_heading(session_id, "Agenda")
 
-        print("Desktop WebDriver smoke passed: Visão geral -> Agenda")
+        print("Desktop WebDriver smoke passed: Visão geral -> Agenda", flush=True)
         return 0
     finally:
         if session_id:
@@ -140,14 +158,7 @@ def main() -> int:
                 request("DELETE", f"/session/{session_id}")
             except Exception:
                 pass
-        driver.terminate()
-        try:
-            output, _ = driver.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            driver.kill()
-            output, _ = driver.communicate()
-        if driver.returncode not in (None, 0, -15) and output:
-            print(output, file=sys.stderr)
+        stop_process_group(driver)
 
 
 if __name__ == "__main__":
