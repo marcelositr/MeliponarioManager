@@ -4,13 +4,14 @@ import test from "node:test";
 import { defaultReportPeriod, reportFilename, sanitizeReportFilename } from "../src/lib/report-presentation.ts";
 
 const reports = fs.readFileSync(new URL("../src/pages/ReportsPage.tsx", import.meta.url), "utf8");
+const reportViews = fs.readFileSync(new URL("../src/pages/reports/ReportViews.tsx", import.meta.url), "utf8");
 const menu = fs.readFileSync(new URL("../src/components/TopMenu.tsx", import.meta.url), "utf8");
 const sidebar = fs.readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
 const router = fs.readFileSync(new URL("../src/components/WorkspaceRouter.tsx", import.meta.url), "utf8");
 const printCss = fs.readFileSync(new URL("../src/styles/reports.css", import.meta.url), "utf8");
 const dataPage = fs.readFileSync(new URL("../src/pages/DataManagementPage.tsx", import.meta.url), "utf8");
 
- test("report period defaults to first day through current local day", () => {
+test("report period defaults to first day through current local day", () => {
   assert.deepEqual(defaultReportPeriod(new Date(2026, 7, 29, 15, 30)), { startDate: "2026-08-01", endDate: "2026-08-29" });
 });
 
@@ -30,8 +31,16 @@ test("report switching, empty state, loading and csv controls are explicit", () 
   assert.match(reports, /Visão operacional/);
   assert.match(reports, /Histórico de colônia/);
   assert.match(reports, /Consultando dados do relatório/);
-  assert.match(reports, /Nenhum registro encontrado para o período e filtros selecionados/);
+  assert.match(reportViews, /Nenhum registro encontrado para o período e filtros selecionados/);
   assert.match(reports, /Exportar CSV…/);
+});
+
+test("report orchestration stays separate from report rendering views", () => {
+  assert.match(reports, /from "\.\/reports\/ReportViews"/);
+  assert.doesNotMatch(reports, /function ReportHeader/);
+  for (const view of ["OperationalView", "ProductionView", "CostView", "AgendaView", "ColonyView", "MeliponaryView"]) {
+    assert.match(reportViews, new RegExp(`export function ${view}`));
+  }
 });
 
 test("contextual navigation can open colony or meliponary reports", () => {
