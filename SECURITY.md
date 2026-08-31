@@ -27,6 +27,17 @@ Relatos relevantes incluem, entre outros, leitura ou escrita fora da área geren
 
 O recebimento será confirmado assim que possível. A análise pode resultar em correção, mitigação documentada ou encerramento fundamentado quando o comportamento não representar uma vulnerabilidade.
 
+## Verificação automatizada de dependências
+
+O repositório usa Dependabot para acompanhar atualizações de npm, Cargo e GitHub Actions. Além disso, um workflow independente executa `cargo-audit` contra o `src-tauri/Cargo.lock` e a base de advisories RustSec:
+
+- quando `Cargo.toml` ou `Cargo.lock` mudam em um Pull Request para `main`;
+- quando essas dependências mudam em `main`;
+- semanalmente, para detectar advisories publicados depois da última alteração de dependências;
+- manualmente, quando uma verificação adicional for necessária.
+
+O audit de segurança é separado do status obrigatório `check`, para não alongar o ciclo normal de mudanças sem dependências. Uma falha nesse workflow deve ser tratada como sinal de segurança a investigar antes de uma nova release.
+
 ## Escopo do produto
 
 O aplicativo é local-first e não opera um serviço web próprio. Ele não substitui controles de acesso do sistema operacional, criptografia de disco, backup externo ou sistemas oficiais de rastreabilidade.
