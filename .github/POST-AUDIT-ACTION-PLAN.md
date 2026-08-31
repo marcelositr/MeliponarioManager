@@ -8,7 +8,7 @@ Este arquivo é o ponto de retomada caso a sessão seja interrompida. Ele é tem
 
 ## Estado atual
 
-**Passos 1 a 7 concluídos e validados. A revisão estática final também foi concluída. O pacote agora aguarda teste manual do usuário e integração final.**
+**Passos 1 a 7 concluídos e validados. Por decisão do usuário, o teste manual foi movido para o fim de todo o trabalho. A dívida técnica identificada na auditoria passa a ser executada nesta mesma branch antes do teste final.**
 
 Já aplicado:
 
@@ -22,7 +22,10 @@ Já aplicado:
 - separação de CI rápido para branch/PR, validação completa para `main` e manutenção do workflow de bundles/releases;
 - documentação do novo modelo de CI em `CONTRIBUTING.md`, `docs/GITHUB-OPERATIONS.md` e `docs/DISTRIBUTION.md`;
 - sanitização central de `AppError::Database` antes da fronteira IPC, com testes de regressão;
-- CI rápido do pacote técnico concluído com sucesso, incluindo versão, dependências, ícones, frontend, testes de UI, `cargo fmt`, `cargo check`, Clippy e `cargo test`.
+- CI rápido do pacote técnico concluído com sucesso;
+- Actions externas pinadas por SHA completo;
+- cache Rust adicionado aos workflows de branch, `main` e bundles;
+- smoke test real de inicialização do binário Tauri adicionado ao workflow completo da `main`.
 
 Estado de validação:
 
@@ -30,12 +33,10 @@ Estado de validação:
 - `main` continua no commit do merge do PR #44; nenhum commit acidental adicional foi encontrado nela;
 - branch está à frente de `main` e 0 atrás;
 - nenhuma migration foi modificada;
-- diff atual está limitado ao plano, CI, documentação relacionada, capability, higiene de ícones, limpeza/testes Rust, hardening de erro e correções pontuais da Wiki;
-- CI rápido verde validou o conjunto de alterações técnicas;
-- commits posteriores ao CI verde são somente documentação da Wiki e atualização deste plano; por decisão do usuário, não é necessário aguardar novo CI para esses commits;
-- revisão final do diff concluída;
+- CI rápido verde validou o conjunto técnico anterior;
+- não é necessário aguardar cada execução de CI durante esta sequência; falhas serão tratadas quando observadas;
 - **não abrir/mergear o pacote ainda**;
-- próximo marco: teste manual da aplicação pelo usuário e, se aprovado, integração final.
+- próximo marco: concluir a seção 9, executar a auditoria final, então realizar um único teste manual abrangente e integrar.
 
 ## 1. Correções funcionais e permissões Tauri
 
@@ -48,7 +49,7 @@ Estado de validação:
 
 ## 2. Wiki e documentação afetada pela auditoria
 
-- [x] Confirmar a correção manual de `Backup-e-restauracao.md`: o backup é criado automaticamente na área de dados da aplicação e o caminho é informado ao usuário.
+- [x] Confirmar a correção de `Backup-e-restauracao.md`: o backup é criado automaticamente na área de dados da aplicação e o caminho é informado ao usuário.
 - [x] Verificar se README, Wiki e `docs/` continuam coerentes após as correções técnicas desta branch.
 - [x] Corrigir qualquer referência que se torne incorreta durante o trabalho.
 - [x] Atualizar FAQ e página de Relatórios da Wiki para refletir os fluxos reais de backup e exportação CSV.
@@ -79,7 +80,7 @@ Estado de validação:
 
 - [x] Ajustar `.gitignore` para arquivos de ícones gerados pelo fluxo `npm run icons`, preservando apenas os arquivos-fonte que devem ser versionados.
 - [x] Revisar a árvore do repositório por temporários, outputs gerados e restos de desenvolvimento claramente indevidos.
-- [x] Não apagar branches antigas nesta etapa; limpeza de branches será tratada separadamente depois da integração.
+- [x] Não apagar branches antigas nesta etapa; limpeza de branches será tratada depois da integração.
 
 **Critério de conclusão:** executar ferramentas locais de geração não deve poluir o `git status` com artefatos que não pertencem ao versionamento.
 
@@ -89,19 +90,19 @@ Estado de validação:
 
 - [x] Criar ou ajustar um CI rápido para Pull Requests destinados à `main`.
 - [x] Manter nele as validações essenciais: versão, dependências, frontend build/testes, `cargo fmt`, `cargo check`, `clippy` e `cargo test`.
-- [x] Retirar o build Tauri desktop pesado do caminho obrigatório de todo PR, desde que a cobertura essencial permaneça protegida.
-- [x] Preservar o contexto obrigatório `check` exigido pelo ruleset da `main`, ou atualizar o ruleset apenas se estritamente necessário e de forma consciente.
-- [x] Avaliar filtros de caminho para que mudanças somente documentais não recompilarem desnecessariamente frontend/Rust quando isso puder ser feito sem perder validação relevante.
+- [x] Retirar o build Tauri desktop pesado do caminho obrigatório de todo PR.
+- [x] Preservar o contexto obrigatório `check` exigido pelo ruleset da `main`.
+- [x] Avaliar filtros de caminho sem criar situação em que um check obrigatório deixe de existir.
 
 ### `main`
 
-- [x] Criar ou ajustar um workflow completo para `push` na `main`.
+- [x] Criar workflow completo para `push` na `main`.
 - [x] Incluir o build Tauri desktop completo na validação da `main`.
 - [x] Manter validações de versão, build e testes pertinentes ao estado integrado.
 
 ### Release
 
-- [x] Confirmar que o workflow de bundles/releases continua responsável pelos artefatos de distribuição e não duplica trabalho sem necessidade.
+- [x] Confirmar que o workflow de bundles/releases continua responsável pelos artefatos de distribuição.
 
 **Critério de conclusão:** PRs recebem feedback rápido e obrigatório; a `main` recebe validação completa; releases continuam com validação de distribuição apropriada.
 
@@ -110,59 +111,72 @@ Estado de validação:
 - [x] Revisar a fronteira de erros Rust → IPC para evitar que erros brutos de `sqlx`/SQLite possam chegar ao frontend por engano.
 - [x] Centralizar uma mensagem pública segura para erros internos de banco sem esconder mensagens de validação e `NotFound` úteis ao usuário.
 - [x] Revisar novamente caminhos de arquivos gerenciados, abertura de arquivos, backup/restauração e capabilities Tauri após as mudanças.
-- [x] Não iniciar nesta branch refatoração estrutural ampla de módulos grandes.
 
-**Critério de conclusão:** o hardening corrige riscos concretos encontrados sem transformar o PR em uma refatoração de arquitetura.
+**Critério de conclusão:** o hardening corrige riscos concretos encontrados sem alterar regras de domínio.
 
 ## 8. Validação e fechamento
 
-- [x] Revisar o diff completo desta branch contra a `main`.
+- [x] Revisar o diff técnico inicial contra a `main`.
 - [x] Confirmar que migrations existentes não foram alteradas indevidamente.
 - [x] Confirmar que nenhuma chave, token, credencial ou dado pessoal foi introduzido.
 - [x] Confirmar que README, Wiki e `docs/` continuam consistentes.
-- [x] Confirmar execução satisfatória do CI rápido da branch/PR para as alterações técnicas.
+- [x] Confirmar execução satisfatória do CI rápido da branch para o pacote técnico inicial.
 - [x] Confirmar que a estratégia de CI completo da `main` está configurada corretamente.
-- [x] Preparar resumo final das mudanças para teste manual do usuário.
-- [ ] Somente depois do teste manual, preparar a integração final de uma vez, evitando branches adicionais desnecessárias.
-- [ ] Antes de encerrar esta sequência, lembrar explicitamente a dívida técnica abaixo.
+- [ ] Repetir auditoria final depois da conclusão da dívida técnica da seção 9.
+- [ ] Executar o teste manual somente no fim de todo o trabalho.
+- [ ] Preparar a integração final de uma vez, evitando branches adicionais desnecessárias.
+- [ ] Depois da integração, limpar branches antigas e temporárias confirmadas como dispensáveis.
 
-**Critério de conclusão:** pacote pronto para teste manual e integração única, com escopo conhecido e sem pendências ocultas da auditoria.
+**Critério de conclusão:** todo o trabalho técnico é encerrado antes do único teste manual final e da integração.
 
-### Checklist de teste manual
-
-Este teste não precisa reproduzir todo o CI. O objetivo é confirmar os fluxos visíveis afetados pelo pacote:
+### Checklist do teste manual final
 
 - [ ] Abrir a aplicação na branch `fix/post-audit-cleanup` e confirmar inicialização normal com os dados existentes.
 - [ ] Abrir **Relatórios**, exportar um CSV e confirmar que o seletor nativo permite escolher nome e destino.
 - [ ] Confirmar que o CSV é realmente criado e pode ser aberto normalmente.
 - [ ] Abrir **Dados**, criar um backup completo e confirmar que a aplicação informa o caminho criado automaticamente.
 - [ ] Navegar pelas telas principais e confirmar que não há regressão visual ou erro evidente de carregamento.
-- [ ] Se houver fotos/anexos de teste disponíveis, abrir ou revelar pelo menos um arquivo gerenciado.
-- [ ] Não executar restauração destrutiva apenas para este smoke test; restauração permanece coberta pelos testes e pode ser exercitada separadamente com uma cópia descartável dos dados.
+- [ ] Se houver fotos/anexos disponíveis, abrir ou revelar pelo menos um arquivo gerenciado.
+- [ ] Não executar restauração destrutiva com dados reais; qualquer restauração manual deve usar cópia descartável.
 
-Se todos os itens aplicáveis estiverem normais, o pacote pode seguir para a integração final.
+## 9. Dívida técnica em execução antes do teste final
 
----
+### Estrutura Rust
 
-# Dívida técnica para depois desta limpeza
+- [ ] Reduzir o peso de `record_corrections.rs`, preservando regras e histórico.
+- [ ] Reduzir o peso de `agenda.rs`, separando responsabilidades naturais e/ou testes sem alterar comportamento.
+- [ ] Reduzir o peso de `data_management.rs`, separando responsabilidades naturais e/ou testes sem alterar comportamento.
 
-Estes itens **não devem ser esquecidos**, mas ficam fora do escopo desta branch salvo se algum deles se tornar necessário para corrigir um bug atual.
+### Frontend
 
-- [ ] Dividir módulos Rust grandes, especialmente `record_corrections.rs`, `agenda.rs` e `data_management.rs`.
-- [ ] Dividir páginas/componentes frontend grandes, especialmente Movimentações, Agenda, Assets e Relatórios.
-- [ ] Adicionar um conjunto pequeno de smoke/E2E desktop que exercite fluxos reais do Tauri, inclusive dialogs/capabilities.
-- [ ] Avaliar pin de GitHub Actions de terceiros por SHA completo para hardening de supply chain.
-- [ ] Revisar cobertura de testes após a reorganização dos módulos.
-- [ ] Limpar branches antigas e temporárias depois de confirmar que todo conteúdo relevante está integrado.
-- [ ] Revisar periodicamente o tempo de CI e cache sem reduzir a proteção da `main`.
+- [ ] Revisar e dividir, quando houver fronteira segura, as páginas grandes de Movimentações, Agenda, Assets e Relatórios.
+- [ ] Evitar componentes artificiais criados apenas para diminuir contagem de linhas.
+
+### Testes e runtime
+
+- [x] Adicionar smoke test real de startup do binário desktop no workflow completo da `main`.
+- [ ] Revisar cobertura das áreas alteradas e preencher lacunas concretas encontradas.
+
+### Supply chain e CI
+
+- [x] Pin de todas as GitHub Actions externas usadas pelos workflows por SHA completo, mantendo comentário da versão humana.
+- [x] Adicionar cache Rust aos workflows de branch, `main` e bundles sem remover validações.
+- [ ] Observar o comportamento do cache e revisar o tempo do CI antes do fechamento final.
+
+### Higiene pós-integração
+
+- [ ] Limpar branches antigas e temporárias somente depois que o pacote estiver integrado e confirmado.
+
+**Critério de conclusão:** dívida técnica relevante encontrada na auditoria foi resolvida ou, quando uma refatoração não produzir ganho claro e seguro, foi explicitamente avaliada e descartada com justificativa registrada.
 
 ## Estado de retomada
 
 Quando uma nova sessão precisar continuar este trabalho:
 
-1. abrir esta branch;
+1. abrir a branch `fix/post-audit-cleanup`;
 2. ler este arquivo;
 3. considerar concluídos **somente** os itens marcados `[x]`;
-4. ler também a seção **Estado atual** para identificar o próximo marco;
+4. continuar pela seção 9 antes de qualquer teste manual;
 5. conferir o último diff/commit antes de continuar;
-6. não iniciar dívida técnica enquanto houver item obrigatório acima em aberto, salvo correção necessária para desbloquear o pacote.
+6. executar o teste manual apenas quando a seção 9 e a auditoria final estiverem concluídas;
+7. integrar tudo em uma única sequência no final.
