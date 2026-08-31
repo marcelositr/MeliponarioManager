@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Dialog } from "../components/Dialog";
 import { PageToolbar } from "../components/PageToolbar";
 import { ReasonDialog } from "../components/ReasonDialog";
-import { RecordActions } from "../components/RecordActions";
-import { RecordStateBadge } from "../components/RecordStateBadge";
 import type { RecordStateMap } from "../hooks/useAppData";
 import { listColonyMovements, listMovementDocuments } from "../lib/api";
 import { formatDateTimeBr, publicError } from "../lib/presentation";
 import { completeTransport, listTransportReturns, reopenTransport, type TransportReturn } from "../lib/transport-api";
 import type { Colony, ColonyMovement, CorrectMovementDetailsInput, CreateMovementDocumentInput, CreateMovementInput, HiveBox, Meliponary, MovementDocument, ReverseRecordInput, UpdateMovementDocumentInput, VoidRecordInput } from "../types";
+import { MovementCreateDialog } from "./movements/MovementCreateDialog";
+import { MovementDocumentsDialog } from "./movements/MovementDocumentsDialog";
+import { MovementHistory } from "./movements/MovementHistory";
+import { movementLabel, normalizeDateTime, toInputDateTime } from "./movements/presentation";
 
 type Props = {
   colonies: Colony[];
@@ -174,49 +176,39 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
 
     {transportFeedback && <div className={`inline-notice ${transportFeedback.kind}`} role={transportFeedback.kind === "error" ? "alert" : "status"}>{transportFeedback.text}</div>}
 
-    <section className="panel wide-list">
-      <div className="panel-heading"><h2>Histórico da colônia</h2><p>O movimento de saída e o retorno são fatos separados. Reabrir um retorno preserva o registro anterior e a auditoria.</p></div>
-      {!selectedColonyId ? <div className="empty-list">Selecione uma colônia na toolbar.</div> : loading ? <div className="empty-list">Carregando...</div> : movements.length === 0 ? <div className="empty-list">Nenhuma movimentação registrada.</div> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Data</th><th>Tipo</th><th>Origem</th><th>Destino</th><th>Estado</th><th>Ações</th></tr></thead><tbody>{movements.map((item) => {
-        const state = recordStateMap.get(`movement:${item.id}`);
-        const disabled = Boolean(state?.voidedAt || state?.reversedAt);
-        const transportReturn = returnByMovement.get(item.id);
-        const secondary = [{ label: "Documentos", onClick: () => openDocuments(item.id) }];
-        if (!disabled && item.movementType === "transport") {
-          if (transportReturn) {
-            if (!hasOpenTransport) secondary.push({ label: "Reabrir transporte…", onClick: () => setReopenTarget(item) });
-          } else {
-            secondary.push({ label: "Registrar retorno…", onClick: () => { setReturnTarget(item); setReturnForm(returnInitial); } });
-            secondary.push({ label: "Anular transporte", onClick: () => setMovementAction({ item, mode: "void" }) });
-          }
-        } else if (!disabled && item.movementType !== "transport") {
-          secondary.push({ label: "Reverter transferência", onClick: () => setMovementAction({ item, mode: "reverse" }) });
-        }
-        return <tr key={item.id} className={disabled ? "voided-row" : undefined}>
-          <td><strong>{formatDateTimeBr(item.movedAt)}</strong></td>
-          <td>{movementLabel(item.movementType)}</td>
-          <td>{item.fromMeliponaryName}</td>
-          <td>{item.toMeliponaryName || item.destination || "—"}</td>
-          <td>{item.movementType === "transport" && !disabled ? transportReturn ? <><span className="badge status-active">Retornado</span><small className="cell-note">{formatDateTimeBr(transportReturn.returnedAt)}</small></> : <span className="badge severity-attention">Transporte aberto</span> : <RecordStateBadge state={state} />}</td>
-          <td><RecordActions busy={busy || transportBusy} onOpen={() => setMovementDetail(item)} onEdit={disabled ? undefined : () => beginMovementEdit(item)} secondary={secondary} /></td>
-        </tr>;
-      })}</tbody></table></div>}
-    </section>
+    <MovementHistory
+      selectedColonyId={selectedColonyId}
+      loading={loading}
+      movements={movements}
+      returnByMovement={returnByMovement}
+      recordStateMap={recordStateMap}
+      busy={busy}
+      transportBusy={transportBusy}
+      hasOpenTransport={hasOpenTransport}
+      onOpenDocuments={openDocuments}
+      onOpenDetail={setMovementDetail}
+      onEdit={beginMovementEdit}
+      onReopen={setReopenTarget}
+      onReturn={(item) => { setReturnTarget(item); setReturnForm(returnInitial); }}
+      onAction={(item, mode) => setMovementAction({ item, mode })}
+    />
 
-    <Dialog open={movementOpen} onClose={() => !busy && !transportBusy && setMovementOpen(false)} title="Nova movimentação" description="Transporte temporário não altera meliponário nem caixa atual e precisa ser concluído por um retorno." size="large">
-      <form className="form-grid" onSubmit={submitMovement}>
-        <label className="field full"><span>Colônia</span><select autoFocus required value={movementForm.colonyId} onChange={(event) => setMovementForm({ ...movementForm, colonyId: event.target.value, toMeliponaryId: "", toBoxId: "" })}><option value="">Selecione...</option>{colonies.map((colony) => <option value={colony.id} key={colony.id}>{colony.code} · {colony.status}</option>)}</select></label>
-        {selectedMovementColony && !movable && <div className="inline-notice field full" role="alert">Esta colônia não está disponível para nova movimentação.</div>}
-        {movementForm.movementType === "transport" && selectedMovementColony?.id === selectedColonyId && hasOpenTransport && <div className="inline-notice field full" role="alert">Existe um transporte temporário aberto para esta colônia. Registre o retorno antes de iniciar outro.</div>}
-        <label className="field"><span>Tipo</span><select value={movementForm.movementType} onChange={(event) => setMovementForm({ ...movementForm, movementType: event.target.value, toMeliponaryId: "", toBoxId: "", destination: "" })}><option value="transport">Transporte temporário</option><option value="internal_transfer">Transferência interna</option><option value="external_transfer">Transferência externa</option></select></label>
-        <label className="field"><span>Data e hora</span><input type="datetime-local" value={movementForm.movedAt} onChange={(event) => setMovementForm({ ...movementForm, movedAt: event.target.value })} /></label>
-        {movementForm.movementType === "internal_transfer" ? <>
-          <label className="field full"><span>Meliponário de destino</span><select required value={movementForm.toMeliponaryId} onChange={(event) => setMovementForm({ ...movementForm, toMeliponaryId: event.target.value, toBoxId: "" })}><option value="">Selecione...</option>{meliponaries.filter((item) => !item.archivedAt && item.id !== selectedMovementColony?.meliponaryId).map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-          <label className="field full"><span>Caixa ativa e livre opcional</span><select value={movementForm.toBoxId} onChange={(event) => setMovementForm({ ...movementForm, toBoxId: event.target.value })}><option value="">Sem caixa definida</option>{targetBoxes.map((box) => <option value={box.id} key={box.id}>{box.code}</option>)}</select></label>
-        </> : <label className="field full"><span>Destino</span><input required value={movementForm.destination} onChange={(event) => setMovementForm({ ...movementForm, destination: event.target.value })} /></label>}
-        <label className="field full"><span>Observações</span><textarea rows={3} value={movementForm.notes} onChange={(event) => setMovementForm({ ...movementForm, notes: event.target.value })} /></label>
-        <div className="form-actions full"><button className="button-secondary" type="button" onClick={() => setMovementOpen(false)} disabled={busy || transportBusy}>Cancelar</button><button type="submit" disabled={busy || transportBusy || !movementForm.colonyId || !movable || (movementForm.movementType === "transport" && selectedMovementColony?.id === selectedColonyId && hasOpenTransport)}>{busy ? "Salvando..." : "Registrar movimentação"}</button></div>
-      </form>
-    </Dialog>
+    <MovementCreateDialog
+      open={movementOpen}
+      busy={busy}
+      transportBusy={transportBusy}
+      movementForm={movementForm}
+      selectedColonyId={selectedColonyId}
+      colonies={colonies}
+      meliponaries={meliponaries}
+      targetBoxes={targetBoxes}
+      selectedMovementColony={selectedMovementColony}
+      movable={movable}
+      hasOpenTransport={hasOpenTransport}
+      onChange={setMovementForm}
+      onClose={() => setMovementOpen(false)}
+      onSubmit={submitMovement}
+    />
 
     <Dialog open={Boolean(returnTarget)} onClose={() => !transportBusy && setReturnTarget(null)} title="Registrar retorno" description={returnTarget ? `${returnTarget.colonyCode} · ${returnTarget.destination || "Transporte temporário"}` : ""} size="small">
       {returnTarget && <form className="form-grid" onSubmit={submitReturn}>
@@ -234,29 +226,32 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
       {movementEdit && <form className="form-grid" onSubmit={submitMovementEdit}><label className="field full"><span>Destino textual</span><input value={movementEdit.destination || ""} onChange={(event) => setMovementEdit({ ...movementEdit, destination: event.target.value || undefined })} /></label><label className="field full"><span>Observações</span><textarea rows={3} value={movementEdit.notes || ""} onChange={(event) => setMovementEdit({ ...movementEdit, notes: event.target.value })} /></label><label className="field full"><span>Motivo da correção</span><textarea required rows={3} value={movementEdit.reason} onChange={(event) => setMovementEdit({ ...movementEdit, reason: event.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={() => setMovementEdit(null)} disabled={busy}>Cancelar</button><button type="submit" disabled={busy || !movementEdit.reason.trim()}>Salvar correção</button></div></form>}
     </Dialog>
 
-    <Dialog open={documentsOpen} onClose={() => !busy && setDocumentsOpen(false)} title="Documentos da movimentação" description="Documentos podem ser corrigidos ou invalidados sem perder a referência histórica." size="large">
-      <div className="content-grid">
-        <form className="form-grid" onSubmit={submitDocument}><label className="field"><span>Tipo</span><select value={documentForm.documentType} onChange={(event) => setDocumentForm({ ...documentForm, documentType: event.target.value })}>{documentTypeOptions()}</select></label><label className="field"><span>Número / referência</span><input required value={documentForm.referenceNumber} onChange={(event) => setDocumentForm({ ...documentForm, referenceNumber: event.target.value })} /></label><label className="field"><span>Sistema de origem</span><input value={documentForm.sourceSystem} onChange={(event) => setDocumentForm({ ...documentForm, sourceSystem: event.target.value })} /></label><label className="field"><span>Emissor</span><input value={documentForm.issuer} onChange={(event) => setDocumentForm({ ...documentForm, issuer: event.target.value })} /></label><label className="field"><span>Emissão</span><input type="datetime-local" value={documentForm.issuedAt} onChange={(event) => setDocumentForm({ ...documentForm, issuedAt: event.target.value })} /></label><label className="field"><span>Validade</span><input type="datetime-local" value={documentForm.validUntil} onChange={(event) => setDocumentForm({ ...documentForm, validUntil: event.target.value })} /></label><label className="field full"><span>Caminho do arquivo opcional</span><input value={documentForm.filePath} onChange={(event) => setDocumentForm({ ...documentForm, filePath: event.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={2} value={documentForm.notes} onChange={(event) => setDocumentForm({ ...documentForm, notes: event.target.value })} /></label><div className="form-actions full"><button disabled={busy} type="submit">{busy ? "Salvando..." : "Vincular documento"}</button></div></form>
-        <div>{documents.length === 0 ? <div className="empty-list">Nenhum documento vinculado.</div> : <div className="record-list">{documents.map((doc) => { const state = recordStateMap.get(`movement_document:${doc.id}`); return <article className={state?.voidedAt ? "record-card voided-row" : "record-card"} key={doc.id}><div className="record-title-row"><div><strong>{documentLabel(doc.documentType)} · {doc.referenceNumber}</strong><span>{doc.sourceSystem || doc.issuer || "Sem emissor informado"}</span></div><RecordStateBadge state={state} /></div>{doc.notes && <p>{doc.notes}</p>}<RecordActions busy={busy} onOpen={() => setDocumentDetail(doc)} onEdit={state?.voidedAt ? undefined : () => beginDocumentEdit(doc)} secondary={[{ label: "Invalidar", onClick: () => setDocumentVoid(doc), disabled: Boolean(state?.voidedAt), danger: true }]} /></article>; })}</div>}</div>
-      </div>
-    </Dialog>
-
-    <Dialog open={Boolean(documentDetail)} onClose={() => setDocumentDetail(null)} title="Documento" description={documentDetail ? `${documentLabel(documentDetail.documentType)} · ${documentDetail.referenceNumber}` : ""} size="medium">
-      {documentDetail && <div className="detail-grid"><div><span>Sistema</span><strong>{documentDetail.sourceSystem || "—"}</strong></div><div><span>Emissor</span><strong>{documentDetail.issuer || "—"}</strong></div><div><span>Emissão</span><strong>{documentDetail.issuedAt ? formatDateTimeBr(documentDetail.issuedAt) : "—"}</strong></div><div><span>Validade</span><strong>{documentDetail.validUntil ? formatDateTimeBr(documentDetail.validUntil) : "—"}</strong></div><div className="full"><span>Arquivo</span><p>{documentDetail.filePath || "—"}</p></div><div className="full"><span>Observações</span><p>{documentDetail.notes || "—"}</p></div></div>}
-    </Dialog>
-
-    <Dialog open={Boolean(documentEdit)} onClose={() => !busy && setDocumentEdit(null)} title="Editar documento" description="A versão anterior permanece na auditoria." size="large">
-      {documentEdit && <form className="form-grid" onSubmit={submitDocumentEdit}><label className="field"><span>Tipo</span><select value={documentEdit.documentType} onChange={(event) => setDocumentEdit({ ...documentEdit, documentType: event.target.value })}>{documentTypeOptions()}</select></label><label className="field"><span>Número / referência</span><input required value={documentEdit.referenceNumber} onChange={(event) => setDocumentEdit({ ...documentEdit, referenceNumber: event.target.value })} /></label><label className="field"><span>Sistema de origem</span><input value={documentEdit.sourceSystem || ""} onChange={(event) => setDocumentEdit({ ...documentEdit, sourceSystem: event.target.value })} /></label><label className="field"><span>Emissor</span><input value={documentEdit.issuer || ""} onChange={(event) => setDocumentEdit({ ...documentEdit, issuer: event.target.value })} /></label><label className="field"><span>Emissão</span><input type="datetime-local" value={documentEdit.issuedAt || ""} onChange={(event) => setDocumentEdit({ ...documentEdit, issuedAt: event.target.value })} /></label><label className="field"><span>Validade</span><input type="datetime-local" value={documentEdit.validUntil || ""} onChange={(event) => setDocumentEdit({ ...documentEdit, validUntil: event.target.value })} /></label><label className="field full"><span>Caminho do arquivo</span><input value={documentEdit.filePath || ""} onChange={(event) => setDocumentEdit({ ...documentEdit, filePath: event.target.value })} /></label><label className="field full"><span>Observações</span><textarea rows={2} value={documentEdit.notes || ""} onChange={(event) => setDocumentEdit({ ...documentEdit, notes: event.target.value })} /></label><label className="field full"><span>Motivo da edição</span><textarea required rows={3} value={documentEdit.reason} onChange={(event) => setDocumentEdit({ ...documentEdit, reason: event.target.value })} /></label><div className="form-actions full"><button className="button-secondary" type="button" onClick={() => setDocumentEdit(null)} disabled={busy}>Cancelar</button><button type="submit" disabled={busy || !documentEdit.reason.trim() || !documentEdit.referenceNumber.trim()}>Salvar documento</button></div></form>}
-    </Dialog>
+    <MovementDocumentsDialog
+      open={documentsOpen}
+      busy={busy}
+      documents={documents}
+      documentForm={documentForm}
+      recordStateMap={recordStateMap}
+      documentDetail={documentDetail}
+      documentEdit={documentEdit}
+      documentVoid={documentVoid}
+      onFormChange={setDocumentForm}
+      onClose={() => setDocumentsOpen(false)}
+      onSubmit={submitDocument}
+      onDetailChange={setDocumentDetail}
+      onBeginEdit={beginDocumentEdit}
+      onEditChange={setDocumentEdit}
+      onSubmitEdit={submitDocumentEdit}
+      onVoidChange={setDocumentVoid}
+      onConfirmVoid={async (reason) => {
+        if (!documentVoid) return false;
+        const ok = await onVoidDocument({ id: documentVoid.id, reason });
+        if (ok) await reloadDocuments();
+        return ok;
+      }}
+    />
 
     <ReasonDialog open={Boolean(reopenTarget)} title="Reabrir transporte temporário?" description={reopenTarget ? `${reopenTarget.colonyCode} · ${reopenTarget.destination || "Transporte"}` : ""} confirmLabel="Reabrir transporte" consequence="O retorno registrado será preservado como revertido e o transporte voltará ao estado aberto. O movimento original permanece intacto." busy={transportBusy} onClose={() => setReopenTarget(null)} onConfirm={async (reason) => { if (!reopenTarget) return false; setTransportBusy(true); setTransportFeedback(null); try { await reopenTransport({ movementId: reopenTarget.id, reason }); setTransportFeedback({ kind: "success", text: "Retorno reaberto com auditoria preservada." }); await reloadMovements(); return true; } catch (error) { setTransportFeedback({ kind: "error", text: publicError(error, "Não foi possível reabrir o transporte.") }); return false; } finally { setTransportBusy(false); } }} />
     <ReasonDialog open={Boolean(movementAction)} title={movementAction?.mode === "reverse" ? "Reverter transferência?" : "Anular transporte?"} description={movementAction ? `${movementAction.item.colonyCode} · ${formatDateTimeBr(movementAction.item.movedAt)}` : ""} confirmLabel={movementAction?.mode === "reverse" ? "Reverter transferência" : "Anular transporte"} consequence={movementAction?.mode === "reverse" ? "A reversão tenta restaurar meliponário, situação e caixa anteriores. Qualquer consequência posterior incompatível bloqueia toda a operação." : "Somente um transporte ainda aberto pode ser anulado. O registro continuará auditável, mas deixará de representar um fato operacional válido."} danger busy={busy} onClose={() => setMovementAction(null)} onConfirm={async (reason) => { if (!movementAction) return false; const payload = { id: movementAction.item.id, reason }; const ok = movementAction.mode === "reverse" ? await onReverseMovement(payload) : await onVoidTransport(payload); if (ok) await reloadMovements(); return ok; }} />
-    <ReasonDialog open={Boolean(documentVoid)} title="Invalidar documento?" description={documentVoid ? `${documentLabel(documentVoid.documentType)} · ${documentVoid.referenceNumber}` : ""} confirmLabel="Invalidar documento" consequence="O vínculo e a referência permanecerão preservados na auditoria, mas o documento deixará de ser considerado válido." danger busy={busy} onClose={() => setDocumentVoid(null)} onConfirm={async (reason) => { if (!documentVoid) return false; const ok = await onVoidDocument({ id: documentVoid.id, reason }); if (ok) await reloadDocuments(); return ok; }} />
   </div>;
 }
-
-function normalizeDateTime(value?: string) { if (!value) return undefined; const normalized = value.replace("T", " "); return normalized.length === 16 ? `${normalized}:00` : normalized; }
-function toInputDateTime(value: string) { return value.replace(" ", "T").slice(0, 16); }
-function movementLabel(value: string) { return value === "internal_transfer" ? "Transferência interna" : value === "external_transfer" ? "Transferência externa" : "Transporte temporário"; }
-function documentLabel(value: string) { const labels: Record<string,string> = { gta:"GTA", authorization:"Autorização", invoice:"Nota fiscal", receipt:"Recibo", declaration:"Declaração", protocol:"Protocolo", certificate:"Certificado", other:"Outro" }; return labels[value] || value; }
-function documentTypeOptions() { return <><option value="gta">GTA</option><option value="authorization">Autorização</option><option value="invoice">Nota fiscal</option><option value="receipt">Recibo</option><option value="declaration">Declaração</option><option value="protocol">Protocolo</option><option value="certificate">Certificado</option><option value="other">Outro</option></>; }
