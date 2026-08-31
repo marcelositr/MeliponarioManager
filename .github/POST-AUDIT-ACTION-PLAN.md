@@ -8,27 +8,31 @@ Este arquivo é o ponto de retomada caso a sessão seja interrompida. Ele é tem
 
 ## Estado atual
 
-**Passos 1 a 7 concluídos e validados. O CI rápido do head terminou verde. O pacote agora aguarda teste manual do usuário e integração final.**
+**Passos 1 a 7 concluídos e validados. A revisão estática final também foi concluída. O pacote agora aguarda teste manual do usuário e integração final.**
 
 Já aplicado:
 
 - `dialog:allow-save` e teste de contrato das capabilities usadas pelo frontend;
 - correção da Wiki sobre o destino automático dos backups;
+- FAQ da Wiki esclarecendo onde o backup completo é armazenado;
+- documentação da Wiki esclarecendo que a exportação CSV usa o seletor nativo de arquivos para escolher nome e destino;
 - remoção dos módulos/testes Rust órfãos identificados na auditoria;
 - recuperação dos quatro testes úteis de regressão de produção em módulo ativo;
 - remoção do ícone gerado versionado e inclusão de `src-tauri/icons/` no `.gitignore`;
 - separação de CI rápido para branch/PR, validação completa para `main` e manutenção do workflow de bundles/releases;
 - documentação do novo modelo de CI em `CONTRIBUTING.md`, `docs/GITHUB-OPERATIONS.md` e `docs/DISTRIBUTION.md`;
 - sanitização central de `AppError::Database` antes da fronteira IPC, com testes de regressão;
-- CI rápido final concluído com sucesso, incluindo versão, dependências, ícones, frontend, testes de UI, `cargo fmt`, `cargo check`, Clippy e `cargo test`.
+- CI rápido do pacote técnico concluído com sucesso, incluindo versão, dependências, ícones, frontend, testes de UI, `cargo fmt`, `cargo check`, Clippy e `cargo test`.
 
 Estado de validação:
 
 - branch baseada na `main` após o merge do PR #44;
-- branch está à frente de `main` e não está atrasada;
+- `main` continua no commit do merge do PR #44; nenhum commit acidental adicional foi encontrado nela;
+- branch está 27 commits à frente de `main` e 0 atrás;
 - nenhuma migration foi modificada;
-- diff atual está limitado ao plano, CI, documentação relacionada, capability, higiene de ícones, limpeza/testes Rust, hardening de erro e correção pontual da Wiki;
-- CI rápido final do head atual concluído com sucesso;
+- diff atual está limitado ao plano, CI, documentação relacionada, capability, higiene de ícones, limpeza/testes Rust, hardening de erro e correções pontuais da Wiki;
+- CI rápido verde validou o conjunto de alterações técnicas;
+- commits posteriores ao CI verde são somente documentação da Wiki e atualização deste plano; por decisão do usuário, não é necessário aguardar novo CI para esses commits;
 - revisão final do diff concluída;
 - **não abrir/mergear o pacote ainda**;
 - próximo marco: teste manual da aplicação pelo usuário e, se aprovado, integração final.
@@ -47,6 +51,7 @@ Estado de validação:
 - [x] Confirmar a correção manual de `Backup-e-restauracao.md`: o backup é criado automaticamente na área de dados da aplicação e o caminho é informado ao usuário.
 - [x] Verificar se README, Wiki e `docs/` continuam coerentes após as correções técnicas desta branch.
 - [x] Corrigir qualquer referência que se torne incorreta durante o trabalho.
+- [x] Atualizar FAQ e página de Relatórios da Wiki para refletir os fluxos reais de backup e exportação CSV.
 
 **Critério de conclusão:** documentação pública descreve o comportamento real da aplicação, sem duplicação técnica desnecessária.
 
@@ -115,7 +120,7 @@ Estado de validação:
 - [x] Confirmar que migrations existentes não foram alteradas indevidamente.
 - [x] Confirmar que nenhuma chave, token, credencial ou dado pessoal foi introduzido.
 - [x] Confirmar que README, Wiki e `docs/` continuam consistentes.
-- [x] Confirmar execução satisfatória do CI rápido da branch/PR.
+- [x] Confirmar execução satisfatória do CI rápido da branch/PR para as alterações técnicas.
 - [x] Confirmar que a estratégia de CI completo da `main` está configurada corretamente.
 - [x] Preparar resumo final das mudanças para teste manual do usuário.
 - [ ] Somente depois do teste manual, preparar a integração final de uma vez, evitando branches adicionais desnecessárias.
