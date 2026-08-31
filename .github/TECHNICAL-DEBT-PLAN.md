@@ -20,7 +20,12 @@ Resolve the post-audit technical debt in a single branch without changing produc
 
 ## 1. Backend decomposition
 
-- [ ] Decompose `record_corrections.rs` by correction domain/responsibility.
+- [x] Decompose `record_corrections.rs` by correction domain/responsibility.
+  - facade/shared audit helpers remain in `record_corrections.rs`;
+  - operational facts moved to `record_corrections/facts.rs`;
+  - movement/document corrections moved to `record_corrections/movement_documents.rs`;
+  - division/occupancy corrections moved to `record_corrections/history.rs`;
+  - public function names and existing test module preserved.
 - [ ] Decompose `agenda.rs` beyond the already-separated test module where natural boundaries exist.
 - [ ] Decompose `data_management.rs` into backup/restore/export/diagnostics responsibilities where safe.
 - [ ] Decompose `master_data.rs` by master-data domain while preserving command/service contracts.
