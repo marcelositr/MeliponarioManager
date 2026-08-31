@@ -100,4 +100,4 @@ jobs:
         run: npm run tauri -- build --no-bundle
 
       - name: Exercise desktop WebView with WebDriver
-        run: xvfb-run -a python3 scripts/desktop-webdriver-smoke.py src-tauri/target/release/meliponariomanager
+        run: timeout --signal=TERM --kill-after=10s 90s xvfb-run -a python3 scripts/desktop-webdriver-smoke.py src-tauri/target/release/meliponariomanager
