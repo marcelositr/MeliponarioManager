@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const workflows = ["ci.yml", "ci-main.yml", "build-bundles.yml", "wiki.yml"];
+const workflows = [
+  "ci.yml",
+  "ci-main.yml",
+  "build-bundles.yml",
+  "wiki.yml",
+  "security-audit.yml",
+];
 
 async function workflow(name) {
   return readFile(new URL(`../.github/workflows/${name}`, import.meta.url), "utf8");
@@ -49,6 +55,17 @@ test("Rust build cache is enabled where compilation is expensive", async () => {
     assert.match(source, /Swatinem\/rust-cache@[0-9a-f]{40}/, `${name} should cache Rust builds`);
     assert.match(source, /workspaces:\s*src-tauri -> target/);
   }
+});
+
+test("dependency security audit is isolated, pinned and scheduled", async () => {
+  const source = await workflow("security-audit.yml");
+
+  assert.match(source, /src-tauri\/Cargo\.toml/);
+  assert.match(source, /src-tauri\/Cargo\.lock/);
+  assert.match(source, /cron: "45 12 \* \* 1"/);
+  assert.match(source, /cargo install cargo-audit --version 0\.22\.2 --locked/);
+  assert.match(source, /working-directory: src-tauri\n\s+run: cargo audit/);
+  assert.doesNotMatch(source, /required_status_checks|jobs:\n\s+check:/);
 });
 
 test("local desktop commands regenerate ignored bundle icons", async () => {
