@@ -1,0 +1,37 @@
+name: One-shot reversals decomposition
+
+on:
+  push:
+    branches:
+      - refactor/technical-debt
+    paths:
+      - .github/workflows/refactor-reversals.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: refactor/technical-debt
+          persist-credentials: false
+
+      - name: Split reversal responsibilities
+        run: |
+          python3 scripts/refactor-reversals.py
+          cargo fmt --manifest-path src-tauri/Cargo.toml --all
+
+      - name: Commit decomposition
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rm .github/workflows/refactor-reversals.yml scripts/refactor-reversals.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor(rust): split reversal responsibilities"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refactor/technical-debt
