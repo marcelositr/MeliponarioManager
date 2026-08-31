@@ -131,7 +131,7 @@ pub async fn list(pool: &SqlitePool, query: TaskQuery) -> Result<Vec<ScheduledTa
     .await?)
 }
 
-async fn summary_at(
+pub(super) async fn summary_at(
     pool: &SqlitePool,
     meliponary_id: Option<&str>,
     now: &str,
