@@ -38,8 +38,14 @@ def request_at(
     return json.loads(raw.decode("utf-8")) if raw else {}
 
 
-def request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
-    return request_at(DRIVER_URL, method, path, payload)
+def request(
+    method: str,
+    path: str,
+    payload: dict[str, Any] | None = None,
+    *,
+    timeout: float = 5,
+) -> dict[str, Any]:
+    return request_at(DRIVER_URL, method, path, payload, timeout=timeout)
 
 
 def wait_for_endpoint(
@@ -84,21 +90,19 @@ def create_session(application: Path) -> str:
             }
         }
     }
-    deadline = time.monotonic() + 20
-    last_error: Exception | None = None
-    while time.monotonic() < deadline:
-        try:
-            response = request("POST", "/session", payload)
-            value = response.get("value", response)
-            session_id = value.get("sessionId") or response.get("sessionId")
-            if session_id:
-                print(f"WebDriver session created: {session_id}", flush=True)
-                return str(session_id)
-            last_error = RuntimeError(f"WebDriver session response had no session id: {response}")
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
-            last_error = error
-        time.sleep(0.5)
-    raise RuntimeError(f"could not create Tauri WebDriver session: {last_error}")
+    print("Creating Tauri WebDriver session...", flush=True)
+    try:
+        response = request("POST", "/session", payload, timeout=60)
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"could not create Tauri WebDriver session: {error}") from error
+
+    value = response.get("value", response)
+    session_id = value.get("sessionId") or response.get("sessionId")
+    if not session_id:
+        raise RuntimeError(f"WebDriver session response had no session id: {response}")
+
+    print(f"Tauri WebDriver session created: {session_id}", flush=True)
+    return str(session_id)
 
 
 def find_element(session_id: str, using: str, value: str) -> str:
