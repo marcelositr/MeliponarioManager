@@ -38,12 +38,34 @@ Resolve the post-audit technical debt in a single branch without changing produc
   - restore validation, staging, rollback and startup application moved to `data_management/restore.rs`;
   - portable JSON and management-report export moved to `data_management/exports.rs`;
   - managed-file diagnostics were already correctly isolated in `managed_files.rs` and were not duplicated.
-- [ ] Decompose `master_data.rs` by master-data domain while preserving command/service contracts.
-- [ ] Decompose `movements.rs` by movement type/lifecycle where safe.
-- [ ] Decompose `repository.rs` into repository primitives/helpers without leaking SQLx details across IPC.
-- [ ] Decompose `transport.rs` by lifecycle/queries where safe.
-- [ ] Decompose `reversals.rs` by reversal domain where safe.
-- [ ] Re-run orphan-module and active-module audit after decomposition.
+- [x] Decompose `master_data.rs` by master-data domain while preserving command/service contracts.
+  - meliponary, species, box and colony operations now live in entity-specific submodules;
+  - shared validation/read helpers remain in the facade;
+  - inline tests moved to `master_data/tests.rs`.
+- [x] Decompose `movements.rs` by movement type/lifecycle where safe.
+  - transactional creation and type dispatch remain cohesive in `movements/creation.rs` because internal/external transfer share one transaction boundary;
+  - read projections moved to `movements/queries.rs`;
+  - inline tests moved to `movements/tests.rs`;
+  - transport return lifecycle remains separately owned by `transport.rs`.
+- [x] Decompose `repository.rs` into repository primitives/helpers without leaking SQLx details across IPC.
+  - core entity CRUD/queries moved to `repository/entities.rs`;
+  - box occupancy mutation moved to `repository/occupancy.rs`;
+  - `AppError` and shared input validation remain in the facade;
+  - inline tests moved to `repository/tests.rs`.
+- [x] Decompose `transport.rs` by lifecycle/queries where safe.
+  - completion/reopen lifecycle moved to `transport/lifecycle.rs`;
+  - return queries moved to `transport/queries.rs`;
+  - Tauri wrappers moved to `transport/commands.rs`;
+  - active-return helper remains shared in the facade and tests moved to `transport/tests.rs`.
+- [x] Decompose `reversals.rs` by reversal domain where safe.
+  - lifecycle reversal moved to `reversals/lifecycle.rs`;
+  - movement reversal moved to `reversals/movements.rs`;
+  - historical guards/box restoration remain shared in the facade;
+  - inline tests moved to `reversals/tests.rs`.
+- [x] Re-run orphan-module and active-module audit after decomposition.
+  - no one-shot refactor workflow or `scripts/refactor-*` file remains;
+  - previously removed `stage3_migration_tests` and `record_view*` modules remain absent;
+  - all new submodules are reachable from active parent modules.
 
 ## 2. Frontend decomposition
 
