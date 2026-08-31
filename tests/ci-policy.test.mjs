@@ -22,11 +22,13 @@ test("external GitHub Actions are pinned to immutable full SHAs", async () => {
 test("branch CI remains fast while main keeps full desktop validation", async () => {
   const [branchCi, mainCi] = await Promise.all([workflow("ci.yml"), workflow("ci-main.yml")]);
 
+  assert.match(branchCi, /npm run docs:check/);
   assert.match(branchCi, /cargo check --locked/);
   assert.match(branchCi, /cargo clippy --locked --all-targets -- -D warnings/);
   assert.match(branchCi, /cargo test --locked/);
   assert.doesNotMatch(branchCi, /tauri -- build --no-bundle/);
 
+  assert.match(mainCi, /npm run docs:check/);
   assert.match(mainCi, /tauri -- build --no-bundle/);
   assert.match(mainCi, /Smoke test desktop startup/);
   assert.match(mainCi, /timeout 8s xvfb-run -a src-tauri\/target\/release\/meliponariomanager/);
