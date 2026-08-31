@@ -71,9 +71,12 @@ test("Rust build cache is enabled where compilation is expensive", async () => {
 test("dependency security audit is isolated, pinned and scheduled", async () => {
   const source = await workflow("security-audit.yml");
 
+  assert.match(source, /package\.json/);
+  assert.match(source, /package-lock\.json/);
   assert.match(source, /src-tauri\/Cargo\.toml/);
   assert.match(source, /src-tauri\/Cargo\.lock/);
   assert.match(source, /cron: "45 12 \* \* 1"/);
+  assert.match(source, /npm audit --audit-level=high/);
   assert.match(source, /cargo install cargo-audit --version 0\.22\.2 --locked/);
   assert.match(source, /working-directory: src-tauri\n\s+run: cargo audit/);
   assert.doesNotMatch(source, /required_status_checks|jobs:\n\s+check:/);
