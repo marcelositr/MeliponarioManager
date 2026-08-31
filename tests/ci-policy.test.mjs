@@ -25,6 +25,17 @@ test("external GitHub Actions are pinned to immutable full SHAs", async () => {
   }
 });
 
+test("checkout credentials are not persisted in repository workflows", async () => {
+  for (const name of workflows) {
+    const source = await workflow(name);
+    assert.match(
+      source,
+      /uses: actions\/checkout@[0-9a-f]{40}[^\n]*\n\s+with:\n\s+persist-credentials: false/,
+      `${name} must disable persisted checkout credentials`,
+    );
+  }
+});
+
 test("branch CI keeps a documentation fast path while main keeps full desktop validation", async () => {
   const [branchCi, mainCi] = await Promise.all([workflow("ci.yml"), workflow("ci-main.yml")]);
 
