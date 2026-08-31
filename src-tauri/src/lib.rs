@@ -45,62 +45,6 @@ mod transport;
 use sqlx::SqlitePool;
 use tauri::Manager;
 
-#[tauri::command]
-async fn create_full_backup(
-    app: tauri::AppHandle,
-    pool: tauri::State<'_, SqlitePool>,
-) -> Result<data_management::GeneratedArtifact, String> {
-    data_management::create_full_backup(app, pool).await
-}
-
-#[tauri::command]
-async fn export_portable_json(
-    app: tauri::AppHandle,
-    pool: tauri::State<'_, SqlitePool>,
-) -> Result<data_management::GeneratedArtifact, String> {
-    data_management::export_portable_json(app, pool).await
-}
-
-#[tauri::command]
-async fn generate_management_report(
-    app: tauri::AppHandle,
-    pool: tauri::State<'_, SqlitePool>,
-) -> Result<data_management::GeneratedArtifact, String> {
-    data_management::generate_management_report(app, pool).await
-}
-
-#[tauri::command]
-async fn stage_restore(
-    app: tauri::AppHandle,
-    backup_path: String,
-) -> Result<data_management::RestoreStageResult, String> {
-    data_management::stage_restore(app, backup_path).await
-}
-
-#[tauri::command]
-async fn complete_transport(
-    pool: tauri::State<'_, SqlitePool>,
-    input: transport::CompleteTransport,
-) -> Result<transport::TransportReturn, String> {
-    transport::complete_transport(pool, input).await
-}
-
-#[tauri::command]
-async fn list_transport_returns(
-    pool: tauri::State<'_, SqlitePool>,
-    colony_id: String,
-) -> Result<Vec<transport::TransportReturn>, String> {
-    transport::list_transport_returns(pool, colony_id).await
-}
-
-#[tauri::command]
-async fn reopen_transport(
-    pool: tauri::State<'_, SqlitePool>,
-    input: transport::ReopenTransport,
-) -> Result<(), String> {
-    transport::reopen_transport(pool, input).await
-}
-
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
@@ -148,10 +92,10 @@ pub fn run() {
             reports::get_colony_report,
             reports::get_meliponary_report,
             reports::export_report_csv,
-            create_full_backup,
-            export_portable_json,
-            generate_management_report,
-            stage_restore,
+            data_management::create_full_backup,
+            data_management::export_portable_json,
+            data_management::generate_management_report,
+            data_management::stage_restore,
             managed_files::diagnose_managed_files,
             managed_files::open_managed_attachment,
             managed_files::reveal_managed_attachment,
@@ -202,9 +146,9 @@ pub fn run() {
             commands::list_movement_documents,
             commands::list_colony_documents,
             commands::get_movement_traceability,
-            complete_transport,
-            list_transport_returns,
-            reopen_transport,
+            transport::complete_transport,
+            transport::list_transport_returns,
+            transport::reopen_transport,
             admin_commands::edit_meliponary,
             admin_commands::archive_meliponary,
             admin_commands::reactivate_meliponary,
