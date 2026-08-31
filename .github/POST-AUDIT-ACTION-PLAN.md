@@ -28,7 +28,7 @@ Estado de validação:
 
 - branch baseada na `main` após o merge do PR #44;
 - `main` continua no commit do merge do PR #44; nenhum commit acidental adicional foi encontrado nela;
-- branch está 27 commits à frente de `main` e 0 atrás;
+- branch está à frente de `main` e 0 atrás;
 - nenhuma migration foi modificada;
 - diff atual está limitado ao plano, CI, documentação relacionada, capability, higiene de ícones, limpeza/testes Rust, hardening de erro e correções pontuais da Wiki;
 - CI rápido verde validou o conjunto de alterações técnicas;
@@ -127,6 +127,20 @@ Estado de validação:
 - [ ] Antes de encerrar esta sequência, lembrar explicitamente a dívida técnica abaixo.
 
 **Critério de conclusão:** pacote pronto para teste manual e integração única, com escopo conhecido e sem pendências ocultas da auditoria.
+
+### Checklist de teste manual
+
+Este teste não precisa reproduzir todo o CI. O objetivo é confirmar os fluxos visíveis afetados pelo pacote:
+
+- [ ] Abrir a aplicação na branch `fix/post-audit-cleanup` e confirmar inicialização normal com os dados existentes.
+- [ ] Abrir **Relatórios**, exportar um CSV e confirmar que o seletor nativo permite escolher nome e destino.
+- [ ] Confirmar que o CSV é realmente criado e pode ser aberto normalmente.
+- [ ] Abrir **Dados**, criar um backup completo e confirmar que a aplicação informa o caminho criado automaticamente.
+- [ ] Navegar pelas telas principais e confirmar que não há regressão visual ou erro evidente de carregamento.
+- [ ] Se houver fotos/anexos de teste disponíveis, abrir ou revelar pelo menos um arquivo gerenciado.
+- [ ] Não executar restauração destrutiva apenas para este smoke test; restauração permanece coberta pelos testes e pode ser exercitada separadamente com uma cópia descartável dos dados.
+
+Se todos os itens aplicáveis estiverem normais, o pacote pode seguir para a integração final.
 
 ---
 
