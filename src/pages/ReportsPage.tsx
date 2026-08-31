@@ -1,8 +1,8 @@
 import { save } from "@tauri-apps/plugin-dialog";
 import { useEffect, useMemo, useState } from "react";
 import type { NavigationIntent } from "../lib/navigation";
-import { publicError, formatDateTimeBr } from "../lib/presentation";
-import { defaultReportPeriod, formatBrl, formatReportNumber, reportFilename } from "../lib/report-presentation";
+import { publicError } from "../lib/presentation";
+import { defaultReportPeriod, reportFilename } from "../lib/report-presentation";
 import {
   exportReportCsv,
   getAgendaReport,
@@ -11,15 +11,12 @@ import {
   getMeliponaryReport,
   getOperationalReport,
   getProductionReport,
-  type AgendaMetrics,
   type AgendaReport,
   type ColonyReport,
   type CostReport,
   type MeliponaryReport,
   type OperationalReport,
-  type ProductionAggregate,
   type ProductionReport,
-  type ReportContext,
   type ReportFilter,
 } from "../lib/reports-api";
 import type { Colony, Meliponary, Species } from "../types";
