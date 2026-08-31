@@ -184,4 +184,7 @@ pub use manual::{cancel, complete_generic, create_manual, duplicate, reschedule,
 pub use queries::{get, list, summary};
 
 #[cfg(test)]
+use queries::summary_at;
+
+#[cfg(test)]
 mod tests;
