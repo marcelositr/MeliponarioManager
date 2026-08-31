@@ -145,7 +145,7 @@ fn validate_manifest(
     Ok(())
 }
 
-async fn validate_restore_source(source: &Path) -> Result<ValidatedRestoreSource, String> {
+pub(super) async fn validate_restore_source(source: &Path) -> Result<ValidatedRestoreSource, String> {
     if source.is_dir() {
         let database = source.join(DATABASE_FILE);
         let schema_version = validate_database(&database).await?;
@@ -190,7 +190,10 @@ fn remove_if_exists(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-async fn stage_restore_at(data_dir: &Path, source: &Path) -> Result<RestoreStageResult, String> {
+pub(super) async fn stage_restore_at(
+    data_dir: &Path,
+    source: &Path,
+) -> Result<RestoreStageResult, String> {
     let validated = validate_restore_source(source).await?;
     fs::create_dir_all(data_dir)
         .map_err(|_| "Não foi possível acessar os dados da aplicação.".to_owned())?;
