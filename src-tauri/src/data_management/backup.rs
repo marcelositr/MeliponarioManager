@@ -63,7 +63,6 @@ async fn create_backup_at(
     result
 }
 
-#[tauri::command]
 pub async fn create_full_backup(
     app: AppHandle,
     pool: State<'_, SqlitePool>,
