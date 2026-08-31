@@ -326,7 +326,6 @@ pub fn apply_pending_restore(data_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
 pub async fn stage_restore(
     app: AppHandle,
     backup_path: String,
