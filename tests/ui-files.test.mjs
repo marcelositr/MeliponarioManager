@@ -10,7 +10,13 @@ const sidebar = fs.readFileSync(new URL("../src/components/Sidebar.tsx", import.
 const preview = fs.readFileSync(new URL("../src/components/InspectionPhotoPreview.tsx", import.meta.url), "utf8");
 const previewBackend = fs.readFileSync(new URL("../src-tauri/src/photo_preview.rs", import.meta.url), "utf8");
 const tauriLib = fs.readFileSync(new URL("../src-tauri/src/lib.rs", import.meta.url), "utf8");
-const dataManagement = fs.readFileSync(new URL("../src-tauri/src/data_management.rs", import.meta.url), "utf8");
+const dataManagementSources = [
+  "../src-tauri/src/data_management.rs",
+  "../src-tauri/src/data_management/backup.rs",
+  "../src-tauri/src/data_management/restore.rs",
+  "../src-tauri/src/data_management/exports.rs",
+].map((path) => fs.readFileSync(new URL(path, import.meta.url), "utf8"));
+const dataManagement = dataManagementSources.join("\n");
 const styles = fs.readFileSync(new URL("../src/styles/files.css", import.meta.url), "utf8");
 
 test("managed files stay contextual to the meliponary record center", () => {
@@ -48,7 +54,7 @@ test("data management exposes managed-file diagnostics", () => {
   assert.match(dataPage, /Nenhuma inconsistência de arquivos foi encontrada/);
 });
 
-test("backup and JSON semantics are explicit and versioned", () => {
+test("backup and JSON semantics are explicit and versioned across the data-management module", () => {
   assert.match(dataManagement, /BACKUP_FORMAT_VERSION:\s*u32\s*=\s*1/);
   assert.match(dataManagement, /PORTABLE_FORMAT_VERSION:\s*u32\s*=\s*1/);
   assert.match(dataManagement, /assets_embedded:\s*false/);
