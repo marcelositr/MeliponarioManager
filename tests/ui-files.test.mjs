@@ -5,6 +5,12 @@ import test from "node:test";
 const filesPanel = fs.readFileSync(new URL("../src/components/MeliponaryFilesPanel.tsx", import.meta.url), "utf8");
 const recordCenter = fs.readFileSync(new URL("../src/components/OperationalRecordCenter.tsx", import.meta.url), "utf8");
 const assetsPage = fs.readFileSync(new URL("../src/pages/AssetsPage.tsx", import.meta.url), "utf8");
+const assetsModule = [
+  assetsPage,
+  fs.readFileSync(new URL("../src/pages/assets/AssetsMaintenancePanel.tsx", import.meta.url), "utf8"),
+  fs.readFileSync(new URL("../src/pages/assets/AssetsPhotoLibrary.tsx", import.meta.url), "utf8"),
+  fs.readFileSync(new URL("../src/pages/assets/presentation.ts", import.meta.url), "utf8"),
+].join("\n");
 const dataPage = fs.readFileSync(new URL("../src/pages/DataManagementPage.tsx", import.meta.url), "utf8");
 const sidebar = fs.readFileSync(new URL("../src/components/Sidebar.tsx", import.meta.url), "utf8");
 const preview = fs.readFileSync(new URL("../src/components/InspectionPhotoPreview.tsx", import.meta.url), "utf8");
@@ -35,12 +41,12 @@ test("attachments use native selection and expose safe file actions", () => {
 });
 
 test("inspection photos use native picker, human context and lazy previews", () => {
-  assert.match(assetsPage, /Selecionar foto/);
-  assert.match(assetsPage, /openInspectionPhoto/);
-  assert.match(assetsPage, /revealInspectionPhoto/);
-  assert.match(assetsPage, /InspectionPhotoPreview/);
-  assert.doesNotMatch(assetsPage, /inspectionId\.slice/);
-  assert.doesNotMatch(assetsPage, /Caminho local da foto/);
+  assert.match(assetsModule, /Selecionar foto/);
+  assert.match(assetsModule, /openInspectionPhoto/);
+  assert.match(assetsModule, /revealInspectionPhoto/);
+  assert.match(assetsModule, /InspectionPhotoPreview/);
+  assert.doesNotMatch(assetsModule, /inspectionId\.slice/);
+  assert.doesNotMatch(assetsModule, /Caminho local da foto/);
   assert.match(preview, /IntersectionObserver/);
   assert.match(preview, /loading="lazy"/);
   assert.match(previewBackend, /MAX_PREVIEW_BYTES:\s*u64\s*=\s*384 \* 1024/);
