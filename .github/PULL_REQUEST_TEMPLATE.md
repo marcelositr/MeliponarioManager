@@ -31,10 +31,10 @@ Marque as verificações aplicáveis ao escopo da mudança.
 - [ ] `npm run icons && npm run bundle:check`
 - [ ] `npm run build`
 - [ ] `npm run test:ui`
-- [ ] `cargo fmt --all -- --check`
-- [ ] `cargo check --locked`
-- [ ] `cargo clippy --locked --all-targets -- -D warnings`
-- [ ] `cargo test --locked`
+- [ ] `cd src-tauri && cargo fmt --all -- --check`
+- [ ] `cd src-tauri && cargo check --locked`
+- [ ] `cd src-tauri && cargo clippy --locked --all-targets -- -D warnings`
+- [ ] `cd src-tauri && cargo test --locked`
 - [ ] `Dependency security audit` revisado quando manifests ou lockfiles mudaram
 - [ ] Teste manual executado quando o comportamento alterado exige validação de interface ou runtime
 - [ ] Itens não executados estão explicados abaixo
