@@ -22,6 +22,9 @@ test("external GitHub Actions are pinned to immutable full SHAs", async () => {
 test("branch CI keeps a documentation fast path while main keeps full desktop validation", async () => {
   const [branchCi, mainCi] = await Promise.all([workflow("ci.yml"), workflow("ci-main.yml")]);
 
+  assert.match(branchCi, /jobs:\n\s+check:/);
+  assert.match(branchCi, /group: ci-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/);
+  assert.match(branchCi, /cancel-in-progress: true/);
   assert.match(branchCi, /fetch-depth:\s*0/);
   assert.match(branchCi, /Detect documentation-only change/);
   assert.match(branchCi, /code_changed=true/);
