@@ -1,6 +1,5 @@
 use super::*;
 
-#[tauri::command]
 pub async fn complete_transport(
     pool: State<'_, SqlitePool>,
     mut input: CompleteTransport,
@@ -13,7 +12,6 @@ pub async fn complete_transport(
     complete(&pool, input).await.map_err(message)
 }
 
-#[tauri::command]
 pub async fn list_transport_returns(
     pool: State<'_, SqlitePool>,
     colony_id: String,
@@ -21,7 +19,6 @@ pub async fn list_transport_returns(
     list_by_colony(&pool, &colony_id).await.map_err(message)
 }
 
-#[tauri::command]
 pub async fn reopen_transport(
     pool: State<'_, SqlitePool>,
     input: ReopenTransport,
