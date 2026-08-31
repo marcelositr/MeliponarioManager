@@ -50,3 +50,12 @@ test("Rust build cache is enabled where compilation is expensive", async () => {
     assert.match(source, /workspaces:\s*src-tauri -> target/);
   }
 });
+
+test("local desktop commands regenerate ignored bundle icons", async () => {
+  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+
+  assert.equal(packageJson.scripts["predesktop:dev"], "npm run icons");
+  assert.equal(packageJson.scripts["predesktop:build"], "npm run icons && npm run bundle:check");
+  assert.equal(packageJson.scripts["desktop:dev"], "tauri dev");
+  assert.equal(packageJson.scripts["desktop:build"], "tauri build");
+});
