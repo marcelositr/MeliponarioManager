@@ -31,7 +31,7 @@ fn write_backup_manifest(
     Ok(manifest)
 }
 
-async fn create_backup_at(
+pub(super) async fn create_backup_at(
     pool: &SqlitePool,
     data_dir: &Path,
     target_dir: &Path,
