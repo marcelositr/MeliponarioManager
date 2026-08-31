@@ -42,7 +42,7 @@ async fn export_rows(pool: &SqlitePool, sql: &'static str) -> Result<Vec<Value>,
     Ok(output)
 }
 
-async fn portable_tables(pool: &SqlitePool) -> Result<PortableTables, String> {
+pub(super) async fn portable_tables(pool: &SqlitePool) -> Result<PortableTables, String> {
     Ok(PortableTables {
         meliponaries: export_rows(pool, "SELECT * FROM meliponaries ORDER BY created_at, id")
             .await?,
