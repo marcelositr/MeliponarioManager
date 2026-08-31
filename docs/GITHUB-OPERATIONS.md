@@ -70,13 +70,15 @@ Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. Os w
 
 O pipeline é dividido por finalidade:
 
-- `CI` roda em branches de trabalho e Pull Requests para `main`, produz o status obrigatório `check` e executa as validações rápidas de versão, frontend e Rust;
+- `CI` roda em branches de trabalho e Pull Requests para `main`, produz o status obrigatório `check` e executa as validações rápidas de versão, documentação, frontend e Rust;
 - `Main validation` roda após pushes para `main` e repete as validações essenciais, acrescentando o build Tauri desktop completo com `--no-bundle` e um smoke test de inicialização em ambiente gráfico virtual;
 - `Build desktop bundles` permanece reservado a execuções manuais e tags de release, produzindo os artefatos distribuíveis por plataforma.
 
 Execuções obsoletas do mesmo fluxo de desenvolvimento podem ser canceladas. Builds de release não são cancelados automaticamente.
 
-O workflow obrigatório não usa filtros globais que deixem de criar o status `check` em mudanças somente documentais. Isso evita Pull Requests presos aguardando um status obrigatório inexistente.
+O status `check` é sempre criado para Pull Requests. Quando a alteração contém somente Markdown em README, arquivos institucionais, `docs/` ou `wiki/`, o próprio job detecta o escopo e executa apenas as verificações leves de versão e links de documentação. Mudanças de código, configuração, scripts ou workflows seguem pelo pipeline completo de frontend e Rust.
+
+Essa otimização é interna ao job obrigatório. Ela não usa um filtro global que faria o status desaparecer e deixaria o Pull Request preso aguardando um check inexistente.
 
 ### Hardening dos workflows
 
@@ -86,7 +88,7 @@ Os workflows que compilam Rust usam cache do diretório de build de `src-tauri`.
 
 O smoke test da `main` inicia o binário Tauri recém-compilado sob `xvfb` e exige que ele permaneça em execução durante uma pequena janela de startup. Esse teste não substitui o teste manual da interface, mas detecta falhas de inicialização que `cargo test` e o build isoladamente não conseguem observar.
 
-O arquivo `tests/ci-policy.test.mjs` protege contratos importantes do pipeline, incluindo pin por SHA, presença do cache Rust e separação entre CI rápido e validação desktop completa.
+O arquivo `tests/ci-policy.test.mjs` protege contratos importantes do pipeline, incluindo pin por SHA, presença do cache Rust, validação documental, fast path de documentação e separação entre CI rápido e validação desktop completa.
 
 ## Dependabot
 
