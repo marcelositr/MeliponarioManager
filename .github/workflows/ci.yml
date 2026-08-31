@@ -5,8 +5,6 @@ on:
     branches: [main]
   push:
     branches-ignore: [main]
-    paths-ignore:
-      - ".github/POST-AUDIT-ACTION-PLAN.md"
 
 permissions:
   contents: read
@@ -46,7 +44,7 @@ jobs:
           code_changed=false
           while IFS= read -r file; do
             case "$file" in
-              README.md|CONTRIBUTING.md|SECURITY.md|CHANGELOG.md|docs/*.md|wiki/*.md|.github/POST-AUDIT-ACTION-PLAN.md)
+              README.md|CONTRIBUTING.md|SECURITY.md|CHANGELOG.md|docs/*.md|wiki/*.md)
                 ;;
               *)
                 code_changed=true
