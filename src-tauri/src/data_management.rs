@@ -256,9 +256,39 @@ mod backup;
 mod exports;
 mod restore;
 
-pub use backup::create_full_backup;
-pub use exports::{export_portable_json, generate_management_report};
-pub use restore::{apply_pending_restore, stage_restore};
+pub use restore::apply_pending_restore;
+
+#[tauri::command]
+pub async fn create_full_backup(
+    app: AppHandle,
+    pool: State<'_, SqlitePool>,
+) -> Result<GeneratedArtifact, String> {
+    backup::create_full_backup(app, pool).await
+}
+
+#[tauri::command]
+pub async fn export_portable_json(
+    app: AppHandle,
+    pool: State<'_, SqlitePool>,
+) -> Result<GeneratedArtifact, String> {
+    exports::export_portable_json(app, pool).await
+}
+
+#[tauri::command]
+pub async fn generate_management_report(
+    app: AppHandle,
+    pool: State<'_, SqlitePool>,
+) -> Result<GeneratedArtifact, String> {
+    exports::generate_management_report(app, pool).await
+}
+
+#[tauri::command]
+pub async fn stage_restore(
+    app: AppHandle,
+    backup_path: String,
+) -> Result<RestoreStageResult, String> {
+    restore::stage_restore(app, backup_path).await
+}
 
 #[cfg(test)]
 mod tests;
