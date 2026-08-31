@@ -22,6 +22,18 @@ A sidebar organiza:
 
 Fotos de inspeção permanecem acessíveis no fluxo de Manutenção e nas fichas contextuais; não possuem item global próprio na navegação.
 
+## Composição das páginas
+
+Páginas simples podem permanecer autocontidas. Quando uma tela reúne consulta, mutações, tabelas e vários dialogs, o arquivo `*Page.tsx` funciona como orquestrador: mantém estado, efeitos, chamadas IPC e coordenação entre fluxos.
+
+Componentes específicos dessa página ficam em um diretório irmão, sem serem promovidos artificialmente a componentes globais. Os módulos atuais seguem esse padrão:
+
+- `pages/movements/`: histórico de movimentações, criação e documentos;
+- `pages/agenda/`: resumo/lista, criação e dialogs de execução;
+- `pages/assets/`: histórico de manutenção e biblioteca de fotos.
+
+Helpers puros de apresentação e modelos de formulário podem acompanhar esses submódulos. Regras de domínio, persistência e efeitos nativos continuam fora dos componentes puramente visuais.
+
 ## Princípios visuais
 
 - hierarquia por borda, contraste e elevação discreta;
