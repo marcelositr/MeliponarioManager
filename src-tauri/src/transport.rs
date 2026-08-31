@@ -86,9 +86,32 @@ mod commands;
 mod lifecycle;
 mod queries;
 
-pub use commands::{complete_transport, list_transport_returns, reopen_transport};
 pub use lifecycle::{complete, has_open_transport_for_colony, reopen};
 pub use queries::list_by_colony;
+
+#[tauri::command]
+pub async fn complete_transport(
+    pool: State<'_, SqlitePool>,
+    input: CompleteTransport,
+) -> Result<TransportReturn, String> {
+    commands::complete_transport(pool, input).await
+}
+
+#[tauri::command]
+pub async fn list_transport_returns(
+    pool: State<'_, SqlitePool>,
+    colony_id: String,
+) -> Result<Vec<TransportReturn>, String> {
+    commands::list_transport_returns(pool, colony_id).await
+}
+
+#[tauri::command]
+pub async fn reopen_transport(
+    pool: State<'_, SqlitePool>,
+    input: ReopenTransport,
+) -> Result<(), String> {
+    commands::reopen_transport(pool, input).await
+}
 
 #[cfg(test)]
 mod tests;
