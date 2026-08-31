@@ -132,7 +132,6 @@ async fn portable_tables(pool: &SqlitePool) -> Result<PortableTables, String> {
     })
 }
 
-#[tauri::command]
 pub async fn export_portable_json(
     app: AppHandle,
     pool: State<'_, SqlitePool>,
@@ -166,7 +165,6 @@ pub async fn export_portable_json(
     })
 }
 
-#[tauri::command]
 pub async fn generate_management_report(
     app: AppHandle,
     pool: State<'_, SqlitePool>,
