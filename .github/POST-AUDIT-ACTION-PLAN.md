@@ -1,14 +1,14 @@
 # Plano de ação pós-auditoria
 
 > **Branch de trabalho:** `fix/post-audit-cleanup`  
-> **Objetivo:** corrigir os achados da auditoria geral, acelerar o ciclo de CI sem enfraquecer a `main` e preparar uma integração única e limpa.  
+> **Objetivo:** corrigir os achados da auditoria geral, reduzir dívida técnica segura, acelerar o CI sem enfraquecer a `main` e preparar uma integração única e limpa.  
 > **Regra de acompanhamento:** um item só recebe `[x]` quando estiver realmente concluído e validado. Trabalho parcial permanece `[ ]`.
 
 Este arquivo é o ponto de retomada caso a sessão seja interrompida. Ele é temporário e não representa documentação permanente do produto.
 
 ## Estado atual
 
-**Passos 1 a 7 concluídos e validados. Por decisão do usuário, o teste manual foi movido para o fim de todo o trabalho. A dívida técnica identificada na auditoria passa a ser executada nesta mesma branch antes do teste final.**
+**Passos 1 a 7 concluídos e validados. O teste manual foi movido para o fim de todo o trabalho. A seção 9 está implementada quase por completo e aguarda a validação do CI atual antes dos últimos `[x]`.**
 
 Já aplicado:
 
@@ -20,23 +20,30 @@ Já aplicado:
 - recuperação dos quatro testes úteis de regressão de produção em módulo ativo;
 - remoção do ícone gerado versionado e inclusão de `src-tauri/icons/` no `.gitignore`;
 - separação de CI rápido para branch/PR, validação completa para `main` e manutenção do workflow de bundles/releases;
-- documentação do novo modelo de CI em `CONTRIBUTING.md`, `docs/GITHUB-OPERATIONS.md` e `docs/DISTRIBUTION.md`;
 - sanitização central de `AppError::Database` antes da fronteira IPC, com testes de regressão;
-- CI rápido do pacote técnico concluído com sucesso;
 - Actions externas pinadas por SHA completo;
 - cache Rust adicionado aos workflows de branch, `main` e bundles;
-- smoke test real de inicialização do binário Tauri adicionado ao workflow completo da `main`.
+- smoke test real de inicialização do binário Tauri adicionado ao workflow completo da `main`;
+- validador de links Markdown locais para README, `docs/` e `wiki/`, executado no CI de branch e da `main`;
+- teste de política protegendo pin por SHA, cache, validação documental e separação entre CI rápido e CI completo;
+- testes inline grandes extraídos de `agenda.rs`, `data_management.rs` e `record_corrections.rs` para submódulos próprios, sem alterar regras de domínio;
+- renderização dos seis relatórios extraída de `ReportsPage.tsx` para `src/pages/reports/ReportViews.tsx`, deixando a página principal focada em filtros, estado e orquestração;
+- testes de Relatórios atualizados para proteger essa nova separação.
 
 Estado de validação:
 
 - branch baseada na `main` após o merge do PR #44;
-- `main` continua no commit do merge do PR #44; nenhum commit acidental adicional foi encontrado nela;
+- `main` continua no commit do merge do PR #44;
 - branch está à frente de `main` e 0 atrás;
 - nenhuma migration foi modificada;
-- CI rápido verde validou o conjunto técnico anterior;
-- não é necessário aguardar cada execução de CI durante esta sequência; falhas serão tratadas quando observadas;
+- diff final atual contém somente correções, testes, CI, documentação relacionada, refatorações mecânicas de testes Rust e a separação de views de Relatórios;
+- nenhum workflow temporário de refatoração permanece na árvore;
+- buscas finais não encontraram TODO/FIXME/HACK, credenciais aparentes, caminhos pessoais ou restos de prompts/assistentes;
+- CI rápido anterior validou o pacote técnico inicial;
+- o CI atual valida as refatorações e os novos contratos; não é necessário aguardar parado por ele;
+- a medição real do cache continua pendente porque execuções intermediárias foram canceladas pelos commits seguintes, conforme a política de concorrência;
 - **não abrir/mergear o pacote ainda**;
-- próximo marco: concluir a seção 9, executar a auditoria final, então realizar um único teste manual abrangente e integrar.
+- próximo marco: CI técnico estável, medição do cache, auditoria final e somente então um único teste manual abrangente.
 
 ## 1. Correções funcionais e permissões Tauri
 
@@ -89,7 +96,7 @@ Estado de validação:
 ### Pull Request / branch
 
 - [x] Criar ou ajustar um CI rápido para Pull Requests destinados à `main`.
-- [x] Manter nele as validações essenciais: versão, dependências, frontend build/testes, `cargo fmt`, `cargo check`, `clippy` e `cargo test`.
+- [x] Manter nele as validações essenciais: versão, dependências, documentação, frontend build/testes, `cargo fmt`, `cargo check`, `clippy` e `cargo test`.
 - [x] Retirar o build Tauri desktop pesado do caminho obrigatório de todo PR.
 - [x] Preservar o contexto obrigatório `check` exigido pelo ruleset da `main`.
 - [x] Avaliar filtros de caminho sem criar situação em que um check obrigatório deixe de existir.
@@ -98,7 +105,7 @@ Estado de validação:
 
 - [x] Criar workflow completo para `push` na `main`.
 - [x] Incluir o build Tauri desktop completo na validação da `main`.
-- [x] Manter validações de versão, build e testes pertinentes ao estado integrado.
+- [x] Manter validações de versão, documentação, build e testes pertinentes ao estado integrado.
 
 ### Release
 
@@ -122,7 +129,7 @@ Estado de validação:
 - [x] Confirmar que README, Wiki e `docs/` continuam consistentes.
 - [x] Confirmar execução satisfatória do CI rápido da branch para o pacote técnico inicial.
 - [x] Confirmar que a estratégia de CI completo da `main` está configurada corretamente.
-- [ ] Repetir auditoria final depois da conclusão da dívida técnica da seção 9.
+- [ ] Repetir auditoria final depois da validação da dívida técnica da seção 9.
 - [ ] Executar o teste manual somente no fim de todo o trabalho.
 - [ ] Preparar a integração final de uma vez, evitando branches adicionais desnecessárias.
 - [ ] Depois da integração, limpar branches antigas e temporárias confirmadas como dispensáveis.
@@ -143,31 +150,31 @@ Estado de validação:
 
 ### Estrutura Rust
 
-- [ ] Reduzir o peso de `record_corrections.rs`, preservando regras e histórico.
-- [ ] Reduzir o peso de `agenda.rs`, separando responsabilidades naturais e/ou testes sem alterar comportamento.
-- [ ] Reduzir o peso de `data_management.rs`, separando responsabilidades naturais e/ou testes sem alterar comportamento.
+- [ ] Reduzir o peso de `record_corrections.rs`, preservando regras e histórico. **Implementado:** testes inline extraídos para `record_corrections/tests.rs`; lógica produtiva permaneceu coesa. Aguardando CI atual.
+- [ ] Reduzir o peso de `agenda.rs`, separando responsabilidades naturais e/ou testes sem alterar comportamento. **Implementado:** testes inline extraídos para `agenda/tests.rs`; execução especializada já permanece separada em `agenda_execution.rs`. Aguardando CI atual.
+- [ ] Reduzir o peso de `data_management.rs`, separando responsabilidades naturais e/ou testes sem alterar comportamento. **Implementado:** testes inline extraídos para `data_management/tests.rs`; não houve divisão artificial das operações de backup/restauração. Aguardando CI atual.
 
 ### Frontend
 
-- [ ] Revisar e dividir, quando houver fronteira segura, as páginas grandes de Movimentações, Agenda, Assets e Relatórios.
-- [ ] Evitar componentes artificiais criados apenas para diminuir contagem de linhas.
+- [ ] Revisar e dividir, quando houver fronteira segura, as páginas grandes de Movimentações, Agenda, Assets e Relatórios. **Implementado:** Relatórios ganhou `ReportViews.tsx`; Movimentações, Agenda e Assets foram avaliadas e mantidas coesas porque a divisão atual criaria forte prop-drilling e duplicaria coordenação de estado. Aguardando CI atual para validar Relatórios.
+- [ ] Evitar componentes artificiais criados apenas para diminuir contagem de linhas. **Revisão concluída:** nenhuma divisão foi feita sem fronteira de responsabilidade real. Aguardando o mesmo CI antes do `[x]` conjunto.
 
 ### Testes e runtime
 
 - [x] Adicionar smoke test real de startup do binário desktop no workflow completo da `main`.
-- [ ] Revisar cobertura das áreas alteradas e preencher lacunas concretas encontradas.
+- [ ] Revisar cobertura das áreas alteradas e preencher lacunas concretas encontradas. **Implementado:** regressões de produção, erro IPC, capabilities, arquitetura de Relatórios, política de CI e links de documentação estão cobertos; aguardando CI atual.
 
 ### Supply chain e CI
 
 - [x] Pin de todas as GitHub Actions externas usadas pelos workflows por SHA completo, mantendo comentário da versão humana.
 - [x] Adicionar cache Rust aos workflows de branch, `main` e bundles sem remover validações.
-- [ ] Observar o comportamento do cache e revisar o tempo do CI antes do fechamento final.
+- [ ] Observar o comportamento do cache e revisar o tempo do CI antes do fechamento final. Ainda sem medição válida porque os primeiros runs pós-cache foram cancelados por commits subsequentes.
 
 ### Higiene pós-integração
 
-- [ ] Limpar branches antigas e temporárias somente depois que o pacote estiver integrado e confirmado.
+- [ ] Limpar branches antigas e temporárias somente depois que o pacote estiver integrado e confirmado. Inventário já realizado; nenhuma branch foi apagada antes do merge.
 
-**Critério de conclusão:** dívida técnica relevante encontrada na auditoria foi resolvida ou, quando uma refatoração não produzir ganho claro e seguro, foi explicitamente avaliada e descartada com justificativa registrada.
+**Critério de conclusão:** dívida técnica relevante encontrada na auditoria foi resolvida ou, quando uma refatoração não produz ganho claro e seguro, foi explicitamente avaliada e descartada com justificativa registrada.
 
 ## Estado de retomada
 
@@ -176,7 +183,9 @@ Quando uma nova sessão precisar continuar este trabalho:
 1. abrir a branch `fix/post-audit-cleanup`;
 2. ler este arquivo;
 3. considerar concluídos **somente** os itens marcados `[x]`;
-4. continuar pela seção 9 antes de qualquer teste manual;
-5. conferir o último diff/commit antes de continuar;
-6. executar o teste manual apenas quando a seção 9 e a auditoria final estiverem concluídas;
-7. integrar tudo em uma única sequência no final.
+4. conferir o CI mais recente antes de marcar os itens implementados da seção 9;
+5. medir um run estável com cache antes de fechar Supply chain e CI;
+6. executar a auditoria final;
+7. executar o teste manual apenas quando a seção 9 e a auditoria final estiverem concluídas;
+8. integrar tudo em uma única sequência no final;
+9. somente depois da integração, limpar branches antigas confirmadas como dispensáveis.
