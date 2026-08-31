@@ -38,9 +38,13 @@ O workflow roda quando os manifests ou lockfiles correspondentes mudam em um Pul
 
 O audit de segurança é separado do status obrigatório `check`, para não alongar o ciclo normal de mudanças sem dependências. Uma falha nesse workflow deve ser tratada como sinal de segurança a investigar antes de uma nova release.
 
+A instalação fixada de `cargo-audit 0.22.2` usa o mesmo cache Rust endurecido dos demais workflows. O cache pode reutilizar o binário e os metadados de `cargo install`, mas não altera a versão auditora nem os critérios do scan.
+
 ### Avisos transitivos do stack Linux
 
 O stack Linux atual do Tauri 2 ainda depende das bindings GTK3 da série `0.18`. Por isso, o `cargo-audit` pode exibir warnings RustSec de crates transitivas marcadas como `unmaintained` e o advisory de unsoundness de `glib 0.18.5` (`RUSTSEC-2024-0429`) sem considerar o audit como falho.
+
+A situação foi revisada novamente em **31 de agosto de 2026**. O projeto usa `tauri 2.11.5`, que permanece a versão estável mais recente nessa data, e a árvore de desenvolvimento upstream ainda declara `gtk 0.18` para Linux. A migração do ecossistema Tauri/Wry para GTK4 e WebKitGTK 6 continua em andamento upstream; portanto, ainda não existe uma atualização compatível do Tauri 2 que elimine esse conjunto de warnings sem trocar de geração do stack gráfico.
 
 Esses warnings são acompanhados como dívida upstream. Não deve ser aplicado override manual para misturar `glib` ou bindings GTK de gerações incompatíveis apenas para silenciar o scanner. A correção deve ocorrer por atualização compatível do stack Tauri/GTK quando ela estiver disponível e validada no projeto.
 
