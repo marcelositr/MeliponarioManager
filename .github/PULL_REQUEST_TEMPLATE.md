@@ -23,7 +23,10 @@ Use `Não se aplica` quando necessário.
 
 ## Validação
 
+Marque as verificações aplicáveis ao escopo da mudança.
+
 - [ ] `npm run version:check`
+- [ ] `npm run docs:check`
 - [ ] `npm ci`
 - [ ] `npm run icons && npm run bundle:check`
 - [ ] `npm run build`
@@ -32,9 +35,11 @@ Use `Não se aplica` quando necessário.
 - [ ] `cargo check --locked`
 - [ ] `cargo clippy --locked --all-targets -- -D warnings`
 - [ ] `cargo test --locked`
-- [ ] Build Tauri com `--no-bundle`
-- [ ] Teste manual
+- [ ] `Dependency security audit` revisado quando manifests ou lockfiles mudaram
+- [ ] Teste manual executado quando o comportamento alterado exige validação de interface ou runtime
 - [ ] Itens não executados estão explicados abaixo
+
+O build Tauri desktop completo e o smoke test de inicialização pertencem ao workflow `Main validation`, executado após a integração em `main`. Eles não devem ser duplicados no CI rápido de todo Pull Request apenas para produzir o status obrigatório `check`.
 
 ### Observações da validação
 
