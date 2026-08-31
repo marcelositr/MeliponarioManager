@@ -258,6 +258,13 @@ mod restore;
 
 pub use restore::apply_pending_restore;
 
+#[cfg(test)]
+use backup::create_backup_at;
+#[cfg(test)]
+use exports::portable_tables;
+#[cfg(test)]
+use restore::{stage_restore_at, validate_restore_source};
+
 #[tauri::command]
 pub async fn create_full_backup(
     app: AppHandle,
