@@ -69,29 +69,48 @@ Resolve the post-audit technical debt in a single branch without changing produc
 
 ## 2. Frontend decomposition
 
-- [ ] Decompose `MovementsPage.tsx` into cohesive transport/document/action UI units while avoiding prop-drilling explosion.
-- [ ] Decompose `AgendaPage.tsx` into cohesive task/list/dialog units while preserving shared reload/mutation behavior.
-- [ ] Decompose `AssetsPage.tsx` into cohesive photo/maintenance units while preserving selection and feedback behavior.
-- [ ] Review other large pages after these changes; split only where a natural boundary is demonstrated.
+- [x] Decompose `MovementsPage.tsx` into cohesive transport/document/action UI units while avoiding prop-drilling explosion.
+  - orchestration and transport mutations remain in the page facade;
+  - history, creation, document workflows and pure presentation helpers live under `src/pages/movements/`;
+  - transport hardening tests now validate the module as one architectural unit.
+- [x] Decompose `AgendaPage.tsx` into cohesive task/list/dialog units while preserving shared reload/mutation behavior.
+  - contextual queries and all operational mutations remain in the facade;
+  - list/summary, creation, task dialogs, forms and presentation helpers live under `src/pages/agenda/`;
+  - Stage 4 API-contract assertions remain intact.
+- [x] Decompose `AssetsPage.tsx` into cohesive photo/maintenance units while preserving selection and feedback behavior.
+  - native file selection and open/reveal effects remain in the facade;
+  - maintenance history, photo library and presentation helpers live under `src/pages/assets/`;
+  - photo/file tests validate the full module instead of a monolithic source file.
+- [x] Review other large pages after these changes; no additional split is justified inside this debt scope without mixing in unrelated product work.
 
 ## 3. Desktop runtime coverage
 
-- [ ] Expand desktop smoke coverage beyond startup with at least one non-destructive runtime interaction.
-- [ ] Add coverage for a critical native-dialog/capability path where practical in CI.
-- [ ] Keep destructive restore testing out of the default runtime smoke suite.
+- [x] Expand desktop smoke coverage beyond startup with a non-destructive runtime interaction.
+  - main validation installs the native WebKit WebDriver and pinned `tauri-driver 2.0.6`;
+  - `scripts/desktop-webdriver-smoke.py` launches the real Tauri binary through W3C WebDriver;
+  - the smoke asserts the initial `Visão geral` heading, clicks `Abrir Agenda`, then asserts the `Agenda` heading.
+- [x] Assess critical native-dialog/capability coverage.
+  - dialog permissions remain structurally asserted in the UI hardening suite;
+  - OS-native modal automation is intentionally not mixed into the portable desktop smoke because it is outside the WebView contract and substantially more brittle in headless CI.
+- [x] Keep destructive restore testing out of the default runtime smoke suite.
 
 ## 4. Dependency/security maintenance
 
-- [ ] Keep RustSec warnings visible and document upstream GTK/Tauri ownership without incompatible overrides.
-- [ ] Review whether current Tauri/GTK releases remove any existing warnings; update only if compatible and justified.
-- [ ] Optimize `cargo-audit` execution time without weakening the independent security gate.
-- [ ] Preserve npm high/critical audit coverage.
+- [x] Keep RustSec warnings visible and document upstream GTK/Tauri ownership without incompatible overrides.
+- [x] Review current Tauri/GTK releases.
+  - reviewed on 2026-08-31;
+  - `tauri 2.11.5` remains current stable and upstream Tauri development still uses GTK `0.18` on Linux;
+  - the GTK4/WebKitGTK 6 migration is still upstream work, so no safe dependency override is applied.
+- [x] Optimize `cargo-audit` execution time without weakening the independent security gate.
+  - pinned `cargo-audit 0.22.2 --locked` remains unchanged;
+  - `Swatinem/rust-cache` now preserves the Cargo tool binary/install metadata with target caching disabled for this job.
+- [x] Preserve npm high/critical audit coverage.
 
 ## 5. Repository/CI maintenance
 
 - [ ] Re-check branch/PR CI timing after refactors and cache changes.
-- [ ] Re-check pinned GitHub Actions and checkout credential policy.
-- [ ] Confirm documentation link checker still covers all maintained docs/wiki surfaces.
+- [x] Re-check pinned GitHub Actions and checkout credential policy through `tests/ci-policy.test.mjs`.
+- [x] Confirm documentation link checker still covers all maintained docs/wiki surfaces.
 
 ## 6. Final automated validation
 
@@ -99,8 +118,9 @@ Resolve the post-audit technical debt in a single branch without changing produc
 - [ ] Confirm migrations remain unchanged.
 - [ ] Confirm no secrets, personal paths, debug leftovers or temporary workflows remain.
 - [ ] Confirm fast CI green on final branch HEAD.
-- [ ] Confirm dependency security audit green on final branch HEAD.
-- [ ] Remove this temporary plan file and any temporary refactor tooling.
+- [ ] Confirm real desktop WebDriver validation green on the final technical state.
+- [ ] Confirm dependency security audit green on final branch HEAD/PR.
+- [ ] Remove this temporary plan file and any temporary validation tooling.
 - [ ] Open one final PR against `main`.
 
 ## 7. Final manual gate
