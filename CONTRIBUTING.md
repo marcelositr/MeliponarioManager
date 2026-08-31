@@ -84,10 +84,11 @@ A integração é feita por squash merge. A branch temporária é removida depoi
 
 Execute as verificações compatíveis com a mudança.
 
-Metadados, dependências e frontend:
+Metadados, documentação, dependências e frontend:
 
 ```bash
 npm run version:check
+npm run docs:check
 npm ci
 npm run icons
 npm run bundle:check
@@ -111,7 +112,11 @@ Aplicação desktop sem gerar instaladores:
 npm run tauri -- build --no-bundle
 ```
 
-O workflow `CI` executa esse conjunto em Pull Requests e pushes para `main`. Uma validação não executada deve ser marcada como não aplicável ou explicada no Pull Request.
+O workflow `CI` executa nas branches e Pull Requests o conjunto rápido que sustenta o status obrigatório `check`: versão, links de documentação, dependências, ícones, frontend, testes e verificações Rust. O build Tauri completo com `--no-bundle` é executado pelo workflow `Main validation` depois da integração em `main`. Os bundles de distribuição permanecem sob responsabilidade do workflow de release.
+
+Quando `package.json`, `package-lock.json`, `src-tauri/Cargo.toml` ou `src-tauri/Cargo.lock` mudam, o workflow `Dependency security audit` verifica os lockfiles com `npm audit` e `cargo-audit`/RustSec. Esse audit também roda semanalmente e pode ser disparado manualmente.
+
+Uma validação local não executada deve ser marcada como não aplicável ou explicada no Pull Request.
 
 ## Regras de domínio e dados
 

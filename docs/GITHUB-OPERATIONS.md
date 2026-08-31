@@ -22,8 +22,9 @@ Mudanças pequenas e autocontidas podem começar diretamente em uma branch e ser
 | --- | --- |
 | Issues | Bugs, melhorias e trabalho que precisa permanecer no backlog |
 | Pull Requests | Revisão, decisão técnica e porta de entrada para `main` |
-| Actions | CI, build dos bundles e evidência automatizada |
+| Actions | CI, validação completa da `main`, auditoria de dependências, build dos bundles e evidência automatizada |
 | Dependabot | Atualizações semanais de npm, Cargo e GitHub Actions |
+| Dependency security audit | Verificação dos lockfiles npm e Cargo contra advisories conhecidos |
 | Releases | Notas e instaladores associados a uma tag imutável |
 | Ruleset | Proteção da branch padrão e exigência do fluxo de integração |
 | Projects | Organização opcional quando o volume do backlog justificar |
@@ -66,9 +67,34 @@ Alterações nessas regras devem ser refletidas neste documento.
 
 ## CI e dependências reproduzíveis
 
-Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. O CI usa `npm ci` e comandos Cargo com `--locked`; manifests e lockfiles divergentes causam falha em vez de resolver versões não revisadas.
+Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. Os workflows usam `npm ci` e comandos Cargo com `--locked`; manifests e lockfiles divergentes causam falha em vez de resolver versões não revisadas.
 
-O workflow `CI` roda em Pull Requests e pushes para `main`. Novos commits cancelam execuções obsoletas da mesma referência. Builds de release não são cancelados automaticamente.
+O pipeline é dividido por finalidade:
+
+- `CI` roda em branches de trabalho e Pull Requests para `main`, produz o status obrigatório `check` e executa as validações rápidas de versão, documentação, frontend e Rust;
+- `Main validation` roda após pushes para `main` e repete as validações essenciais, acrescentando o build Tauri desktop completo com `--no-bundle` e um smoke test de inicialização em ambiente gráfico virtual;
+- `Dependency security audit` verifica `package-lock.json` com `npm audit` e `src-tauri/Cargo.lock` com `cargo-audit`/RustSec quando as dependências mudam, semanalmente e sob execução manual;
+- `Build desktop bundles` permanece reservado a execuções manuais e tags de release, produzindo os artefatos distribuíveis por plataforma.
+
+Execuções obsoletas do mesmo fluxo de desenvolvimento podem ser canceladas. Builds de release não são cancelados automaticamente.
+
+O status `check` é sempre criado para Pull Requests. Quando a alteração contém somente Markdown em README, arquivos institucionais, `docs/` ou `wiki/`, o próprio job detecta o escopo e executa apenas as verificações leves de versão e links de documentação. Mudanças de código, configuração, scripts ou workflows seguem pelo pipeline completo de frontend e Rust.
+
+Essa otimização é interna ao job obrigatório. Ela não usa um filtro global que faria o status desaparecer e deixaria o Pull Request preso aguardando um check inexistente.
+
+O audit de dependências não faz parte do status obrigatório `check`. Ele é acionado quando manifests, lockfiles ou o próprio workflow de segurança mudam, e também roda semanalmente para detectar advisories publicados depois da última alteração no projeto. Uma falha deve ser investigada antes de uma nova release, mesmo que o CI funcional permaneça verde.
+
+### Hardening dos workflows
+
+Actions externas são referenciadas por SHA completo e imutável. O comentário ao lado da referência mantém a versão humana usada como origem. Atualizações do Dependabot devem preservar esse modelo em vez de substituir a referência por uma tag móvel.
+
+Os checkouts dos workflows usam `persist-credentials: false`. Workflows que precisam publicar conteúdo, como a sincronização da Wiki, fornecem o token apenas às etapas específicas que executam operações autenticadas.
+
+Os workflows que compilam Rust usam cache do diretório de build de `src-tauri`. O cache é apenas uma otimização: `cargo check`, Clippy, testes e builds continuam sendo executados normalmente e nunca devem ser removidos para reduzir tempo de CI.
+
+O smoke test da `main` inicia o binário Tauri recém-compilado sob `xvfb` e exige que ele permaneça em execução durante uma pequena janela de startup. Esse teste não substitui o teste manual da interface, mas detecta falhas de inicialização que `cargo test` e o build isoladamente não conseguem observar.
+
+O arquivo `tests/ci-policy.test.mjs` protege contratos importantes do pipeline, incluindo pin por SHA, checkout sem credenciais persistidas, presença do cache Rust, validação documental, fast path de documentação, audits npm/RustSec e separação entre CI rápido e validação desktop completa.
 
 ## Dependabot
 
@@ -77,6 +103,8 @@ O Dependabot abre grupos semanais para:
 - dependências npm;
 - crates Cargo;
 - GitHub Actions.
+
+Dependabot e o workflow de audit são complementares. O primeiro propõe atualizações de dependências; `npm audit` e `cargo-audit` verificam os lockfiles atuais contra vulnerabilidades conhecidas, inclusive quando um advisory novo surge sem mudança no repositório.
 
 ### Triagem
 
@@ -98,6 +126,8 @@ Mantenha habilitados, quando disponíveis:
 - Dependabot alerts;
 - Dependabot security updates;
 - private vulnerability reporting.
+
+O workflow `Dependency security audit` executa `npm audit --audit-level=high` no lockfile Node e `cargo-audit` com versão fixada no lockfile Rust. Falhas devem ser analisadas em conjunto com Dependabot e com a política de versões suportadas.
 
 Vulnerabilidades não devem ser discutidas com detalhes exploráveis em Issues públicas. Consulte [SECURITY.md](../SECURITY.md).
 

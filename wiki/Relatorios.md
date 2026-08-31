@@ -73,7 +73,7 @@ Quando disponível, o modo de histórico completo/auditoria permite enxergar reg
 
 Alguns relatórios podem ser exportados em CSV para uso em planilhas.
 
-Os arquivos são gravados no destino escolhido por você. Eles não passam automaticamente a fazer parte dos anexos gerenciados.
+Ao exportar, a aplicação abre o seletor de arquivos do sistema para você escolher o nome e o destino do CSV. O arquivo exportado não passa automaticamente a fazer parte dos anexos gerenciados.
 
 **CSV não é backup.**
 

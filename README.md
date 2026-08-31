@@ -1,6 +1,6 @@
 # MeliponarioManager
 
-[![CI](https://github.com/marcelositr/MeliponarioManager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marcelositr/MeliponarioManager/actions/workflows/ci.yml)
+[![Main validation](https://github.com/marcelositr/MeliponarioManager/actions/workflows/ci-main.yml/badge.svg?branch=main)](https://github.com/marcelositr/MeliponarioManager/actions/workflows/ci-main.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-experimental-orange.svg)](docs/ROADMAP.md)
 

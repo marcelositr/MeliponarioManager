@@ -17,7 +17,7 @@ pub enum AppError {
     Validation(String),
     #[error("{0}")]
     NotFound(String),
-    #[error(transparent)]
+    #[error("Não foi possível acessar os dados locais.")]
     Database(#[from] sqlx::Error),
 }
 
@@ -438,6 +438,27 @@ pub async fn place_colony(
 mod tests {
     use super::*;
     use sqlx::sqlite::SqlitePoolOptions;
+
+    #[test]
+    fn database_error_display_is_safe_for_ipc() {
+        let error = AppError::Database(sqlx::Error::RowNotFound);
+        assert_eq!(
+            error.to_string(),
+            "Não foi possível acessar os dados locais."
+        );
+    }
+
+    #[test]
+    fn domain_error_display_preserves_user_facing_messages() {
+        assert_eq!(
+            AppError::Validation("Valor inválido.".to_owned()).to_string(),
+            "Valor inválido."
+        );
+        assert_eq!(
+            AppError::NotFound("Registro não encontrado.".to_owned()).to_string(),
+            "Registro não encontrado."
+        );
+    }
 
     async fn test_pool() -> SqlitePool {
         let pool = SqlitePoolOptions::new()

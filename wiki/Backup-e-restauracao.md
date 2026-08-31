@@ -22,7 +22,7 @@ backup-<data>-<id>/
 
 ## Criando um backup
 
-Na área **Dados**, utilize a função de backup completo e escolha um destino apropriado.
+Na área **Dados**, utilize a função de backup completo. O MeliponarioManager cria automaticamente o backup na área de dados da aplicação e, ao concluir, informa o caminho onde a cópia foi armazenada.
 
 Recomendações:
 

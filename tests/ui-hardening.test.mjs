@@ -39,6 +39,25 @@ test("shell distinguishes automatic deep-link context changes from manual select
   assert.match(app, /reconcileManualMeliponaryChange/);
 });
 
+test("desktop capability covers the dialog commands used by the frontend", async () => {
+  const [capabilityRaw, reports, dataManagement, speciesImport] = await Promise.all([
+    source("src-tauri/capabilities/default.json"),
+    source("src/pages/ReportsPage.tsx"),
+    source("src/pages/DataManagementPage.tsx"),
+    source("src/components/SpeciesImportControl.tsx"),
+  ]);
+  const capability = JSON.parse(capabilityRaw);
+  const permissions = new Set(capability.permissions);
+
+  assert.match(reports, /import \{ save \} from "@tauri-apps\/plugin-dialog"/);
+  assert.match(dataManagement, /import \{ confirm, open \} from "@tauri-apps\/plugin-dialog"/);
+  assert.match(speciesImport, /import \{ open \} from "@tauri-apps\/plugin-dialog"/);
+  assert.equal(permissions.has("dialog:allow-save"), true);
+  assert.equal(permissions.has("dialog:allow-open"), true);
+  assert.equal(permissions.has("dialog:allow-message"), true);
+  assert.equal(permissions.has("dialog:default"), false);
+});
+
 test("dialog lifecycle does not restart autofocus when parent callbacks are recreated", async () => {
   const dialog = await source("src/components/Dialog.tsx");
   assert.match(dialog, /const onCloseRef = useRef\(onClose\)/);

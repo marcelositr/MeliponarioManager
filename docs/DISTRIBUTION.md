@@ -4,9 +4,11 @@ O pipeline de distribuição gera bundles experimentais para Linux e Windows. Ve
 
 ## Validação contínua
 
-O workflow `CI` roda em Pull Requests para `main` e em pushes para `main`.
+A validação é dividida em duas camadas.
 
-O job obrigatório `check` executa:
+### Branches e Pull Requests
+
+O workflow `CI` roda em branches de trabalho e Pull Requests para `main`. O job obrigatório `check` executa:
 
 1. validação dos metadados de versão;
 2. instalação reproduzível com `npm ci`;
@@ -16,8 +18,19 @@ O job obrigatório `check` executa:
 6. `cargo fmt --all -- --check`;
 7. `cargo check --locked`;
 8. `cargo clippy --locked --all-targets -- -D warnings`;
-9. `cargo test --locked`;
-10. build Tauri com `--no-bundle`.
+9. `cargo test --locked`.
+
+O build Tauri desktop completo fica fora do caminho obrigatório de cada Pull Request para reduzir o tempo de feedback sem remover as verificações de frontend, Rust e testes.
+
+### `main`
+
+O workflow `Main validation` roda após pushes para `main` e também pode ser iniciado manualmente. Ele repete as verificações essenciais e acrescenta:
+
+```bash
+npm run tauri -- build --no-bundle
+```
+
+Assim, a branch protegida recebe uma validação integrada completa sem transformar cada iteração de desenvolvimento em um build desktop pesado.
 
 O ambiente Linux usa Node.js 22 e Rust 1.94.1. A mesma versão Rust está fixada em `rust-toolchain.toml`.
 
@@ -63,7 +76,7 @@ A fonte oficial do ícone é:
 assets/app-icon.svg
 ```
 
-`npm run icons` gera os formatos de plataforma em `src-tauri/icons/`. A configuração `bundle.icon` de `src-tauri/tauri.conf.json` declara os PNGs, `.ico` e `.icns` consumidos pelos empacotadores.
+`npm run icons` gera os formatos de plataforma em `src-tauri/icons/`. Essa pasta é gerada e não deve ser versionada. A configuração `bundle.icon` de `src-tauri/tauri.conf.json` declara os PNGs, `.ico` e `.icns` consumidos pelos empacotadores.
 
 `npm run bundle:check` valida a configuração e a presença dos arquivos gerados. Arquivos em `src-tauri/icons/` não são fontes de design independentes.
 

@@ -1,9 +1,12 @@
 blank_issues_enabled: false
 
 contact_links:
-  - name: Documentação do projeto
+  - name: Manual do usuário
+    url: https://github.com/marcelositr/MeliponarioManager/wiki
+    about: Consulte instalação, primeiros passos, uso, backup, relatórios, FAQ e solução de problemas antes de abrir uma issue.
+  - name: Documentação de engenharia
     url: https://github.com/marcelositr/MeliponarioManager/blob/main/docs/README.md
-    about: Consulte o domínio, os fluxos operacionais e as políticas do projeto antes de abrir uma issue.
+    about: Consulte arquitetura, domínio, dados, distribuição e políticas de manutenção do projeto.
   - name: Relatar vulnerabilidade
     url: https://github.com/marcelositr/MeliponarioManager/security/policy
     about: Não publique detalhes sensíveis em uma issue pública; siga a política de segurança.
