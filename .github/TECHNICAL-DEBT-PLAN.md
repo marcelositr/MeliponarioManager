@@ -32,7 +32,12 @@ Resolve the post-audit technical debt in a single branch without changing produc
   - manual task lifecycle moved to `agenda/manual.rs`;
   - fact-derived reconciliation moved to `agenda/derived.rs`;
   - existing `agenda/tests.rs` and public function names preserved.
-- [ ] Decompose `data_management.rs` into backup/restore/export/diagnostics responsibilities where safe.
+- [x] Decompose `data_management.rs` into backup/restore/export/diagnostics responsibilities where safe.
+  - shared filesystem/checksum/schema helpers remain in `data_management.rs`;
+  - backup creation moved to `data_management/backup.rs`;
+  - restore validation, staging, rollback and startup application moved to `data_management/restore.rs`;
+  - portable JSON and management-report export moved to `data_management/exports.rs`;
+  - managed-file diagnostics were already correctly isolated in `managed_files.rs` and were not duplicated.
 - [ ] Decompose `master_data.rs` by master-data domain while preserving command/service contracts.
 - [ ] Decompose `movements.rs` by movement type/lifecycle where safe.
 - [ ] Decompose `repository.rs` into repository primitives/helpers without leaking SQLx details across IPC.
