@@ -22,6 +22,12 @@ Não automaticamente. O MeliponarioManager é local-first e mantém banco, fotos
 
 Não. O JSON contém dados estruturados e metadados, mas não inclui os bytes das fotos e anexos. Para recuperação integral, use o backup completo.
 
+## Onde o backup completo é salvo?
+
+O backup é criado automaticamente na área de dados da aplicação. Ao concluir, o MeliponarioManager informa o caminho onde a cópia foi armazenada.
+
+Para maior segurança, copie backups importantes também para outro disco ou mídia.
+
 ## Exportar CSV é backup?
 
 Não. CSV serve para planilhas e análise. Ele contém apenas os dados do relatório exportado.
