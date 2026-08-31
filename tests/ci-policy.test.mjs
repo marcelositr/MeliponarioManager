@@ -28,10 +28,14 @@ test("external GitHub Actions are pinned to immutable full SHAs", async () => {
 test("checkout credentials are not persisted in repository workflows", async () => {
   for (const name of workflows) {
     const source = await workflow(name);
-    assert.match(
-      source,
-      /uses: actions\/checkout@[0-9a-f]{40}[^\n]*\n\s+with:\n\s+persist-credentials: false/,
-      `${name} must disable persisted checkout credentials`,
+    const checkoutCount = [...source.matchAll(/uses: actions\/checkout@[0-9a-f]{40}/g)].length;
+    const hardenedCheckoutCount = [...source.matchAll(/persist-credentials:\s*false/g)].length;
+
+    assert.ok(checkoutCount > 0, `${name} should checkout the repository`);
+    assert.equal(
+      hardenedCheckoutCount,
+      checkoutCount,
+      `${name} must disable persisted credentials for every checkout`,
     );
   }
 });
