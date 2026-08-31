@@ -123,6 +123,17 @@ def element_text(session_id: str, element_id: str) -> str:
     return str(response.get("value", ""))
 
 
+def click_element(session_id: str, element_id: str) -> None:
+    request(
+        "POST",
+        f"/session/{session_id}/execute/sync",
+        {
+            "script": "arguments[0].click();",
+            "args": [{W3C_ELEMENT_KEY: element_id}],
+        },
+    )
+
+
 def wait_for_heading(session_id: str, expected: str) -> None:
     deadline = time.monotonic() + 15
     last_text = ""
@@ -198,7 +209,7 @@ def main() -> int:
                 "xpath",
                 "//button[normalize-space(.)='Abrir Agenda']",
             )
-            request("POST", f"/session/{session_id}/element/{agenda_button}/click", {})
+            click_element(session_id, agenda_button)
             wait_for_heading(session_id, "Agenda")
 
             print("Desktop WebDriver smoke passed: Visão geral -> Agenda", flush=True)
