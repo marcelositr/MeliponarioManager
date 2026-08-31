@@ -11,7 +11,9 @@
     "icons": "tauri icon assets/app-icon.svg",
     "bundle:check": "node scripts/check-bundle-icons.mjs",
     "version:check": "node scripts/check-version.mjs",
+    "predesktop:dev": "npm run icons",
     "desktop:dev": "tauri dev",
+    "predesktop:build": "npm run icons && npm run bundle:check",
     "desktop:build": "tauri build",
     "preview": "vite preview",
     "tauri": "tauri"
