@@ -26,7 +26,12 @@ Resolve the post-audit technical debt in a single branch without changing produc
   - movement/document corrections moved to `record_corrections/movement_documents.rs`;
   - division/occupancy corrections moved to `record_corrections/history.rs`;
   - public function names and existing test module preserved.
-- [ ] Decompose `agenda.rs` beyond the already-separated test module where natural boundaries exist.
+- [x] Decompose `agenda.rs` beyond the already-separated test module where natural boundaries exist.
+  - public task types and shared audit helpers remain in `agenda.rs`;
+  - queries and summary projections moved to `agenda/queries.rs`;
+  - manual task lifecycle moved to `agenda/manual.rs`;
+  - fact-derived reconciliation moved to `agenda/derived.rs`;
+  - existing `agenda/tests.rs` and public function names preserved.
 - [ ] Decompose `data_management.rs` into backup/restore/export/diagnostics responsibilities where safe.
 - [ ] Decompose `master_data.rs` by master-data domain while preserving command/service contracts.
 - [ ] Decompose `movements.rs` by movement type/lifecycle where safe.
