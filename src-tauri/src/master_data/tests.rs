@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::{
     domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies},
