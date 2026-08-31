@@ -38,6 +38,14 @@ O workflow roda quando os manifests ou lockfiles correspondentes mudam em um Pul
 
 O audit de segurança é separado do status obrigatório `check`, para não alongar o ciclo normal de mudanças sem dependências. Uma falha nesse workflow deve ser tratada como sinal de segurança a investigar antes de uma nova release.
 
+### Avisos transitivos do stack Linux
+
+O stack Linux atual do Tauri 2 ainda depende das bindings GTK3 da série `0.18`. Por isso, o `cargo-audit` pode exibir warnings RustSec de crates transitivas marcadas como `unmaintained` e o advisory de unsoundness de `glib 0.18.5` (`RUSTSEC-2024-0429`) sem considerar o audit como falho.
+
+Esses warnings são acompanhados como dívida upstream. Não deve ser aplicado override manual para misturar `glib` ou bindings GTK de gerações incompatíveis apenas para silenciar o scanner. A correção deve ocorrer por atualização compatível do stack Tauri/GTK quando ela estiver disponível e validada no projeto.
+
+Um resultado verde do job RustSec significa que não foi encontrada vulnerabilidade que o `cargo-audit` trate como falha. Ele não significa ausência total de warnings informativos ou de manutenção.
+
 ## Escopo do produto
 
 O aplicativo é local-first e não opera um serviço web próprio. Ele não substitui controles de acesso do sistema operacional, criptografia de disco, backup externo ou sistemas oficiais de rastreabilidade.
