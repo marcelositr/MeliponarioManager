@@ -42,21 +42,23 @@ jobs:
                   raise SystemExit(f"missing {name}")
               views = views.replace(needle, f"export function {name}", 1)
 
-          view_imports = '''import { formatDateTimeBr } from "../../lib/presentation";
-import { formatBrl, formatReportNumber } from "../../lib/report-presentation";
-import type {
-  AgendaMetrics,
-  AgendaReport,
-  ColonyReport,
-  CostReport,
-  MeliponaryReport,
-  OperationalReport,
-  ProductionAggregate,
-  ProductionReport,
-  ReportContext,
-} from "../../lib/reports-api";
-
-'''
+          view_imports = "\n".join([
+              'import { formatDateTimeBr } from "../../lib/presentation";',
+              'import { formatBrl, formatReportNumber } from "../../lib/report-presentation";',
+              'import type {',
+              '  AgendaMetrics,',
+              '  AgendaReport,',
+              '  ColonyReport,',
+              '  CostReport,',
+              '  MeliponaryReport,',
+              '  OperationalReport,',
+              '  ProductionAggregate,',
+              '  ProductionReport,',
+              '  ReportContext,',
+              '} from "../../lib/reports-api";',
+              '',
+              '',
+          ])
           destination.parent.mkdir(parents=True, exist_ok=True)
           destination.write_text(view_imports + views.rstrip() + "\n", encoding="utf-8")
 
