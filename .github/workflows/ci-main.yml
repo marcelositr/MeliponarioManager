@@ -35,7 +35,8 @@ jobs:
             libxdo-dev \
             libssl-dev \
             libayatana-appindicator3-dev \
-            librsvg2-dev
+            librsvg2-dev \
+            xvfb
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -90,3 +91,19 @@ jobs:
 
       - name: Build Tauri desktop binary
         run: npm run tauri -- build --no-bundle
+
+      - name: Smoke test desktop startup
+        shell: bash
+        run: |
+          set +e
+          timeout 8s xvfb-run -a src-tauri/target/release/meliponariomanager
+          status=$?
+          set -e
+
+          if [ "$status" -eq 124 ]; then
+            echo "Desktop application remained alive for the smoke-test window."
+            exit 0
+          fi
+
+          echo "::error::Desktop application exited unexpectedly during startup smoke test (status $status)."
+          exit 1
