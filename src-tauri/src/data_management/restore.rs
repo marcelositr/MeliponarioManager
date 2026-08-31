@@ -145,7 +145,9 @@ fn validate_manifest(
     Ok(())
 }
 
-pub(super) async fn validate_restore_source(source: &Path) -> Result<ValidatedRestoreSource, String> {
+pub(super) async fn validate_restore_source(
+    source: &Path,
+) -> Result<ValidatedRestoreSource, String> {
     if source.is_dir() {
         let database = source.join(DATABASE_FILE);
         let schema_version = validate_database(&database).await?;
