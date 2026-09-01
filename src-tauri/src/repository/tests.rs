@@ -1,4 +1,8 @@
 use super::*;
+use crate::{
+    agenda,
+    inspections::{self, CreateInspection},
+};
 use sqlx::sqlite::SqlitePoolOptions;
 
 #[test]
@@ -104,8 +108,38 @@ async fn seed(pool: &SqlitePool) -> (Meliponary, Species, HiveBox, HiveBox, Colo
     (meliponary, species, box_one, box_two, colony)
 }
 
+async fn create_pending_inspection(pool: &SqlitePool, colony_id: &str) -> String {
+    inspections::create(
+        pool,
+        CreateInspection {
+            colony_id: colony_id.to_owned(),
+            inspected_at: Some("2026-01-10 10:00:00".into()),
+            strength: Some("medium".into()),
+            queen_present: None,
+            laying_status: None,
+            food_reserves: None,
+            brood_status: None,
+            pests_notes: None,
+            observations: None,
+            actions_taken: None,
+            next_inspection_at: Some("2026-03-01 10:00:00".into()),
+        },
+    )
+    .await
+    .unwrap();
+    agenda::reconcile_inspection(pool, colony_id).await.unwrap();
+    sqlx::query_scalar(
+        "SELECT id FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(colony_id)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
 #[tokio::test]
-async fn moving_colony_preserves_box_history() {
+async fn moving_colony_preserves_box_history_and_updates_derived_agenda_context() {
     let pool = test_pool().await;
     let (_, _, box_one, box_two, colony) = seed(&pool).await;
 
@@ -121,6 +155,15 @@ async fn moving_colony_preserves_box_history() {
     )
     .await
     .unwrap();
+
+    let task_id = create_pending_inspection(&pool, &colony.id).await;
+    let task_box_before: Option<String> =
+        sqlx::query_scalar("SELECT box_id FROM scheduled_tasks WHERE id=?")
+            .bind(&task_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(task_box_before.as_deref(), Some(box_one.id.as_str()));
 
     place_colony(
         &pool,
@@ -145,6 +188,75 @@ async fn moving_colony_preserves_box_history() {
 
     let colonies = list_colonies(&pool).await.unwrap();
     assert_eq!(colonies[0].current_box_code.as_deref(), Some("CX-002"));
+
+    let task_after: (String, Option<String>) =
+        sqlx::query_as("SELECT id,box_id FROM scheduled_tasks WHERE id=?")
+            .bind(&task_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(task_after.0, task_id);
+    assert_eq!(task_after.1.as_deref(), Some(box_two.id.as_str()));
+}
+
+#[tokio::test]
+async fn agenda_failure_rolls_back_box_placement() {
+    let pool = test_pool().await;
+    let (_, _, box_one, box_two, colony) = seed(&pool).await;
+    place_colony(
+        &pool,
+        PlaceColony {
+            colony_id: colony.id.clone(),
+            box_id: box_one.id.clone(),
+            started_at: Some("2026-01-01 10:00:00".into()),
+            reason: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    create_pending_inspection(&pool, &colony.id).await;
+    sqlx::query(
+        "CREATE TRIGGER fail_agenda_context_update
+         BEFORE UPDATE ON scheduled_tasks
+         WHEN OLD.source_type='inspection'
+         BEGIN
+           SELECT RAISE(ABORT,'forced agenda failure');
+         END",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let result = place_colony(
+        &pool,
+        PlaceColony {
+            colony_id: colony.id.clone(),
+            box_id: box_two.id,
+            started_at: Some("2026-02-01 10:00:00".into()),
+            reason: Some("Troca deve falhar".into()),
+            notes: None,
+        },
+    )
+    .await;
+    assert!(result.is_err());
+
+    let active_box: String = sqlx::query_scalar(
+        "SELECT box_id FROM colony_box_occupancies
+         WHERE colony_id=? AND ended_at IS NULL",
+    )
+    .bind(&colony.id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(active_box, box_one.id);
+    let occupancy_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM colony_box_occupancies WHERE colony_id=?")
+            .bind(&colony.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(occupancy_count, 1);
 }
 
 #[tokio::test]
