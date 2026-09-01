@@ -41,7 +41,11 @@ test("checkout credentials are not persisted in repository workflows", async () 
 });
 
 test("branch CI keeps a documentation fast path while main keeps full desktop validation", async () => {
-  const [branchCi, mainCi] = await Promise.all([workflow("ci.yml"), workflow("ci-main.yml")]);
+  const [branchCi, mainCi, desktopSmoke] = await Promise.all([
+    workflow("ci.yml"),
+    workflow("ci-main.yml"),
+    readFile(new URL("../scripts/desktop-webdriver-smoke.py", import.meta.url), "utf8"),
+  ]);
 
   assert.match(branchCi, /jobs:\n\s+check:/);
   assert.match(branchCi, /group: ci-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/);
@@ -60,8 +64,14 @@ test("branch CI keeps a documentation fast path while main keeps full desktop va
 
   assert.match(mainCi, /npm run docs:check/);
   assert.match(mainCi, /tauri -- build --no-bundle/);
-  assert.match(mainCi, /Smoke test desktop startup/);
-  assert.match(mainCi, /timeout 8s xvfb-run -a src-tauri\/target\/release\/meliponariomanager/);
+  assert.match(mainCi, /webkit2gtk-driver/);
+  assert.match(mainCi, /cargo install tauri-driver --version 2\.0\.6 --locked/);
+  assert.match(mainCi, /Exercise desktop WebView with WebDriver/);
+  assert.match(mainCi, /xvfb-run -a python3 scripts\/desktop-webdriver-smoke\.py src-tauri\/target\/release\/meliponariomanager/);
+  assert.match(desktopSmoke, /browserName.*wry/s);
+  assert.match(desktopSmoke, /Visão geral/);
+  assert.match(desktopSmoke, /Abrir Agenda/);
+  assert.match(desktopSmoke, /wait_for_heading\(session_id, "Agenda"\)/);
 });
 
 test("Rust build cache is enabled where compilation is expensive", async () => {
@@ -72,7 +82,7 @@ test("Rust build cache is enabled where compilation is expensive", async () => {
   }
 });
 
-test("dependency security audit is isolated, pinned and scheduled", async () => {
+test("dependency security audit is isolated, pinned, scheduled and caches its pinned Rust tool", async () => {
   const source = await workflow("security-audit.yml");
 
   assert.match(source, /package\.json/);
@@ -81,6 +91,10 @@ test("dependency security audit is isolated, pinned and scheduled", async () => 
   assert.match(source, /src-tauri\/Cargo\.lock/);
   assert.match(source, /cron: "45 12 \* \* 1"/);
   assert.match(source, /npm audit --audit-level=high/);
+  assert.match(source, /Swatinem\/rust-cache@[0-9a-f]{40}/);
+  assert.match(source, /cache-targets:\s*false/);
+  assert.match(source, /cache-all-crates:\s*true/);
+  assert.match(source, /shared-key:\s*cargo-audit-0\.22\.2/);
   assert.match(source, /cargo install cargo-audit --version 0\.22\.2 --locked/);
   assert.match(source, /working-directory: src-tauri\n\s+run: cargo audit/);
   assert.doesNotMatch(source, /required_status_checks|jobs:\n\s+check:/);

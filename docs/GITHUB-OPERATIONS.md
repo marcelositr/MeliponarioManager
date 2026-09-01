@@ -72,7 +72,7 @@ Os lockfiles `package-lock.json` e `src-tauri/Cargo.lock` são versionados. Os w
 O pipeline é dividido por finalidade:
 
 - `CI` roda em branches de trabalho e Pull Requests para `main`, produz o status obrigatório `check` e executa as validações rápidas de versão, documentação, frontend e Rust;
-- `Main validation` roda após pushes para `main` e repete as validações essenciais, acrescentando o build Tauri desktop completo com `--no-bundle` e um smoke test de inicialização em ambiente gráfico virtual;
+- `Main validation` roda após pushes para `main` e repete as validações essenciais, acrescentando o build Tauri desktop completo com `--no-bundle` e uma interação real com a WebView via WebDriver;
 - `Dependency security audit` verifica `package-lock.json` com `npm audit` e `src-tauri/Cargo.lock` com `cargo-audit`/RustSec quando as dependências mudam, semanalmente e sob execução manual;
 - `Build desktop bundles` permanece reservado a execuções manuais e tags de release, produzindo os artefatos distribuíveis por plataforma.
 
@@ -92,7 +92,9 @@ Os checkouts dos workflows usam `persist-credentials: false`. Workflows que prec
 
 Os workflows que compilam Rust usam cache do diretório de build de `src-tauri`. O cache é apenas uma otimização: `cargo check`, Clippy, testes e builds continuam sendo executados normalmente e nunca devem ser removidos para reduzir tempo de CI.
 
-O smoke test da `main` inicia o binário Tauri recém-compilado sob `xvfb` e exige que ele permaneça em execução durante uma pequena janela de startup. Esse teste não substitui o teste manual da interface, mas detecta falhas de inicialização que `cargo test` e o build isoladamente não conseguem observar.
+O job RustSec também usa o cache Rust para preservar o binário e os metadados da instalação fixada de `cargo-audit 0.22.2`. O cache de targets fica desabilitado nesse job; o scanner, a versão fixada e o comando `cargo audit` permanecem inalterados.
+
+A validação desktop da `main` compila o binário Tauri real, instala `WebKitWebDriver` e a versão fixada de `tauri-driver`, e executa `scripts/desktop-webdriver-smoke.py` sob `xvfb`. O teste confirma a tela inicial, aciona uma navegação real da WebView e valida a tela de destino. Ele cobre integração binário + runtime + WebView sem realizar mutações destrutivas. Dialogs nativos do sistema continuam protegidos por testes de capability/contrato e pelo gate manual quando a interação com o sistema operacional for necessária.
 
 O arquivo `tests/ci-policy.test.mjs` protege contratos importantes do pipeline, incluindo pin por SHA, checkout sem credenciais persistidas, presença do cache Rust, validação documental, fast path de documentação, audits npm/RustSec e separação entre CI rápido e validação desktop completa.
 

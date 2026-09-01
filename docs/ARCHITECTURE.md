@@ -20,7 +20,7 @@ A interface não acessa o SQLite nem o sistema de arquivos diretamente. Operaç�
 
 O diretório `src/` contém:
 
-- `pages/`: telas e fluxos funcionais;
+- `pages/`: telas, orquestradores de fluxo e submódulos específicos de páginas complexas;
 - `components/`: shell, navegação, dialogs, fichas e componentes compartilhados;
 - `lib/`: clientes IPC, tipos de fluxos, navegação e apresentação;
 - `hooks/`: carregamento do estado principal e coordenação de mutações;
@@ -28,6 +28,14 @@ O diretório `src/` contém:
 - folhas de estilo globais e temáticas.
 
 `WorkspaceRouter` seleciona a tela ativa. O contexto de meliponário é aplicado pela composição da interface e, nos serviços que oferecem esse contrato, também pelas consultas específicas do backend.
+
+Páginas com muitos fluxos seguem um padrão de fachada: o arquivo `*Page.tsx` mantém estado, efeitos, chamadas IPC e coordenação; elementos coesos de apresentação ficam em um diretório irmão com o nome do domínio. Atualmente:
+
+- `pages/movements/`: histórico, criação, documentos e apresentação de movimentações;
+- `pages/agenda/`: lista/resumo, criação, dialogs operacionais, modelos de formulário e apresentação;
+- `pages/assets/`: histórico de manutenção, biblioteca de fotos e apresentação.
+
+Esse padrão evita transformar componentes visuais em donos de regras operacionais e evita concentrar toda a tela em um único arquivo.
 
 ### Fronteira Tauri
 
@@ -49,6 +57,18 @@ Os módulos em `src-tauri/src/` se dividem por responsabilidade:
 - operação: `agenda*`, `alerts`, `dashboard`, `record_centers`, `reports`;
 - administração e auditoria: `admin_commands`, `audit`, `record_corrections`, `record_states`, `reversals`;
 - dados e arquivos: `data_management`, `managed_files`, `media`, `attachments`, `photo_preview`, `species_import`.
+
+Módulos maiores também usam fachadas para preservar uma fronteira pública estável enquanto responsabilidades internas ficam em submódulos. Exemplos:
+
+- `agenda.rs` coordena contratos comuns; `agenda/queries.rs`, `manual.rs` e `derived.rs` separam projeções, ciclo manual e reconciliação derivada;
+- `data_management.rs` mantém contratos e utilitários compartilhados; `backup.rs`, `restore.rs` e `exports.rs` separam os fluxos de dados;
+- `master_data.rs` delega operações aos módulos de meliponários, espécies, caixas e colônias;
+- `movements.rs` preserva a fronteira de movimentações e separa criação transacional de consultas;
+- `repository.rs` separa entidades e ocupação de caixas;
+- `transport.rs` separa ciclo de vida, consultas e wrappers Tauri;
+- `record_corrections.rs` e `reversals.rs` separam os domínios de correção/reversão mantendo guards e helpers compartilhados na fachada quando pertencem à fronteira comum.
+
+A divisão segue fronteiras de responsabilidade e de transação, não tamanho de arquivo. SQL ou estado transacional que precisam permanecer atômicos não devem ser fragmentados apenas para reduzir linhas.
 
 Comandos Tauri devem permanecer finos: recebem dados, delegam ao serviço responsável e retornam um resultado público. Regras críticas pertencem ao backend e, quando possível, recebem uma segunda defesa por constraints, índices ou triggers do SQLite.
 
@@ -117,7 +137,7 @@ Consulte [SECURITY.md](../SECURITY.md) para relato de vulnerabilidades.
 | `src-tauri/src/` | Backend Rust e comandos Tauri |
 | `migrations/` | Evolução imutável do schema SQLite |
 | `tests/` | Testes estruturais e de comportamento da interface |
-| `scripts/` | Validações auxiliares de versão e bundles |
+| `scripts/` | Validações auxiliares e smoke WebDriver do desktop |
 | `assets/` | Fontes de recursos visuais, incluindo o ícone oficial |
 | `docs/` | Documentação técnica, operacional e histórica |
 | `.github/` | CI, distribuição, templates e Dependabot |

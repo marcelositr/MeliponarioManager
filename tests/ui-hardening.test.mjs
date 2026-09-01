@@ -8,6 +8,10 @@ async function source(path) {
   return readFile(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
+async function combinedSource(paths) {
+  return (await Promise.all(paths.map(source))).join("\n");
+}
+
 test("contextual navigation preserves deep links but manual meliponary changes clear stale entity intent", () => {
   assert.deepEqual(toNavigationIntent("agenda"), { view: "agenda" });
   const deepLink = {
@@ -163,24 +167,33 @@ test("theme choices use menuitemradio while ordinary commands remain menuitem", 
 });
 
 test("temporary transport exposes open, complete and reopen lifecycle in the movements UI", async () => {
-  const [page, api] = await Promise.all([
-    source("src/pages/MovementsPage.tsx"),
+  const [movementUi, api] = await Promise.all([
+    combinedSource([
+      "src/pages/MovementsPage.tsx",
+      "src/pages/movements/MovementHistory.tsx",
+      "src/pages/movements/MovementCreateDialog.tsx",
+    ]),
     source("src/lib/transport-api.ts"),
   ]);
-  assert.match(page, /Transporte aberto/);
-  assert.match(page, /Registrar retorno…/);
-  assert.match(page, /Reabrir transporte…/);
-  assert.match(page, /Concluir transporte/);
+  assert.match(movementUi, /Transporte aberto/);
+  assert.match(movementUi, /Registrar retorno…/);
+  assert.match(movementUi, /Reabrir transporte…/);
+  assert.match(movementUi, /Concluir transporte/);
   assert.match(api, /complete_transport/);
   assert.match(api, /list_transport_returns/);
   assert.match(api, /reopen_transport/);
 });
 
 test("temporary transport UI does not offer reopening while another transport is open", async () => {
-  const page = await source("src/pages/MovementsPage.tsx");
+  const [page, history, createDialog] = await Promise.all([
+    source("src/pages/MovementsPage.tsx"),
+    source("src/pages/movements/MovementHistory.tsx"),
+    source("src/pages/movements/MovementCreateDialog.tsx"),
+  ]);
   assert.match(page, /const hasOpenTransport = useMemo/);
-  assert.match(page, /if \(transportReturn\) \{\s*if \(!hasOpenTransport\) secondary\.push\(\{ label: "Reabrir transporte…"/);
+  assert.match(history, /if \(!hasOpenTransport\) secondary\.push\(\{ label: "Reabrir transporte…"/);
   assert.match(page, /movementForm\.movementType === "transport" && hasOpenTransport/);
+  assert.match(createDialog, /movementForm\.movementType === "transport" && selectedMovementColony\?\.id === selectedColonyId && hasOpenTransport/);
 });
 
 test("presentation keeps canonical persistence out of visible dates", () => {

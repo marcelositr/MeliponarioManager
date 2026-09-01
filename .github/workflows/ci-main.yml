@@ -36,6 +36,7 @@ jobs:
             libssl-dev \
             libayatana-appindicator3-dev \
             librsvg2-dev \
+            webkit2gtk-driver \
             xvfb
 
       - name: Setup Node.js
@@ -54,6 +55,9 @@ jobs:
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
+
+      - name: Install tauri-driver
+        run: cargo install tauri-driver --version 2.0.6 --locked
 
       - name: Validate version metadata
         run: npm run version:check
@@ -95,18 +99,5 @@ jobs:
       - name: Build Tauri desktop binary
         run: npm run tauri -- build --no-bundle
 
-      - name: Smoke test desktop startup
-        shell: bash
-        run: |
-          set +e
-          timeout 8s xvfb-run -a src-tauri/target/release/meliponariomanager
-          status=$?
-          set -e
-
-          if [ "$status" -eq 124 ]; then
-            echo "Desktop application remained alive for the smoke-test window."
-            exit 0
-          fi
-
-          echo "::error::Desktop application exited unexpectedly during startup smoke test (status $status)."
-          exit 1
+      - name: Exercise desktop WebView with WebDriver
+        run: timeout --signal=TERM --kill-after=10s 90s xvfb-run -a python3 scripts/desktop-webdriver-smoke.py src-tauri/target/release/meliponariomanager

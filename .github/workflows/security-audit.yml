@@ -61,6 +61,14 @@ jobs:
         with:
           toolchain: 1.94.1
 
+      - name: Cache cargo-audit toolchain
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: src-tauri -> target
+          cache-targets: false
+          cache-all-crates: true
+          shared-key: cargo-audit-0.22.2
+
       - name: Install cargo-audit
         run: cargo install cargo-audit --version 0.22.2 --locked
 
