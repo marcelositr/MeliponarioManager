@@ -18,6 +18,7 @@ pub async fn create_meliponary(
 ) -> Result<Meliponary, AppError> {
     let id = Uuid::new_v4().to_string();
     let name = required(&input.name, "Nome do meliponário")?;
+    crate::identity::ensure_meliponary_name_available(pool, &name, None).await?;
 
     sqlx::query(
         "INSERT INTO meliponaries (id, name, responsible_name, location, notes)
@@ -53,6 +54,16 @@ pub async fn list_meliponaries(pool: &SqlitePool) -> Result<Vec<Meliponary>, App
 pub async fn create_species(pool: &SqlitePool, input: CreateSpecies) -> Result<Species, AppError> {
     let id = Uuid::new_v4().to_string();
     let common_name = required(&input.common_name, "Nome popular")?;
+    let scientific_name = optional(&input.scientific_name);
+    let genus = optional(&input.genus);
+    crate::identity::ensure_species_identity_available(
+        pool,
+        &common_name,
+        scientific_name.as_deref(),
+        genus.as_deref(),
+        None,
+    )
+    .await?;
 
     sqlx::query(
         "INSERT INTO species (id, common_name, scientific_name, genus, notes)
@@ -60,8 +71,8 @@ pub async fn create_species(pool: &SqlitePool, input: CreateSpecies) -> Result<S
     )
     .bind(&id)
     .bind(common_name)
-    .bind(optional(&input.scientific_name))
-    .bind(optional(&input.genus))
+    .bind(scientific_name)
+    .bind(genus)
     .bind(optional(&input.notes))
     .execute(pool)
     .await?;
@@ -104,6 +115,7 @@ pub async fn create_box(pool: &SqlitePool, input: CreateHiveBox) -> Result<HiveB
         }
         Some(None) => {}
     }
+    crate::identity::ensure_box_code_available(pool, &meliponary_id, &code, None).await?;
 
     sqlx::query(
         "INSERT INTO boxes (id, meliponary_id, code, model, material, location_note, notes)
@@ -185,6 +197,7 @@ pub async fn create_colony(pool: &SqlitePool, input: CreateColony) -> Result<Col
         }
         Some(None) => {}
     }
+    crate::identity::ensure_colony_code_available(pool, &meliponary_id, &code, None).await?;
 
     sqlx::query(
         "INSERT INTO colonies (

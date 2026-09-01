@@ -1,6 +1,6 @@
 use crate::{history::TimelineEntry, repository::AppError};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::{FromRow, Sqlite, SqlitePool, Transaction};
 use uuid::Uuid;
 
 const MAINTENANCE_TYPES: &[&str] = &[
@@ -78,28 +78,7 @@ async fn box_exists(pool: &SqlitePool, box_id: &str) -> Result<bool, AppError> {
     )
 }
 
-async fn colony_in_box_at(
-    pool: &SqlitePool,
-    box_id: &str,
-    maintained_at: &str,
-) -> Result<Option<String>, AppError> {
-    Ok(sqlx::query_scalar::<_, String>(
-        "SELECT colony_id
-         FROM colony_box_occupancies
-         WHERE box_id = ?
-           AND started_at <= ?
-           AND (ended_at IS NULL OR ended_at >= ?)
-         ORDER BY started_at DESC
-         LIMIT 1",
-    )
-    .bind(box_id)
-    .bind(maintained_at)
-    .bind(maintained_at)
-    .fetch_optional(pool)
-    .await?)
-}
-
-async fn get(pool: &SqlitePool, id: &str) -> Result<BoxMaintenance, AppError> {
+async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<BoxMaintenance, AppError> {
     Ok(sqlx::query_as::<_, BoxMaintenance>(
         "SELECT m.id, m.box_id, b.code AS box_code,
                 m.colony_id, c.code AS colony_code,
@@ -111,12 +90,12 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<BoxMaintenance, AppError> {
          WHERE m.id = ?",
     )
     .bind(id)
-    .fetch_one(pool)
+    .fetch_one(&mut **tx)
     .await?)
 }
 
-pub async fn create(
-    pool: &SqlitePool,
+pub(crate) async fn create_tx(
+    tx: &mut Transaction<'_, Sqlite>,
     input: CreateBoxMaintenance,
 ) -> Result<BoxMaintenance, AppError> {
     let box_id = required(&input.box_id, "Caixa")?;
@@ -130,7 +109,11 @@ pub async fn create(
 
     let cost = validate_cost(input.cost)?;
 
-    if !box_exists(pool, &box_id).await? {
+    let box_exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM boxes WHERE id = ?)")
+        .bind(&box_id)
+        .fetch_one(&mut **tx)
+        .await?;
+    if !box_exists {
         return Err(AppError::NotFound("Caixa não encontrada.".to_owned()));
     }
 
@@ -138,7 +121,7 @@ pub async fn create(
         Some(value) => value,
         None => {
             sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-                .fetch_one(pool)
+                .fetch_one(&mut **tx)
                 .await?
         }
     };
@@ -153,7 +136,20 @@ pub async fn create(
         ));
     }
 
-    let colony_id = colony_in_box_at(pool, &box_id, &maintained_at).await?;
+    let colony_id: Option<String> = sqlx::query_scalar::<_, String>(
+        "SELECT colony_id
+         FROM colony_box_occupancies
+         WHERE box_id = ?
+           AND started_at <= ?
+           AND (ended_at IS NULL OR ended_at >= ?)
+         ORDER BY started_at DESC
+         LIMIT 1",
+    )
+    .bind(&box_id)
+    .bind(&maintained_at)
+    .bind(&maintained_at)
+    .fetch_optional(&mut **tx)
+    .await?;
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -171,10 +167,21 @@ pub async fn create(
     .bind(optional(&input.performed_by))
     .bind(cost)
     .bind(next_maintenance_at)
-    .execute(pool)
+    .execute(&mut **tx)
     .await?;
 
-    get(pool, &id).await
+    get_tx(tx, &id).await
+}
+
+#[cfg(test)]
+pub async fn create(
+    pool: &SqlitePool,
+    input: CreateBoxMaintenance,
+) -> Result<BoxMaintenance, AppError> {
+    let mut tx = pool.begin().await?;
+    let record = create_tx(&mut tx, input).await?;
+    tx.commit().await?;
+    Ok(record)
 }
 
 pub async fn list_by_box(pool: &SqlitePool, box_id: &str) -> Result<Vec<BoxMaintenance>, AppError> {

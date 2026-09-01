@@ -1,4 +1,4 @@
-use crate::{audit, operational, repository::AppError};
+use crate::{agenda, audit, operational, repository::AppError};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::{Sqlite, SqlitePool, Transaction};

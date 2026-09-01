@@ -19,14 +19,13 @@ struct PendingDerived {
     source_baseline: String,
 }
 
-async fn reconcile_derived(
-    pool: &SqlitePool,
+async fn reconcile_derived_tx(
+    tx: &mut Transaction<'_, Sqlite>,
     colony_scope: Option<&str>,
     box_scope: Option<&str>,
     task_type: &'static str,
     desired: Option<DerivedTask>,
 ) -> Result<(), AppError> {
-    let mut tx = pool.begin().await?;
     let pending = sqlx::query_as::<_, PendingDerived>(
         "WITH RECURSIVE lineage(id,root_scheduled_for) AS (
             SELECT id,scheduled_for FROM scheduled_tasks WHERE rescheduled_from_id IS NULL
@@ -49,9 +48,9 @@ async fn reconcile_derived(
     .bind(colony_scope)
     .bind(box_scope)
     .bind(box_scope)
-    .fetch_all(&mut *tx)
+    .fetch_all(&mut **tx)
     .await?;
-    let now = now_tx(&mut tx).await?;
+    let now = now_tx(tx).await?;
     let mut kept = false;
 
     for current in pending {
@@ -70,7 +69,7 @@ async fn reconcile_derived(
                 .bind(&next.title)
                 .bind(&now)
                 .bind(&current.id)
-                .execute(&mut *tx)
+                .execute(&mut **tx)
                 .await?;
                 kept = true;
             }
@@ -80,7 +79,7 @@ async fn reconcile_derived(
                 )
                 .bind(&now)
                 .bind(&current.id)
-                .execute(&mut *tx)
+                .execute(&mut **tx)
                 .await?;
             }
             _ => {
@@ -90,7 +89,7 @@ async fn reconcile_derived(
                 .bind(&now)
                 .bind(&now)
                 .bind(&current.id)
-                .execute(&mut *tx)
+                .execute(&mut **tx)
                 .await?;
             }
         }
@@ -114,17 +113,33 @@ async fn reconcile_derived(
             .bind(next.scheduled_for)
             .bind(next.source_type)
             .bind(next.source_id)
-            .execute(&mut *tx)
+            .execute(&mut **tx)
             .await?;
         }
     }
-    tx.commit().await?;
     Ok(())
 }
 
-pub async fn reconcile_inspection(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
+async fn ensure_colony_exists_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    colony_id: &str,
+) -> Result<(), AppError> {
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id=?)")
+        .bind(colony_id)
+        .fetch_one(&mut **tx)
+        .await?;
+    if !exists {
+        return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
+    }
+    Ok(())
+}
+
+pub(crate) async fn reconcile_inspection_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    colony_id: &str,
+) -> Result<(), AppError> {
     let colony_id = required(colony_id, "Colônia")?;
-    operational::ensure_colony_exists(pool, &colony_id).await?;
+    ensure_colony_exists_tx(tx, &colony_id).await?;
     type Latest = (
         String,
         Option<String>,
@@ -135,15 +150,16 @@ pub async fn reconcile_inspection(pool: &SqlitePool, colony_id: &str) -> Result<
         String,
     );
     let latest: Option<Latest> = sqlx::query_as(
-        "SELECT i.id,i.next_inspection_at,i.box_id,c.meliponary_id,c.code,m.archived_at,c.status
+        "SELECT i.id,i.next_inspection_at,o.box_id,c.meliponary_id,c.code,m.archived_at,c.status
          FROM inspections i
          JOIN colonies c ON c.id=i.colony_id
          JOIN meliponaries m ON m.id=c.meliponary_id
+         LEFT JOIN colony_box_occupancies o ON o.colony_id=c.id AND o.ended_at IS NULL
          WHERE i.colony_id=? AND i.voided_at IS NULL
          ORDER BY i.inspected_at DESC,i.created_at DESC,i.id DESC LIMIT 1",
     )
     .bind(&colony_id)
-    .fetch_optional(pool)
+    .fetch_optional(&mut **tx)
     .await?;
     let desired = latest.and_then(
         |(source_id, next, box_id, meliponary_id, code, archived_at, status)| {
@@ -163,12 +179,22 @@ pub async fn reconcile_inspection(pool: &SqlitePool, colony_id: &str) -> Result<
             })
         },
     );
-    reconcile_derived(pool, Some(&colony_id), None, "inspection", desired).await
+    reconcile_derived_tx(tx, Some(&colony_id), None, "inspection", desired).await
 }
 
-pub async fn reconcile_feeding(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
+pub async fn reconcile_inspection(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+    reconcile_inspection_tx(&mut tx, colony_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub(crate) async fn reconcile_feeding_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    colony_id: &str,
+) -> Result<(), AppError> {
     let colony_id = required(colony_id, "Colônia")?;
-    operational::ensure_colony_exists(pool, &colony_id).await?;
+    ensure_colony_exists_tx(tx, &colony_id).await?;
     type Latest = (
         String,
         Option<String>,
@@ -179,15 +205,16 @@ pub async fn reconcile_feeding(pool: &SqlitePool, colony_id: &str) -> Result<(),
         String,
     );
     let latest: Option<Latest> = sqlx::query_as(
-        "SELECT f.id,f.next_feeding_at,f.box_id,c.meliponary_id,c.code,m.archived_at,c.status
+        "SELECT f.id,f.next_feeding_at,o.box_id,c.meliponary_id,c.code,m.archived_at,c.status
          FROM feedings f
          JOIN colonies c ON c.id=f.colony_id
          JOIN meliponaries m ON m.id=c.meliponary_id
+         LEFT JOIN colony_box_occupancies o ON o.colony_id=c.id AND o.ended_at IS NULL
          WHERE f.colony_id=? AND f.voided_at IS NULL
          ORDER BY f.fed_at DESC,f.created_at DESC,f.id DESC LIMIT 1",
     )
     .bind(&colony_id)
-    .fetch_optional(pool)
+    .fetch_optional(&mut **tx)
     .await?;
     let desired = latest.and_then(
         |(source_id, next, box_id, meliponary_id, code, archived_at, status)| {
@@ -207,10 +234,20 @@ pub async fn reconcile_feeding(pool: &SqlitePool, colony_id: &str) -> Result<(),
             })
         },
     );
-    reconcile_derived(pool, Some(&colony_id), None, "feeding", desired).await
+    reconcile_derived_tx(tx, Some(&colony_id), None, "feeding", desired).await
 }
 
-pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<(), AppError> {
+pub async fn reconcile_feeding(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+    reconcile_feeding_tx(&mut tx, colony_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub(crate) async fn reconcile_maintenance_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    box_id: &str,
+) -> Result<(), AppError> {
     let box_id = required(box_id, "Caixa")?;
     type Latest = (
         String,
@@ -230,7 +267,7 @@ pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<()
          ORDER BY r.maintained_at DESC,r.created_at DESC,r.id DESC LIMIT 1",
     )
     .bind(&box_id)
-    .fetch_optional(pool)
+    .fetch_optional(&mut **tx)
     .await?;
     let desired = latest.and_then(
         |(source_id, next, colony_id, meliponary_id, code, archived_at, status)| {
@@ -249,7 +286,48 @@ pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<()
             })
         },
     );
-    reconcile_derived(pool, None, Some(&box_id), "maintenance", desired).await
+    reconcile_derived_tx(tx, None, Some(&box_id), "maintenance", desired).await
+}
+
+pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<(), AppError> {
+    let mut tx = pool.begin().await?;
+    reconcile_maintenance_tx(&mut tx, box_id).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+pub(crate) async fn reconcile_meliponary_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    meliponary_id: &str,
+) -> Result<(), AppError> {
+    let meliponary_id = required(meliponary_id, "Meliponário")?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id=?)")
+        .bind(&meliponary_id)
+        .fetch_one(&mut **tx)
+        .await?;
+    if !exists {
+        return Err(AppError::NotFound("Meliponário não encontrado.".to_owned()));
+    }
+
+    let colonies: Vec<String> =
+        sqlx::query_scalar("SELECT id FROM colonies WHERE meliponary_id=? ORDER BY id")
+            .bind(&meliponary_id)
+            .fetch_all(&mut **tx)
+            .await?;
+    for colony_id in colonies {
+        reconcile_inspection_tx(tx, &colony_id).await?;
+        reconcile_feeding_tx(tx, &colony_id).await?;
+    }
+
+    let boxes: Vec<String> =
+        sqlx::query_scalar("SELECT id FROM boxes WHERE meliponary_id=? ORDER BY id")
+            .bind(&meliponary_id)
+            .fetch_all(&mut **tx)
+            .await?;
+    for box_id in boxes {
+        reconcile_maintenance_tx(tx, &box_id).await?;
+    }
+    Ok(())
 }
 
 pub async fn reconcile_all(pool: &SqlitePool) -> Result<(), AppError> {

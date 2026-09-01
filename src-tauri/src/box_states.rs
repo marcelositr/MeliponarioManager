@@ -1,4 +1,4 @@
-use crate::{repository::AppError, time};
+use crate::{agenda, repository::AppError, time};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
@@ -152,6 +152,7 @@ pub async fn change(pool: &SqlitePool, input: ChangeBoxState) -> Result<BoxState
     .execute(&mut *tx)
     .await?;
 
+    agenda::reconcile_maintenance_tx(&mut tx, &box_id).await?;
     tx.commit().await?;
     get(pool, &id).await
 }
@@ -182,6 +183,7 @@ pub async fn list_by_box(pool: &SqlitePool, box_id: &str) -> Result<Vec<BoxState
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::maintenance::{self, CreateBoxMaintenance};
     use sqlx::sqlite::SqlitePoolOptions;
 
     async fn pool() -> SqlitePool {
@@ -265,6 +267,60 @@ mod tests {
         )
         .await
         .is_err());
+    }
+
+    #[tokio::test]
+    async fn retiring_box_cancels_derived_maintenance() {
+        let pool = pool().await;
+        let source = maintenance::create(
+            &pool,
+            CreateBoxMaintenance {
+                box_id: "b1".into(),
+                maintained_at: Some("2026-01-10 10:00:00".into()),
+                maintenance_type: "cleaning".into(),
+                description: None,
+                performed_by: None,
+                cost: None,
+                next_maintenance_at: Some("2026-03-01 10:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
+        agenda::reconcile_maintenance(&pool, "b1").await.unwrap();
+        let task_id: String = sqlx::query_scalar(
+            "SELECT id FROM scheduled_tasks
+             WHERE box_id='b1' AND task_type='maintenance' AND status='pending'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        change(
+            &pool,
+            ChangeBoxState {
+                box_id: "b1".into(),
+                new_status: "retired".into(),
+                occurred_at: Some("2026-02-01 10:00:00".into()),
+                reason: Some("Fim da vida útil".into()),
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        let status: String = sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id=?")
+            .bind(task_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(status, "cancelled");
+        let source_kept: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM box_maintenance_records WHERE id=?")
+                .bind(source.id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(source_kept, 1);
     }
 
     #[tokio::test]

@@ -4,29 +4,15 @@ pub async fn edit_box(pool: &SqlitePool, input: EditBox) -> Result<HiveBox, AppE
     let id = required(&input.id, "Caixa")?;
     let code = required(&input.code, "Identificação da caixa")?;
     let reason = required(&input.reason, "Motivo da edição")?;
-    let meliponary_id: Option<String> =
-        sqlx::query_scalar("SELECT meliponary_id FROM boxes WHERE id = ?")
+    let current: Option<(String, String)> =
+        sqlx::query_as("SELECT meliponary_id, code FROM boxes WHERE id = ?")
             .bind(&id)
             .fetch_optional(pool)
             .await?;
-    let meliponary_id =
-        meliponary_id.ok_or_else(|| AppError::NotFound("Caixa não encontrada.".to_owned()))?;
-    let duplicate: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-            SELECT 1 FROM boxes
-            WHERE id <> ? AND meliponary_id = ?
-              AND lower(trim(code)) = lower(trim(?))
-         )",
-    )
-    .bind(&id)
-    .bind(&meliponary_id)
-    .bind(&code)
-    .fetch_one(pool)
-    .await?;
-    if duplicate {
-        return Err(AppError::Validation(
-            "Já existe uma caixa com esta identificação no meliponário.".to_owned(),
-        ));
+    let (meliponary_id, current_code) =
+        current.ok_or_else(|| AppError::NotFound("Caixa não encontrada.".to_owned()))?;
+    if crate::identity::text_key(&current_code) != crate::identity::text_key(&code) {
+        crate::identity::ensure_box_code_available(pool, &meliponary_id, &code, Some(&id)).await?;
     }
 
     let mut tx = pool.begin().await?;

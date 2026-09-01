@@ -1,5 +1,5 @@
 use crate::{
-    audit,
+    agenda, audit,
     domain::{Colony, HiveBox, Meliponary, Species},
     repository::AppError,
 };
@@ -147,5 +147,7 @@ pub use meliponaries::{
 };
 pub use species::{archive_species, delete_species, edit_species, reactivate_species};
 
+#[cfg(test)]
+mod identity_tests;
 #[cfg(test)]
 mod tests;

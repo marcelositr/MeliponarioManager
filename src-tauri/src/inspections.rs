@@ -1,6 +1,6 @@
 use crate::repository::AppError;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::{FromRow, Sqlite, SqlitePool, Transaction};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -66,7 +66,7 @@ fn strength(value: &Option<String>) -> Result<String, AppError> {
     }
 }
 
-async fn get(pool: &SqlitePool, id: &str) -> Result<Inspection, AppError> {
+async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Inspection, AppError> {
     Ok(sqlx::query_as::<_, Inspection>(
         "SELECT i.id, i.colony_id, c.code AS colony_code, i.box_id, b.code AS box_code,
                 i.inspected_at, i.strength, i.queen_present, i.laying_status,
@@ -78,18 +78,21 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<Inspection, AppError> {
          WHERE i.id = ?",
     )
     .bind(id)
-    .fetch_one(pool)
+    .fetch_one(&mut **tx)
     .await?)
 }
 
-pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspection, AppError> {
+pub(crate) async fn create_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    input: CreateInspection,
+) -> Result<Inspection, AppError> {
     let colony_id = required(&input.colony_id, "Colônia")?;
     let inspection_strength = strength(&input.strength)?;
 
     let colony_exists: bool =
         sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
             .bind(&colony_id)
-            .fetch_one(pool)
+            .fetch_one(&mut **tx)
             .await?;
 
     if !colony_exists {
@@ -100,7 +103,7 @@ pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspec
         Some(value) => value,
         None => {
             sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-                .fetch_one(pool)
+                .fetch_one(&mut **tx)
                 .await?
         }
     };
@@ -117,7 +120,7 @@ pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspec
     .bind(&colony_id)
     .bind(&inspected_at)
     .bind(&inspected_at)
-    .fetch_optional(pool)
+    .fetch_optional(&mut **tx)
     .await?;
 
     let id = Uuid::new_v4().to_string();
@@ -141,10 +144,18 @@ pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspec
     .bind(optional(&input.observations))
     .bind(optional(&input.actions_taken))
     .bind(optional(&input.next_inspection_at))
-    .execute(pool)
+    .execute(&mut **tx)
     .await?;
 
-    get(pool, &id).await
+    get_tx(tx, &id).await
+}
+
+#[cfg(test)]
+pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspection, AppError> {
+    let mut tx = pool.begin().await?;
+    let record = create_tx(&mut tx, input).await?;
+    tx.commit().await?;
+    Ok(record)
 }
 
 pub async fn list_by_colony(

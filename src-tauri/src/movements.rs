@@ -1,4 +1,4 @@
-use crate::repository::AppError;
+use crate::{agenda, repository::AppError};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;

@@ -97,8 +97,28 @@ pub async fn reverse_movement(p: &SqlitePool, input: ReverseRecord) -> Result<()
                     "A colônia já não está marcada como transferida.".into(),
                 ));
             }
-            let previous:Option<String>=sqlx::query_scalar("SELECT new_status FROM colony_lifecycle_records WHERE colony_id=? AND occurred_at<? AND reversed_at IS NULL ORDER BY occurred_at DESC,created_at DESC,id DESC LIMIT 1").bind(&c).bind(&at).fetch_optional(&mut*tx).await?;
-            let previous=previous.ok_or_else(||AppError::Validation("O estado anterior à transferência externa não está historicamente comprovado; a reversão automática foi bloqueada.".into()))?;
+            let previous: Option<String> = sqlx::query_scalar(
+                "SELECT new_status FROM colony_lifecycle_records WHERE colony_id=? AND occurred_at<? AND reversed_at IS NULL ORDER BY occurred_at DESC,created_at DESC,id DESC LIMIT 1",
+            )
+            .bind(&c)
+            .bind(&at)
+            .fetch_optional(&mut *tx)
+            .await?;
+            let previous = match previous {
+                Some(previous) => previous,
+                None => {
+                    let entry_at: String = sqlx::query_scalar(
+                        "SELECT COALESCE(installed_at,created_at) FROM colonies WHERE id=?",
+                    )
+                    .bind(&c)
+                    .fetch_one(&mut *tx)
+                    .await?;
+                    if at < entry_at {
+                        return Err(AppError::Validation("O estado anterior à transferência externa não está historicamente comprovado; a reversão automática foi bloqueada.".into()));
+                    }
+                    "active".to_owned()
+                }
+            };
             if !operational::is_manageable_status(&previous) {
                 return Err(AppError::Validation(
                     "O estado anterior não permite restauração automática ao plantel.".into(),
@@ -129,6 +149,8 @@ pub async fn reverse_movement(p: &SqlitePool, input: ReverseRecord) -> Result<()
         Some(json!({"reversed_at":reversed_at,"reversal_reason":reason})),
     )
     .await?;
+    agenda::reconcile_inspection_tx(&mut tx, &c).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &c).await?;
     tx.commit().await?;
     Ok(())
 }

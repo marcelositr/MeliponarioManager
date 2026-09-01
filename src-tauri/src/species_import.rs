@@ -1,3 +1,4 @@
+use crate::identity;
 use csv::{ReaderBuilder, StringRecord, Trim};
 use serde::Serialize;
 use sqlx::{FromRow, SqlitePool};
@@ -218,7 +219,7 @@ fn classify_rows(
     let mut known = existing
         .iter()
         .map(|item| {
-            duplicate_key(
+            identity::species_key(
                 &item.common_name,
                 item.scientific_name.as_deref(),
                 item.genus.as_deref(),
@@ -238,7 +239,7 @@ fn classify_rows(
             continue;
         }
 
-        let key = duplicate_key(
+        let key = identity::species_key(
             &row.common_name,
             row.scientific_name.as_deref(),
             row.genus.as_deref(),
@@ -254,21 +255,6 @@ fn classify_rows(
     }
 
     (statuses, new_rows, duplicate_rows, invalid_rows)
-}
-
-fn duplicate_key(common_name: &str, scientific_name: Option<&str>, genus: Option<&str>) -> String {
-    if let Some(scientific_name) = scientific_name
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        return format!("scientific:{}", normalize_value(scientific_name));
-    }
-
-    format!(
-        "common:{}|genus:{}",
-        normalize_value(common_name),
-        normalize_value(genus.unwrap_or_default())
-    )
 }
 
 fn parse_csv(bytes: &[u8]) -> Result<Vec<ParsedSpeciesRow>, String> {
@@ -404,10 +390,6 @@ fn normalize_header(value: &str) -> String {
         .join("_")
 }
 
-fn normalize_value(value: &str) -> String {
-    value.trim().to_lowercase()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -433,19 +415,25 @@ mod tests {
     }
 
     #[test]
-    fn duplicate_key_prefers_scientific_name() {
-        assert_eq!(
-            duplicate_key(
-                "Jataí",
-                Some("Tetragonisca angustula"),
-                Some("Tetragonisca")
-            ),
-            "scientific:tetragonisca angustula"
-        );
-        assert_eq!(
-            duplicate_key("Jataí", None, Some("Tetragonisca")),
-            "common:jataí|genus:tetragonisca"
-        );
+    fn classification_uses_shared_species_identity_rule() {
+        let existing = vec![ExistingSpecies {
+            common_name: "Jataí".to_owned(),
+            scientific_name: Some("Tetragonisca angustula".to_owned()),
+            genus: Some("Tetragonisca".to_owned()),
+        }];
+        let rows = vec![ParsedSpeciesRow {
+            row_number: 2,
+            common_name: "Outro nome popular".to_owned(),
+            scientific_name: Some("  TETRAGONISCA ANGUSTULA  ".to_owned()),
+            genus: Some("Outro gênero".to_owned()),
+            notes: None,
+            error: None,
+        }];
+
+        let (_, new_rows, duplicate_rows, invalid_rows) = classify_rows(&rows, &existing);
+        assert_eq!(new_rows, 0);
+        assert_eq!(duplicate_rows, 1);
+        assert_eq!(invalid_rows, 0);
     }
 
     #[test]

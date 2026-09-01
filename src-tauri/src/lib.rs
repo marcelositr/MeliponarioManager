@@ -15,6 +15,7 @@ mod documents;
 mod domain;
 mod feeding;
 mod history;
+mod identity;
 mod inspections;
 mod lifecycle;
 mod maintenance;

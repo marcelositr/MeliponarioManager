@@ -1,7 +1,10 @@
 use super::*;
 use crate::{
+    agenda,
     domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
-    history, repository,
+    history,
+    inspections::{self, CreateInspection},
+    repository,
 };
 use sqlx::sqlite::SqlitePoolOptions;
 
@@ -122,10 +125,41 @@ async fn seed(pool: &SqlitePool) -> Seed {
     }
 }
 
+async fn create_pending_inspection(pool: &SqlitePool, colony_id: &str) -> String {
+    inspections::create(
+        pool,
+        CreateInspection {
+            colony_id: colony_id.to_owned(),
+            inspected_at: Some("2026-01-10 10:00:00".into()),
+            strength: Some("medium".into()),
+            queen_present: None,
+            laying_status: None,
+            food_reserves: None,
+            brood_status: None,
+            pests_notes: None,
+            observations: None,
+            actions_taken: None,
+            next_inspection_at: Some("2026-04-01 10:00:00".into()),
+        },
+    )
+    .await
+    .unwrap();
+    agenda::reconcile_inspection(pool, colony_id).await.unwrap();
+    sqlx::query_scalar(
+        "SELECT id FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(colony_id)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
 #[tokio::test]
-async fn internal_transfer_moves_colony_and_preserves_box_history() {
+async fn internal_transfer_moves_colony_and_updates_derived_agenda_context() {
     let pool = test_pool().await;
     let seed = seed(&pool).await;
+    let task_id = create_pending_inspection(&pool, &seed.colony_id).await;
 
     let movement = create(
         &pool,
@@ -178,6 +212,16 @@ async fn internal_transfer_moves_colony_and_preserves_box_history() {
             .await
             .unwrap();
     assert_eq!(history_count, 2);
+
+    let task_context: (String, Option<String>, Option<String>) =
+        sqlx::query_as("SELECT meliponary_id,box_id,colony_id FROM scheduled_tasks WHERE id=?")
+            .bind(task_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(task_context.0, seed.target_meliponary_id);
+    assert_eq!(task_context.1.as_deref(), Some(seed.target_box_id.as_str()));
+    assert_eq!(task_context.2.as_deref(), Some(seed.colony_id.as_str()));
 }
 
 #[tokio::test]
@@ -255,9 +299,10 @@ async fn occupied_target_box_rolls_back_internal_transfer() {
 }
 
 #[tokio::test]
-async fn external_transfer_closes_occupancy_and_marks_colony_transferred() {
+async fn external_transfer_cancels_derived_agenda() {
     let pool = test_pool().await;
     let seed = seed(&pool).await;
+    let task_id = create_pending_inspection(&pool, &seed.colony_id).await;
 
     let movement = create(
         &pool,
@@ -296,6 +341,22 @@ async fn external_transfer_closes_occupancy_and_marks_colony_transferred() {
     .await
     .unwrap();
     assert_eq!(active_occupancies, 0);
+
+    let task_status: String = sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id=?")
+        .bind(task_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(task_status, "cancelled");
+    let pending: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(&seed.colony_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(pending, 0);
 }
 
 #[tokio::test]

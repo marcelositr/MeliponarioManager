@@ -12,6 +12,7 @@ import {
   voidColonyEvent, voidFeeding, voidInspection, voidMovementDocument, voidProductionRecord,
   voidTransport,
 } from "../lib/api";
+import { runMutationFlow } from "../lib/mutation-flow";
 import { publicError } from "../lib/presentation";
 import { importSpeciesCsv as importSpeciesCsvFile, type SpeciesImportResult } from "../lib/species-import";
 import type {
@@ -54,9 +55,21 @@ export function useAppData() {
 
   async function runMutation(action: () => Promise<unknown>, successMessage: string): Promise<boolean> {
     setBusy(true); setFeedback(null);
-    try { await action(); await refresh(); setFeedback({ kind: "success", text: successMessage }); return true; }
-    catch (error) { setFeedback({ kind: "error", text: publicError(error, "Não foi possível concluir a operação. Verifique os dados e tente novamente.") }); return false; }
-    finally { setBusy(false); }
+    try {
+      const result = await runMutationFlow(action, refresh);
+      if (result.status === "mutation-failed") {
+        setFeedback({ kind: "error", text: publicError(result.error, "Não foi possível concluir a operação. Verifique os dados e tente novamente.") });
+        return false;
+      }
+      if (result.status === "refresh-failed") {
+        setFeedback({ kind: "error", text: `${successMessage} Os dados foram salvos, mas a tela não pôde ser atualizada. Use Atualizar antes de repetir a operação.` });
+        return true;
+      }
+      setFeedback({ kind: "success", text: successMessage });
+      return true;
+    } finally {
+      setBusy(false);
+    }
   }
 
   const actions = {
@@ -65,17 +78,25 @@ export function useAppData() {
     importSpeciesCsv: async (sourcePath: string): Promise<SpeciesImportResult | null> => {
       setBusy(true); setFeedback(null);
       try {
-        const result = await importSpeciesCsvFile(sourcePath);
-        await refresh();
+        let result: SpeciesImportResult;
+        try {
+          result = await importSpeciesCsvFile(sourcePath);
+        } catch (error) {
+          setFeedback({ kind: "error", text: publicError(error, "Não foi possível importar a lista de espécies.") });
+          return null;
+        }
+
         const importedLabel = result.importedRows === 1 ? "1 espécie importada." : `${result.importedRows} espécies importadas.`;
         const duplicateLabel = result.duplicateRows > 0
           ? ` ${result.duplicateRows} duplicada${result.duplicateRows === 1 ? "" : "s"} ignorada${result.duplicateRows === 1 ? "" : "s"}.`
           : "";
-        setFeedback({ kind: "success", text: `${importedLabel}${duplicateLabel}` });
+        try {
+          await refresh();
+          setFeedback({ kind: "success", text: `${importedLabel}${duplicateLabel}` });
+        } catch {
+          setFeedback({ kind: "error", text: `${importedLabel}${duplicateLabel} A importação foi salva, mas a tela não pôde ser atualizada. Use Atualizar antes de importar novamente.` });
+        }
         return result;
-      } catch (error) {
-        setFeedback({ kind: "error", text: publicError(error, "Não foi possível importar a lista de espécies.") });
-        return null;
       } finally {
         setBusy(false);
       }

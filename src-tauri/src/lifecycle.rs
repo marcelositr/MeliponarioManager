@@ -1,4 +1,4 @@
-use crate::{history::TimelineEntry, repository::AppError};
+use crate::{agenda, history::TimelineEntry, repository::AppError};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
@@ -233,6 +233,8 @@ pub async fn change(
     .execute(&mut *tx)
     .await?;
 
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
     get(pool, &id).await
 }
@@ -361,6 +363,7 @@ mod tests {
     use super::*;
     use crate::{
         domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
+        inspections::{self, CreateInspection},
         repository, timeline,
     };
     use sqlx::sqlite::SqlitePoolOptions;
@@ -441,6 +444,36 @@ mod tests {
         (colony.id, hive_box.id)
     }
 
+    async fn create_pending_inspection(pool: &SqlitePool, colony_id: &str) -> String {
+        inspections::create(
+            pool,
+            CreateInspection {
+                colony_id: colony_id.to_owned(),
+                inspected_at: Some("2026-01-10 10:00:00".into()),
+                strength: Some("medium".into()),
+                queen_present: None,
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: Some("2026-03-01 10:00:00".into()),
+            },
+        )
+        .await
+        .unwrap();
+        agenda::reconcile_inspection(pool, colony_id).await.unwrap();
+        sqlx::query_scalar(
+            "SELECT id FROM scheduled_tasks
+             WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+        )
+        .bind(colony_id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
     #[tokio::test]
     async fn loss_closes_active_occupancy_and_updates_status() {
         let pool = test_pool().await;
@@ -477,6 +510,117 @@ mod tests {
 
         assert_eq!(status, "lost");
         assert_eq!(ended_at, "2026-02-01 10:00:00");
+    }
+
+    #[tokio::test]
+    async fn lifecycle_change_cancels_and_recreates_derived_agenda() {
+        let pool = test_pool().await;
+        let (colony_id, _) = seed(&pool).await;
+        let original_task_id = create_pending_inspection(&pool, &colony_id).await;
+
+        change(
+            &pool,
+            ChangeColonyLifecycle {
+                colony_id: colony_id.clone(),
+                action: "deactivate".into(),
+                occurred_at: Some("2026-02-01 10:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let cancelled_status: String =
+            sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id=?")
+                .bind(&original_task_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(cancelled_status, "cancelled");
+
+        change(
+            &pool,
+            ChangeColonyLifecycle {
+                colony_id: colony_id.clone(),
+                action: "reactivate".into(),
+                occurred_at: Some("2026-02-10 10:00:00".into()),
+                reason: None,
+                notes: None,
+            },
+        )
+        .await
+        .unwrap();
+        let restored: (String, Option<String>) = sqlx::query_as(
+            "SELECT id,box_id FROM scheduled_tasks
+             WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+        )
+        .bind(&colony_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_ne!(restored.0, original_task_id);
+        assert!(restored.1.is_none());
+    }
+
+    #[tokio::test]
+    async fn agenda_failure_rolls_back_lifecycle_change() {
+        let pool = test_pool().await;
+        let (colony_id, box_id) = seed(&pool).await;
+        let task_id = create_pending_inspection(&pool, &colony_id).await;
+        sqlx::query(
+            "CREATE TRIGGER fail_lifecycle_agenda_update
+             BEFORE UPDATE ON scheduled_tasks
+             WHEN OLD.source_type='inspection'
+             BEGIN
+               SELECT RAISE(ABORT,'forced agenda failure');
+             END",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let result = change(
+            &pool,
+            ChangeColonyLifecycle {
+                colony_id: colony_id.clone(),
+                action: "deactivate".into(),
+                occurred_at: Some("2026-02-01 10:00:00".into()),
+                reason: Some("Falha forçada".into()),
+                notes: None,
+            },
+        )
+        .await;
+        assert!(result.is_err());
+
+        let status: String = sqlx::query_scalar("SELECT status FROM colonies WHERE id=?")
+            .bind(&colony_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(status, "active");
+        let active_box: String = sqlx::query_scalar(
+            "SELECT box_id FROM colony_box_occupancies
+             WHERE colony_id=? AND ended_at IS NULL",
+        )
+        .bind(&colony_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(active_box, box_id);
+        let lifecycle_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM colony_lifecycle_records WHERE colony_id=?")
+                .bind(&colony_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(lifecycle_count, 0);
+        let task_status: String =
+            sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id=?")
+                .bind(task_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(task_status, "pending");
     }
 
     #[tokio::test]

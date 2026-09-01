@@ -1,4 +1,4 @@
-use crate::{audit, operational, repository::AppError, time};
+use crate::{agenda, audit, operational, repository::AppError, time};
 use serde::Deserialize;
 use serde_json::Value;
 use sqlx::{Sqlite, SqlitePool, Transaction};
@@ -329,6 +329,34 @@ async fn void_fact(
         Some(after),
     )
     .await?;
+
+    match table {
+        "inspections" => {
+            let colony_id: String =
+                sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
+                    .bind(&id)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
+        }
+        "feedings" => {
+            let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM feedings WHERE id=?")
+                .bind(&id)
+                .fetch_one(&mut *tx)
+                .await?;
+            agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
+        }
+        "box_maintenance_records" => {
+            let box_id: String =
+                sqlx::query_scalar("SELECT box_id FROM box_maintenance_records WHERE id=?")
+                    .bind(&id)
+                    .fetch_one(&mut *tx)
+                    .await?;
+            agenda::reconcile_maintenance_tx(&mut tx, &box_id).await?;
+        }
+        _ => {}
+    }
+
     tx.commit().await?;
     Ok(())
 }

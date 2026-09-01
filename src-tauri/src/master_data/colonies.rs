@@ -4,29 +4,16 @@ pub async fn edit_colony(pool: &SqlitePool, input: EditColony) -> Result<Colony,
     let id = required(&input.id, "Colônia")?;
     let code = required(&input.code, "Identificação da colônia")?;
     let reason = required(&input.reason, "Motivo da edição")?;
-    let meliponary_id: Option<String> =
-        sqlx::query_scalar("SELECT meliponary_id FROM colonies WHERE id = ?")
+    let current: Option<(String, String)> =
+        sqlx::query_as("SELECT meliponary_id, code FROM colonies WHERE id = ?")
             .bind(&id)
             .fetch_optional(pool)
             .await?;
-    let meliponary_id =
-        meliponary_id.ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
-    let duplicate: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-            SELECT 1 FROM colonies
-            WHERE id <> ? AND meliponary_id = ?
-              AND lower(trim(code)) = lower(trim(?))
-         )",
-    )
-    .bind(&id)
-    .bind(&meliponary_id)
-    .bind(&code)
-    .fetch_one(pool)
-    .await?;
-    if duplicate {
-        return Err(AppError::Validation(
-            "Já existe uma colônia com esta identificação no meliponário.".to_owned(),
-        ));
+    let (meliponary_id, current_code) =
+        current.ok_or_else(|| AppError::NotFound("Colônia não encontrada.".to_owned()))?;
+    if crate::identity::text_key(&current_code) != crate::identity::text_key(&code) {
+        crate::identity::ensure_colony_code_available(pool, &meliponary_id, &code, Some(&id))
+            .await?;
     }
 
     let mut tx = pool.begin().await?;
