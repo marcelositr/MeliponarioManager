@@ -1,4 +1,4 @@
-use crate::{audit, operational, repository::AppError, time};
+use crate::{audit, repository::AppError, time};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{FromRow, Sqlite, SqlitePool, Transaction};
@@ -176,10 +176,7 @@ mod derived;
 mod manual;
 mod queries;
 
-pub use derived::{
-    mark_completed_by_fact_tx, reconcile_all, reconcile_feeding, reconcile_inspection,
-    reconcile_maintenance,
-};
+pub use derived::{mark_completed_by_fact_tx, reconcile_all};
 pub(crate) use derived::{reconcile_feeding_tx, reconcile_inspection_tx, reconcile_maintenance_tx};
 pub use manual::{cancel, complete_generic, create_manual, duplicate, reschedule, skip};
 pub use queries::{get, list, summary};
