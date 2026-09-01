@@ -48,7 +48,10 @@ test("branch and PR CI retain full validation while main adds desktop validation
   ]);
 
   assert.match(branchCi, /jobs:\n\s+check:/);
-  assert.match(branchCi, /group: ci-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/);
+  assert.match(
+    branchCi,
+    /group: ci-\$\{\{ github\.event_name \}\}-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/,
+  );
   assert.match(branchCi, /cancel-in-progress: true/);
   assert.match(branchCi, /fetch-depth:\s*0/);
   assert.match(branchCi, /Detect documentation-only change/);
