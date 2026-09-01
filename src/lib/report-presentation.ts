@@ -21,6 +21,15 @@ export function reportFilename(kind: string, startDate: string, endDate: string,
   return `${sanitizeReportFilename(base) || "relatorio"}.csv`;
 }
 
+export function nextReportTabIndex(current: number, key: string, length: number) {
+  if (length <= 0 || current < 0 || current >= length) return null;
+  if (key === "ArrowRight") return (current + 1) % length;
+  if (key === "ArrowLeft") return (current - 1 + length) % length;
+  if (key === "Home") return 0;
+  if (key === "End") return length - 1;
+  return null;
+}
+
 export function formatReportNumber(value: number) {
   return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 }).format(value);
 }
