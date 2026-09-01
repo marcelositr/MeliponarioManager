@@ -45,7 +45,7 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] Auditoria estática geral inicial concluída e registrada.
 - [x] ACH-001 corrigido e validado por CI completo no checkpoint temporário PR #47.
 - [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
-- [x] ACH-003 corrigido e validado pelo CI leve da branch; validação completa fica para o checkpoint manual.
+- [x] ACH-003 corrigido e validado por CI completo na branch `validation/field-testing-ach-003`.
 - [ ] Corrigir primeiro bloco de achados de integridade/consistência.
 - [ ] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
 
@@ -68,7 +68,7 @@ Nesses pushes ficam de fora as etapas caras de sistema/Rust:
 - Clippy;
 - `cargo test`.
 
-Essas validações continuam presentes no workflow e voltam automaticamente quando o trabalho for submetido por Pull Request para `main`. A validação completa da própria `main` permanece separada e inclui build desktop e smoke WebDriver.
+Essas validações continuam presentes no workflow e voltam automaticamente fora do push leve da branch de trabalho, inclusive em branches de validação e Pull Requests para `main`. A validação completa da própria `main` permanece separada e inclui build desktop e smoke WebDriver.
 
 A primeira execução após essa alteração terminou com sucesso e confirmou que as etapas Rust/sistema ficaram realmente ignoradas no push desta branch.
 
@@ -174,7 +174,7 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 
 1. **ACH-001** — fechar a fronteira transacional entre fato/tarefa e reconciliação da Agenda. **Concluído em 2026-09-01.**
 2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas. **Concluído em 2026-09-01.**
-3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Corrigido em 2026-09-01; validação completa pendente no checkpoint manual.**
+3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Concluído em 2026-09-01.**
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo.
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint.
 6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos.
@@ -303,7 +303,7 @@ Para cada problema real encontrado:
 
 ### ACH-003 — Frontend confunde falha de refresh com falha da mutação já concluída
 
-- **Status:** corrigido; validação completa pendente
+- **Status:** corrigido e validado
 - **Severidade:** alta
 - **Área:** frontend / estado assíncrono / UX de erro
 - **Evidência:** `src/hooks/useAppData.ts`, `src/lib/mutation-flow.ts`, `tests/mutation-flow.test.ts` e importação de espécies no mesmo hook. `src/pages/AgendaPage.tsx` foi revisada e não reproduz o defeito: seu `reload()` já captura a própria falha e a mutação não é reclassificada como falha por esse motivo.
@@ -312,8 +312,8 @@ Para cada problema real encontrado:
 - **Comportamento esperado:** sucesso da escrita deve ser distinguido de falha ao sincronizar a visão. Falha de refresh deve solicitar nova tentativa de carregar os dados, não repetir a gravação.
 - **Correção:** criado `runMutationFlow`, helper puro que distingue `success`, `mutation-failed` e `refresh-failed`. O hook global retorna sucesso quando a escrita concluiu, mesmo que a recarga posterior falhe, e mostra mensagem explícita informando que os dados foram salvos e que a tela deve ser atualizada antes de repetir. A importação de espécies preserva o resultado importado e aplica a mesma mensagem de sincronização.
 - **Teste de regressão:** `tests/mutation-flow.test.ts` executa Promises reais e prova três contratos: sucesso completo, falha da mutação sem tentar refresh e mutação bem-sucedida seguida por refresh rejeitado classificada como `refresh-failed`.
-- **Validação:** CI leve #540 (`33511753482`) no commit `f407ce2`: build TypeScript/Vite e suíte frontend aprovados, incluindo a nova regressão. O perfil completo fica para o checkpoint manual antes de considerar a validação encerrada.
-- **Commit/PR:** implementado na `work/field-testing-and-hardening`; preparar `validation/field-testing-ach-003` para checkpoint manual sem integração na `main`.
+- **Validação:** CI leve #540 (`33511753482`) aprovou build e testes frontend no commit `f407ce2`. Em seguida, a criação da branch `validation/field-testing-ach-003` disparou o perfil completo no commit congelado `0570b7c`; o CI #542 (`33512022812`) terminou com sucesso em frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy com `-D warnings` e testes Rust.
+- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint congelado em `validation/field-testing-ach-003` no SHA `0570b7c`. O usuário pode abrir manualmente um PR contra `main` para revisão/histórico, sempre sem merge.
 
 ### ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior
 
@@ -464,15 +464,15 @@ A fronteira transacional entre fatos e Agenda foi corrigida nos fluxos cobertos 
 
 Mudanças de contexto operacional agora reconciliam a Agenda derivada antes do commit. O checkpoint temporário PR #48 executou o perfil completo de CI e o run #534 (`33509790464`) terminou com sucesso, incluindo `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. O PR de validação não deve ser integrado na `main`.
 
-### 2026-09-01 — ACH-003 corrigido e preparado para checkpoint manual
+### 2026-09-01 — ACH-003 fechado com validação completa
 
-O fluxo global de mutações agora distingue falha da escrita de falha posterior de refresh. Uma gravação concluída não retorna mais `false` só porque a visão não conseguiu recarregar; a interface informa que os dados foram salvos e orienta usar **Atualizar** antes de repetir a operação. A importação CSV recebeu a mesma proteção. A Agenda foi reavaliada e ficou fora do patch porque seu `reload()` já captura a própria falha sem reclassificar a mutação como malsucedida. O CI leve #540 (`33511753482`) aprovou build e testes frontend. A validação completa ficará a cargo do checkpoint manual em `validation/field-testing-ach-003`.
+O fluxo global de mutações agora distingue falha da escrita de falha posterior de refresh. Uma gravação concluída não retorna mais `false` só porque a visão não conseguiu recarregar; a interface informa que os dados foram salvos e orienta usar **Atualizar** antes de repetir a operação. A importação CSV recebeu a mesma proteção. A Agenda foi reavaliada e ficou fora do patch porque seu `reload()` já captura a própria falha sem reclassificar a mutação como malsucedida. O CI leve #540 (`33511753482`) aprovou build e testes frontend. A branch congelada `validation/field-testing-ach-003` disparou também o CI completo #542 (`33512022812`) no SHA `0570b7c`, aprovado em todos os gates. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
 
 ## Próximo passo
 
-Abrir manualmente um checkpoint de validação usando `validation/field-testing-ach-003` contra `main`, apenas para executar o perfil completo de CI. Esse PR não deve ser integrado na `main`.
+Se for desejado manter o mesmo histórico visual dos checkpoints anteriores, abrir manualmente um PR de `validation/field-testing-ach-003` contra `main`, marcá-lo como draft e deixar explícito que **não deve ser integrado**. O CI completo já foi executado e aprovado no próprio push dessa branch, portanto o PR é apenas um checkpoint de revisão/histórico.
 
-Depois do checkpoint verde, atualizar o status do ACH-003 para **corrigido e validado** e então revisar, sem modificar código, **ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior** antes de qualquer implementação.
+O próximo trabalho funcional é revisar, sem modificar código, **ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior**. A revisão deve confirmar quando o estado anterior pode ser inferido com segurança e propor o menor patch/teste antes de qualquer implementação.
 
 ## Handoff para a próxima conversa
 
