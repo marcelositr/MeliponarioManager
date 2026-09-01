@@ -1,5 +1,5 @@
 use crate::{
-    audit,
+    agenda, audit,
     domain::{
         Colony, ColonyBoxOccupancy, CoreSummary, CreateColony, CreateHiveBox, CreateMeliponary,
         CreateSpecies, HiveBox, Meliponary, PlaceColony, Species,
