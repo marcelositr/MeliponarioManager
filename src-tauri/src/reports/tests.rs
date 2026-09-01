@@ -1,5 +1,7 @@
 use super::*;
 use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use std::fs;
+use uuid::Uuid;
 
 async fn seed() -> SqlitePool {
     let pool = SqlitePoolOptions::new()
@@ -267,4 +269,48 @@ async fn colony_effective_history_is_chronological_and_full_mode_keeps_invalidat
         .timeline
         .iter()
         .any(|row| row.source_id == "prod-void" && row.state == "voided"));
+}
+
+#[tokio::test]
+async fn csv_export_writes_real_file_with_safe_content() {
+    let pool = seed().await;
+    sqlx::query(
+        "INSERT INTO production_records(
+            id,colony_id,harvested_at,product_type,quantity,unit,purpose,notes
+         ) VALUES(
+            'csv-prod','c1','2026-08-15 12:00:00','honey',1.5,'kg','=SUM(A1:A2)','campo;com;separador'
+         )",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let target = std::env::temp_dir().join(format!(
+        "meliponariomanager-report-{}.csv",
+        Uuid::new_v4()
+    ));
+    let result = super::csv::export(
+        &pool,
+        CsvExportInput {
+            kind: "production".to_owned(),
+            path: target.to_string_lossy().into_owned(),
+            filter: august_filter(),
+            colony_id: None,
+            include_audit: None,
+            species_id: None,
+            product_type: None,
+        },
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(result.row_count, 1);
+    assert_eq!(result.path, target.to_string_lossy());
+    let content = fs::read_to_string(&target).unwrap();
+    assert!(content.starts_with(
+        "Data;Meliponário;Colônia;Espécie;Produto;Quantidade;Unidade;Finalidade;Observações\n"
+    ));
+    assert!(content.contains("Principal;JAT-001;Jataí;Mel;1.5;kg;'=SUM(A1:A2);\"campo;com;separador\""));
+
+    fs::remove_file(target).unwrap();
 }
