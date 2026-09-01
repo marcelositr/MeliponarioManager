@@ -41,7 +41,8 @@ A partir do ACH-006, os achados foram agrupados em rodadas compactas na mesma br
 - [x] `main` pós-PR #49 validada pelo full-check #29 (`33523844254`) e auditoria de dependências #21 (`33523844158`).
 - [x] Rodada 1 compacta, ACH-006..ACH-008, concluída e validada pelo CI #586 (`33527575099`) no SHA `316e7aa`.
 - [x] Rodada 2 compacta, ACH-009..ACH-011, concluída e validada pelo CI #589 (`33529103020`) no SHA `6c0404b`.
-- [ ] Rodada 3 de hardening e validações manuais restantes.
+- [x] Rodada 3 de hardening concluída e validada pelo CI #598 (`33530871272`) no SHA `cca6df1`.
+- [ ] Integrar o bloco ACH-006..ACH-011 + hardening final na `main` por PR deliberado.
 
 ## Política de CI
 
@@ -75,7 +76,8 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 6. Validação manual do primeiro bloco e integração pelo PR #49. Concluído em 2026-09-01.
 7. **Rodada 1: ACH-006..ACH-008.** Concluída em 2026-09-01, CI #586 verde.
 8. **Rodada 2: ACH-009..ACH-011.** Concluída em 2026-09-01, CI #589 verde.
-9. **Rodada 3:** hardening e validações manuais restantes. Próximo bloco.
+9. **Rodada 3: hardening e validação final automatizável.** Concluída em 2026-09-01, CI #598 verde.
+10. **Próximo:** preparar e revisar um único PR de integração para `main`.
 
 ## Fase 1 — Validação manual orientada por uso real
 
@@ -87,14 +89,16 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 - [x] Caminho físico e diagnóstico/validação do backup.
 - [x] Impressão.
 
-### Ainda não considerar concluído por inferência
+### Spot-checks manuais ainda úteis, mas não classificados como bugs abertos
+
+Estes pontos dependem do ambiente desktop real ou de dados locais do usuário. A Rodada 3 revisou e endureceu os contratos automatizáveis correspondentes; eles não bloqueiam tecnicamente a preparação do PR, mas continuam úteis como conferência humana antes/depois da integração.
 
 #### Inicialização e navegação
 
 - [ ] Iniciar a aplicação com a base real existente em uma rodada final controlada.
 - [ ] Confirmar carregamento normal da Visão geral.
 - [ ] Percorrer todas as páginas principais.
-- [ ] Registrar erros visuais, falhas de carregamento, travamentos ou mensagens inadequadas.
+- [ ] Registrar eventual erro visual, falha de carregamento ou mensagem inadequada.
 - [ ] Verificar resolução compatível com o ambiente real de uso.
 
 #### Cadastros e manejo
@@ -113,17 +117,16 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 #### Arquivos gerenciados
 
 - [x] Fotos validadas manualmente.
-- [ ] Abrir ou revelar pelo menos um arquivo gerenciado não-foto.
-- [ ] Verificar estado de arquivo ausente/inconsistente com exemplo seguro.
-- [ ] Confirmar que erros de filesystem chegam à UI de forma útil e sem vazamento técnico indevido.
+- [x] Backend automatizado cobre importação de PDF/TXT/CSV, colisão de nomes, arquivo físico ausente preservando metadados e remoção da cópia gerenciada sem apagar o original.
+- [x] UI endurecida na Rodada 3 contra resposta obsoleta e contra falso feedback de sucesso quando a mutação foi salva mas a lista falhou ao recarregar.
+- [ ] Spot-check de SO: abrir e revelar pelo menos um arquivo não-foto pelo shell desktop.
 
 #### Relatórios e CSV
 
-- [ ] Abrir relatórios com dados reais.
-- [ ] Verificar filtros e estados vazios.
-- [ ] Exportar CSV pelo seletor nativo.
-- [ ] Confirmar nome e destino.
-- [ ] Abrir o CSV resultante e conferir estrutura básica.
+- [x] Backend possui regressões de período, filtros, reversões, transportes, custos, Agenda e histórico efetivo/auditável.
+- [x] Rodada 3 adicionou teste que exporta um CSV físico em diretório temporário, lê o arquivo de volta e valida cabeçalho, dados, escaping e proteção contra fórmula.
+- [x] Abas de relatório receberam navegação por teclado com setas, Home/End e `tabIndex` roving, coberta por teste comportamental focal.
+- [ ] Spot-check de SO: usar o seletor nativo de destino e abrir o CSV resultante em aplicativo externo.
 - [x] Impressão validada manualmente.
 
 #### Backup e recuperação
@@ -131,8 +134,9 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 - [x] Criar backup completo.
 - [x] Confirmar caminho e existência física.
 - [x] Inspecionar diagnóstico/validação disponível.
-- [ ] Testar restauração somente contra cópia/base descartável.
-- [x] Não restaurar sobre a base real nesta fase.
+- [x] Teste automatizado de restauração em instalação/base descartável restaura banco + assets e exige `PRAGMA integrity_check = ok`.
+- [x] Testes rejeitam backup corrompido, incompatível, asset alterado ou ausente sem tocar na instalação atual.
+- [x] Nenhum teste destrutivo é executado sobre a base real.
 
 ## Achados
 
@@ -242,7 +246,32 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 - **Área:** testes / frontend.
 - **Decisão:** não instalar framework novo nem perseguir percentual de cobertura. Bugs reais devem gerar o menor teste comportamental estável possível.
 - **Cobertura adicionada:** `tests/mutation-flow.test.ts` e `tests/latest-request.test.ts` executam Promises reais. Os testes de latest-request cobrem resolução fora de ordem, rejeição obsoleta versus atual, invalidação e garantia de que requisição obsoleta não encerra o loading pertencente à requisição atual.
-- **Validação:** 54 testes frontend passaram no CI #589, além de toda a cadeia Rust.
+- **Complemento na Rodada 3:** `tests/report-presentation.test.ts` cobre comportamento real do algoritmo de navegação das abas de relatórios.
+- **Validação:** 57 testes frontend passaram no CI #598, além de toda a cadeia Rust.
+
+## Rodada 3 — Hardening final
+
+### Arquivos gerenciados não-foto
+
+- A revisão confirmou regressões backend existentes para PDF/TXT/CSV, nomes duplicados, arquivo físico ausente e remoção segura.
+- Foi encontrado um gap de UI: `MeliponaryFilesPanel` ainda podia aplicar lista obsoleta ao trocar de contexto e as mutações de anexar/editar/remover podiam terminar com mensagem enganosa se a gravação funcionasse e somente a recarga falhasse.
+- O painel agora reutiliza o controlador “última requisição vence”. Após mutação bem-sucedida, falha de recarga é reportada explicitamente como falha de sincronização, sem sugerir que a escrita falhou.
+- Abrir/revelar continua dependendo do shell real do sistema operacional e permanece como spot-check manual opcional.
+
+### Relatórios, CSV e teclado
+
+- Os relatórios já possuíam testes SQLite de período, filtros, reversões, transportes, custos, Agenda e histórico efetivo/auditável.
+- Foi adicionada regressão que gera CSV físico em diretório temporário, lê o arquivo de volta e valida estrutura, conteúdo, escaping de delimitador e neutralização de fórmula.
+- As abas de relatórios agora implementam navegação de teclado compatível com o padrão de tabs: ArrowLeft/ArrowRight, Home/End e um único tab ativo via `tabIndex` roving.
+- O algoritmo de navegação recebeu teste comportamental focal no runner Node já existente, sem nova dependência.
+
+### Restore, migrations e smoke/E2E
+
+- Nenhuma mudança de restore foi necessária: a suíte existente já executa restauração end-to-end em instalação descartável, restaura banco e assets e verifica `PRAGMA integrity_check = ok`.
+- A suíte também prova rejeição segura de backup corrompido/incompatível/incompleto sem tocar na instalação corrente.
+- Nenhuma migration nova foi criada porque a Rodada 3 não revelou lacuna concreta de schema/upgrade.
+- O smoke desktop existente continua cobrindo WebView real `Visão geral -> Agenda` na `main`.
+- O smoke não foi ampliado para seletor nativo de arquivo, lançamento de aplicativo externo ou save dialog, porque esses cenários de integração com o SO não são candidatos estáveis para o headless atual e não apareceu bug que justificasse esse custo.
 
 ## Validação das rodadas compactas
 
@@ -262,6 +291,14 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 - Gates verdes: build frontend, 54 testes frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy e `cargo test --locked`.
 - O run #588 (`33528908316`) havia parado apenas no `rustfmt`; o log foi obtido diretamente e pediu uma única dobra mecânica da assinatura de `by_colony`, aplicada em `6c0404b` sem alteração semântica.
 
+### Rodada 3 — Hardening final
+
+- Mesma branch: `work/field-testing-ach-006`.
+- Checkpoint técnico: `cca6df10bf5d909a60143b3812ed103f3481db0b`.
+- CI #598 / run `33530871272`: **success**.
+- Gates verdes: build frontend, 57 testes frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy e `cargo test --locked`.
+- O run #597 (`33530732243`) havia parado somente no `rustfmt` do teste novo de CSV; o log foi obtido diretamente e as duas dobras mecânicas foram aplicadas em `cca6df1` sem alteração semântica.
+
 ## Pontos fortes confirmados
 
 - arquitetura backend/frontend decomposta de forma real;
@@ -270,13 +307,14 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 - SQLite com `foreign_keys` e defesas importantes de ocupação/estado/transporte;
 - Agenda com proteção de fonte derivada pendente e reconciliação transacional nos fluxos corrigidos;
 - backup/restore com validação de integridade, schema, manifesto, hashes e estratégia de staging/rollback;
-- arquivos gerenciados com proteção de caminho e metadados preservados quando arquivo físico desaparece;
+- restauração end-to-end coberta em instalação descartável com banco e assets;
+- arquivos gerenciados com proteção de caminho, estados de arquivo ausente e mutação/refresh coerentes;
 - capabilities Tauri restritas e CSP presente;
 - erros de banco sanitizados na fronteira pública comum;
 - workflows com Actions fixadas por SHA, lockfiles e caches;
 - auditoria npm/RustSec separada;
 - build/release com validação própria;
-- testes comportamentais focais agora cobrem falhas assíncronas reais do frontend.
+- testes comportamentais focais cobrem falhas assíncronas e navegação de teclado sem inflar a stack de testes.
 
 ## Decisões registradas
 
@@ -304,26 +342,29 @@ A branch única `work/field-testing-ach-006` corrigiu concorrência assíncrona 
 
 A mesma branch removeu o N+1 de decoração da timeline, aplicou a política de legibilidade apenas no código realmente tocado e ampliou testes comportamentais de frontend sem introduzir nova stack. O CI #589 (`33529103020`) passou integralmente no SHA `6c0404b`.
 
-## Rodada 3 — Próximo passo
+### 2026-09-01 — Rodada 3 concluída
 
-Executar uma rodada compacta de hardening e validação final, ainda na mesma branch salvo decisão explícita de integração antes disso:
+A revisão final não encontrou motivo para migration nova nem expansão artificial do smoke. Ela endureceu o painel de arquivos gerenciados, adicionou exportação CSV física em teste, completou navegação por teclado nas abas de relatório e confirmou que restore descartável/defesas de backup já estavam cobertos. O CI #598 (`33530871272`) passou integralmente no SHA `cca6df1`.
 
-1. testar arquivo gerenciado não-foto e estados seguro de ausente/inconsistente;
-2. revisar relatórios com dados reais e exportar/abrir CSV;
-3. testar restauração somente contra cópia/base descartável;
-4. revisar acessibilidade por teclado nos fluxos realmente usados;
-5. ampliar migration/backup hardening apenas se casos concretos revelarem lacuna;
-6. ampliar smoke/E2E somente para cenário concreto, estável e de valor real;
-7. fazer varredura final deste plano e separar pendência real de melhoria opcional;
-8. se houver código na Rodada 3, executar CI completo antes de preparar integração; se não houver código, encerrar documentalmente sem PR artificial.
+## Próximo passo
+
+Preparar um único PR de integração de `work/field-testing-ach-006` para `main`, cobrindo ACH-006..ACH-011 e a Rodada 3 de hardening. Antes do merge:
+
+1. revisar o diff cumulativo contra `4761b146...`;
+2. confirmar que o PR está sem conflito;
+3. deixar o CI completo do PR e a auditoria de dependências terminarem verdes;
+4. integrar preferencialmente por squash merge;
+5. após o merge, conferir `main` e registrar o novo SHA neste plano.
+
+Os spot-checks de SO listados acima podem ser feitos pelo usuário antes ou depois da integração; não existe achado funcional aberto associado a eles neste momento.
 
 ## Handoff
 
 Para retomar em outra conversa:
 
 1. usar `work/field-testing-ach-006` como branch ativa enquanto este bloco não for integrado;
-2. ler **Estado atual**, **Achados**, **Validação das rodadas compactas** e **Rodada 3**;
-3. conferir o head mais recente e seu CI;
-4. não refazer ACH-001..ACH-011 sem evidência nova;
-5. manter `main` intocada até a próxima integração deliberada;
-6. preservar e atualizar este arquivo ao concluir a Rodada 3 ou integrar o bloco.
+2. considerar ACH-001..ACH-011 e as três rodadas tecnicamente concluídos nos checkpoints registrados;
+3. não refazer esses achados sem evidência nova;
+4. o próximo trabalho é preparar/revisar o PR cumulativo desta branch para `main`;
+5. manter `main` intocada até a integração deliberada;
+6. preservar e atualizar este arquivo após o merge.
