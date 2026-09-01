@@ -4,24 +4,35 @@ pub async fn edit_species(pool: &SqlitePool, input: EditSpecies) -> Result<Speci
     let id = required(&input.id, "Espécie")?;
     let common_name = required(&input.common_name, "Nome popular")?;
     let scientific_name = optional(&input.scientific_name);
+    let genus = optional(&input.genus);
     let reason = required(&input.reason, "Motivo da edição")?;
-    let duplicate: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-            SELECT 1 FROM species
-            WHERE id <> ?
-              AND lower(trim(common_name)) = lower(trim(?))
-              AND lower(trim(COALESCE(scientific_name, ''))) = lower(trim(COALESCE(?, '')))
-         )",
+    let current: Option<(String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT common_name, scientific_name, genus FROM species WHERE id = ?",
     )
     .bind(&id)
-    .bind(&common_name)
-    .bind(&scientific_name)
-    .fetch_one(pool)
+    .fetch_optional(pool)
     .await?;
-    if duplicate {
-        return Err(AppError::Validation(
-            "Já existe uma espécie com estes nomes cadastrais.".to_owned(),
-        ));
+    let (current_common_name, current_scientific_name, current_genus) =
+        current.ok_or_else(|| AppError::NotFound("Espécie não encontrada.".to_owned()))?;
+    let current_key = crate::identity::species_key(
+        &current_common_name,
+        current_scientific_name.as_deref(),
+        current_genus.as_deref(),
+    );
+    let new_key = crate::identity::species_key(
+        &common_name,
+        scientific_name.as_deref(),
+        genus.as_deref(),
+    );
+    if current_key != new_key {
+        crate::identity::ensure_species_identity_available(
+            pool,
+            &common_name,
+            scientific_name.as_deref(),
+            genus.as_deref(),
+            Some(&id),
+        )
+        .await?;
     }
 
     let mut tx = pool.begin().await?;
@@ -34,7 +45,7 @@ pub async fn edit_species(pool: &SqlitePool, input: EditSpecies) -> Result<Speci
     )
     .bind(common_name)
     .bind(scientific_name)
-    .bind(optional(&input.genus))
+    .bind(genus)
     .bind(optional(&input.notes))
     .bind(&id)
     .execute(&mut *tx)
