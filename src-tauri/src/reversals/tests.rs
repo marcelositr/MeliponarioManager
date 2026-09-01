@@ -309,6 +309,101 @@ async fn internal_transfer_reversal_is_transactional_and_restores_agenda_context
     assert_eq!(kept, 1);
 }
 #[tokio::test]
+async fn external_transfer_reversal_restores_initial_active_status_without_lifecycle_history() {
+    let s = seed().await;
+    create_pending_inspection(&s).await;
+    let lifecycle_before: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM colony_lifecycle_records WHERE colony_id=?")
+            .bind(&s.c)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert_eq!(lifecycle_before, 0);
+
+    let movement = movements::create(
+        &s.p,
+        CreateMovement {
+            colony_id: s.c.clone(),
+            movement_type: "external_transfer".into(),
+            moved_at: Some("2026-02-01 10:00:00".into()),
+            to_meliponary_id: None,
+            to_box_id: None,
+            destination: Some("Outro criador".into()),
+            document_reference: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    let transferred_status: String =
+        sqlx::query_scalar("SELECT status FROM colonies WHERE id=?")
+            .bind(&s.c)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert_eq!(transferred_status, "transferred");
+    let pending_after_transfer: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(&s.c)
+    .fetch_one(&s.p)
+    .await
+    .unwrap();
+    assert_eq!(pending_after_transfer, 0);
+
+    reverse_movement(
+        &s.p,
+        ReverseRecord {
+            id: movement.id.clone(),
+            reason: "Transferência lançada por engano".into(),
+        },
+    )
+    .await
+    .unwrap();
+
+    let restored: (String, String) =
+        sqlx::query_as("SELECT status,meliponary_id FROM colonies WHERE id=?")
+            .bind(&s.c)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert_eq!(restored.0, "active");
+    assert_eq!(restored.1, s.sm);
+    let restored_box: String = sqlx::query_scalar(
+        "SELECT box_id FROM colony_box_occupancies WHERE colony_id=? AND ended_at IS NULL",
+    )
+    .bind(&s.c)
+    .fetch_one(&s.p)
+    .await
+    .unwrap();
+    assert_eq!(restored_box, s.sb);
+    let restored_task: (String, Option<String>) = sqlx::query_as(
+        "SELECT meliponary_id,box_id FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(&s.c)
+    .fetch_one(&s.p)
+    .await
+    .unwrap();
+    assert_eq!(restored_task.0, s.sm);
+    assert_eq!(restored_task.1.as_deref(), Some(s.sb.as_str()));
+    let lifecycle_after: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM colony_lifecycle_records WHERE colony_id=?")
+            .bind(&s.c)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert_eq!(lifecycle_after, 0);
+    let reversed_at: Option<String> =
+        sqlx::query_scalar("SELECT reversed_at FROM colony_movements WHERE id=?")
+            .bind(movement.id)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert!(reversed_at.is_some());
+}
+#[tokio::test]
 async fn movement_reversal_with_later_fact_is_rejected() {
     let s = seed().await;
     let m = movements::create(
