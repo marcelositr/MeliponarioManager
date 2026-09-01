@@ -170,9 +170,21 @@ pub async fn create_box_maintenance(
     .map_err(message)?;
     input.maintained_at = Some(maintained_at);
     input.next_maintenance_at = next;
-    let record = maintenance::create(&pool, input).await.map_err(message)?;
-    agenda::reconcile_maintenance(&pool, &box_id)
+
+    let mut tx = pool
+        .begin()
         .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    let record = maintenance::create_tx(&mut tx, input)
+        .await
+        .map_err(message)?;
+    agenda::reconcile_maintenance_tx(&mut tx, &box_id)
+        .await
+        .map_err(message)?;
+    tx.commit()
+        .await
+        .map_err(repository::AppError::from)
         .map_err(message)?;
     Ok(record)
 }
@@ -276,9 +288,21 @@ pub async fn create_inspection(
         .map_err(message)?;
     input.inspected_at = Some(inspected_at);
     input.next_inspection_at = next;
-    let record = inspections::create(&pool, input).await.map_err(message)?;
-    agenda::reconcile_inspection(&pool, &colony_id)
+
+    let mut tx = pool
+        .begin()
         .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    let record = inspections::create_tx(&mut tx, input)
+        .await
+        .map_err(message)?;
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id)
+        .await
+        .map_err(message)?;
+    tx.commit()
+        .await
+        .map_err(repository::AppError::from)
         .map_err(message)?;
     Ok(record)
 }
@@ -431,9 +455,19 @@ pub async fn create_feeding(
         .map_err(message)?;
     input.fed_at = Some(fed_at);
     input.next_feeding_at = next;
-    let record = feeding::create(&pool, input).await.map_err(message)?;
-    agenda::reconcile_feeding(&pool, &colony_id)
+
+    let mut tx = pool
+        .begin()
         .await
+        .map_err(repository::AppError::from)
+        .map_err(message)?;
+    let record = feeding::create_tx(&mut tx, input).await.map_err(message)?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id)
+        .await
+        .map_err(message)?;
+    tx.commit()
+        .await
+        .map_err(repository::AppError::from)
         .map_err(message)?;
     Ok(record)
 }
