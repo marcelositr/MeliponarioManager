@@ -285,10 +285,8 @@ async fn csv_export_writes_real_file_with_safe_content() {
     .await
     .unwrap();
 
-    let target = std::env::temp_dir().join(format!(
-        "meliponariomanager-report-{}.csv",
-        Uuid::new_v4()
-    ));
+    let target =
+        std::env::temp_dir().join(format!("meliponariomanager-report-{}.csv", Uuid::new_v4()));
     let result = super::csv::export(
         &pool,
         CsvExportInput {
@@ -310,7 +308,9 @@ async fn csv_export_writes_real_file_with_safe_content() {
     assert!(content.starts_with(
         "Data;Meliponário;Colônia;Espécie;Produto;Quantidade;Unidade;Finalidade;Observações\n"
     ));
-    assert!(content.contains("Principal;JAT-001;Jataí;Mel;1.5;kg;'=SUM(A1:A2);\"campo;com;separador\""));
+    assert!(
+        content.contains("Principal;JAT-001;Jataí;Mel;1.5;kg;'=SUM(A1:A2);\"campo;com;separador\"")
+    );
 
     fs::remove_file(target).unwrap();
 }
