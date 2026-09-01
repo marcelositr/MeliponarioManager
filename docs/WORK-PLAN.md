@@ -41,7 +41,7 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] Smoke desktop real via WebDriver adicionado ao pipeline da `main`.
 - [x] Branch de trabalho prático criada.
 - [x] Plano persistente de trabalho criado.
-- [x] CI da branch de trabalho colocado em perfil leve para pushes.
+- [x] CI da branch de trabalho colocado em perfil leve durante a fase longa.
 - [x] Auditoria estática geral inicial concluída e registrada.
 - [x] ACH-001 corrigido e validado por CI completo no checkpoint temporário PR #47.
 - [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
@@ -51,31 +51,24 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] Corrigir primeiro bloco de achados de integridade/consistência.
 - [x] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
 - [x] Validação manual local dos fluxos cobertos por ACH-001..ACH-005 concluída sem regressões observadas.
+- [x] Fotos, backup e impressão validados manualmente e aprovados.
+- [x] Exceção temporária de CI leve removida antes da integração final.
+- [ ] Integrar `work/field-testing-and-hardening` na `main` por Pull Request antes de iniciar ACH-006.
 
-## Política temporária de CI da branch
+## Política de CI após a fase longa
 
-Pushes para `work/field-testing-and-hardening` usam um perfil deliberadamente leve:
+Durante a fase extensa de field testing, pushes diretos para `work/field-testing-and-hardening` usaram deliberadamente um perfil leve para feedback rápido de metadata, documentação, frontend build e testes de UI/contratos, mantendo os gates Rust completos nas branches de validação e nos Pull Requests para `main`.
 
-- validação de versão;
-- validação de links/documentação;
-- instalação das dependências frontend quando houver mudança de código;
-- build TypeScript/Vite;
-- testes de UI e contratos estruturais.
+Essa exceção cumpriu seu papel e foi removida antes da integração final. A partir do commit `efb6c4f`, mudanças de código executam novamente o perfil completo também nos pushes da branch de trabalho:
 
-Nesses pushes ficam de fora as etapas caras de sistema/Rust:
-
-- instalação das bibliotecas GTK/WebKit de build;
-- geração e validação de ícones de bundle;
+- build e testes frontend;
 - `cargo fmt`;
-- `cargo check`;
-- Clippy;
-- `cargo test`.
+- geração e validação dos ícones de bundle;
+- `cargo check --locked`;
+- Clippy com `-D warnings`;
+- `cargo test --locked`.
 
-Essas validações continuam presentes no workflow e voltam automaticamente fora do push leve da branch de trabalho, inclusive em branches de validação e Pull Requests para `main`. A validação completa da própria `main` permanece separada e inclui build desktop e smoke WebDriver.
-
-A primeira execução após essa alteração terminou com sucesso e confirmou que as etapas Rust/sistema ficaram realmente ignoradas no push desta branch.
-
-Antes da integração final desta branch, revisar se a exceção específica de `work/field-testing-and-hardening` deve ser removida do workflow.
+A documentação mantém este histórico para explicar por que runs anteriores da branch longa aparecem com perfil reduzido. A integração final não deve levar uma exceção específica de branch para a `main`.
 
 ## Fase 0 — Auditoria geral do projeto
 
@@ -140,7 +133,7 @@ Conclusão: o backend possui testes comportamentais úteis. A suíte frontend pr
 - [x] Revisar caches, lockfiles, auditorias e separação entre CI rápido e validação completa.
 - [x] Procurar passos caros sem benefício proporcional durante a fase longa de trabalho.
 
-Conclusão: a base de CI/release está bem endurecida. O único ajuste necessário para esta fase foi o perfil leve específico da branch de trabalho; PR para `main` e `main` continuam mantendo gates pesados.
+Conclusão: a base de CI/release está bem endurecida. O perfil leve específico da branch de trabalho foi útil durante a fase longa e foi removido antes da integração final; o workflow voltou ao perfil completo para mudanças de código.
 
 ### Segurança e dados locais
 
@@ -157,7 +150,7 @@ Conclusão: não surgiu achado crítico de segurança na revisão inicial. Capab
 - [x] Procurar contratos documentados divergentes da implementação.
 - [x] Conferir scripts/comandos documentados contra `package.json` e workflows nos pontos afetados.
 
-Conclusão: a documentação está geralmente alinhada, mas `docs/AGENDA.md` expôs uma divergência funcional importante: a execução especializada promete transação única incluindo a próxima tarefa derivada, enquanto o código atualmente reconcilia a Agenda após o commit do fato/tarefa.
+Conclusão: a documentação está geralmente alinhada. A divergência importante encontrada em `docs/AGENDA.md` foi resolvida no ACH-001, que passou a manter fato, conclusão e reconciliação derivada na mesma fronteira transacional.
 
 ### Saída da auditoria
 
@@ -169,7 +162,7 @@ Conclusão: a documentação está geralmente alinhada, mas `docs/AGENDA.md` exp
 
 O projeto não apresenta sinais de base descartável ou arquitetura improvisada generalizada. As áreas de backup/restore, arquivos gerenciados, migrations recentes, segurança Tauri, CI/release e boa parte das invariantes de domínio estão em estado sólido para uma aplicação `0.x`.
 
-Os problemas encontrados têm um padrão claro: funcionalidades foram adicionadas em várias etapas e algumas regras passaram a existir em uma camada sem serem propagadas para todas as outras. Os maiores riscos são de **estado parcialmente atualizado**, **Agenda temporariamente incoerente**, **mensagem falsa de falha depois de uma gravação bem-sucedida** e **definições diferentes de identidade/duplicidade conforme o fluxo usado**.
+Os problemas encontrados têm um padrão claro: funcionalidades foram adicionadas em várias etapas e algumas regras passaram a existir em uma camada sem serem propagadas para todas as outras. Os principais riscos iniciais de estado parcialmente atualizado, Agenda incoerente, mensagem falsa de falha após gravação bem-sucedida e identidade cadastral divergente foram tratados em ACH-001..ACH-005.
 
 Não há justificativa para reescrever o projeto, trocar stack, adicionar framework ou fazer outra decomposição geral neste momento.
 
@@ -181,12 +174,13 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo. **Concluído em 2026-09-01.**
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint. **Concluído em 2026-09-01.**
 6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos. **Concluído em 2026-09-01, sem regressões observadas.**
+7. Integrar o bloco estabilizado na `main` antes de iniciar o ACH-006. **Em preparação.**
 
 Os achados marcados como **investigando** não devem ser corrigidos até a semântica desejada ser confirmada pelo domínio ou pelo teste manual.
 
 ## Fase 1 — Teste manual orientado por uso real
 
-A rodada local já cobriu os fluxos diretamente afetados por ACH-001..ACH-005 e não revelou regressões. Os itens abaixo que extrapolam esse bloco continuam registrados para validação manual futura conforme o uso real exigir; não são considerados automaticamente concluídos apenas por essa rodada.
+A rodada local cobriu os fluxos diretamente afetados por ACH-001..ACH-005 e não revelou regressões. Também foram testados manualmente e aprovados o fluxo de fotos, a criação/validação de backup e a impressão. Os itens abaixo que não foram explicitamente confirmados continuam registrados para validação futura; não são considerados concluídos por inferência.
 
 ### Inicialização e navegação
 
@@ -229,8 +223,8 @@ A rodada local já cobriu os fluxos diretamente afetados por ACH-001..ACH-005 e 
 
 ### Fotos, anexos e arquivos gerenciados
 
-- [ ] Abrir pelo menos uma foto existente.
-- [ ] Abrir ou revelar pelo menos um arquivo gerenciado.
+- [x] Abrir e validar o fluxo de fotos existente.
+- [ ] Abrir ou revelar pelo menos um arquivo gerenciado não-foto.
 - [ ] Verificar estados de arquivo ausente ou inconsistente quando houver exemplo seguro.
 - [ ] Confirmar que erros de sistema de arquivos chegam à UI de forma útil e sem vazamento técnico indevido.
 
@@ -241,16 +235,16 @@ A rodada local já cobriu os fluxos diretamente afetados por ACH-001..ACH-005 e 
 - [ ] Exportar CSV pelo seletor nativo.
 - [ ] Confirmar nome e destino escolhidos.
 - [ ] Abrir o CSV resultante e conferir estrutura básica.
-- [ ] Testar impressão quando houver ambiente adequado.
+- [x] Testar impressão quando houver ambiente adequado.
 
 ### Backup e recuperação
 
-- [ ] Criar backup completo.
-- [ ] Confirmar que o caminho criado é informado corretamente.
-- [ ] Verificar existência física do backup.
-- [ ] Inspecionar diagnóstico/validação de backup quando disponível.
+- [x] Criar backup completo.
+- [x] Confirmar que o caminho criado é informado corretamente.
+- [x] Verificar existência física do backup.
+- [x] Inspecionar diagnóstico/validação de backup quando disponível.
 - [ ] Preparar posteriormente uma cópia descartável para teste de restauração.
-- [ ] Não restaurar sobre a base real durante esta fase inicial.
+- [x] Não restaurar sobre a base real durante esta fase inicial.
 
 ## Fase 2 — Correções guiadas pelos testes e pela auditoria
 
@@ -351,7 +345,7 @@ Para cada problema real encontrado:
 
 ### ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada
 
-- **Status:** aberto
+- **Status:** aberto; aguardando integração do bloco ACH-001..ACH-005 na `main`
 - **Severidade:** média
 - **Área:** frontend / concorrência assíncrona
 - **Evidência:** `src/pages/MovementsPage.tsx` e `src/pages/AssetsPage.tsx`; `AgendaPage.tsx` já possui padrão melhor de sequência/cancelamento que pode servir de referência.
@@ -441,7 +435,8 @@ Para cada problema real encontrado:
 - erros de banco são sanitizados na fronteira pública comum;
 - workflows usam Actions fixadas por SHA, lockfiles e caches;
 - auditoria de dependências npm/RustSec está separada e versionada;
-- build/release mantém validação própria e não foi enfraquecido pelo perfil leve da branch.
+- build/release mantém validação própria;
+- perfil leve temporário da branch foi removido antes da integração final.
 
 ## Decisões de trabalho
 
@@ -457,7 +452,7 @@ Antes da rodada manual completa, será feita uma auditoria ampla do repositório
 
 ### 2026-08-31 — CI leve durante a fase longa de trabalho
 
-Pushes para a branch de trabalho usam feedback frontend/documental rápido. As validações Rust caras permanecem no mesmo workflow e são reativadas automaticamente em Pull Requests para `main`. A `main` continua com sua validação desktop completa.
+Pushes para a branch de trabalho usaram feedback frontend/documental rápido durante a fase longa. As validações Rust caras permaneceram no mesmo workflow e foram executadas nas branches de validação e Pull Requests para `main`.
 
 ### 2026-08-31 — Auditoria inicial encerrada sem reescrita ampla
 
@@ -485,22 +480,30 @@ As quatro famílias de dados mestres agora possuem identidade operacional explí
 
 ### 2026-09-01 — Bloco ACH-001..ACH-005 validado manualmente
 
-Os fluxos diretamente afetados pelas correções ACH-001..ACH-005 foram exercitados localmente durante o desenvolvimento e, segundo a validação manual informada, estão funcionando corretamente sem regressões observadas. Com essa etapa concluída, o próximo achado aberto de severidade média pode ser analisado sem manter o bloco inicial pendente por falta de teste humano.
+Os fluxos diretamente afetados pelas correções ACH-001..ACH-005 foram exercitados localmente durante o desenvolvimento e, segundo a validação manual informada, estão funcionando corretamente sem regressões observadas.
+
+### 2026-09-01 — Fotos, backup e impressão aprovados manualmente
+
+Além do bloco ACH-001..ACH-005, o fluxo de fotos, a criação/validação de backup e a impressão foram testados localmente e aprovados. O teste de backup não autoriza nem registra restauração destrutiva sobre a base real; essa operação continua fora do gate executado.
+
+### 2026-09-01 — Preparação da integração do bloco estabilizado
+
+A fase longa de correções será integrada na `main` antes de iniciar ACH-006. O perfil leve específico de `work/field-testing-and-hardening` foi removido no commit `efb6c4f`, restaurando o CI completo para mudanças de código. Este `WORK-PLAN.md` deve ser preservado na integração para manter o histórico de decisões, validações, riscos resolvidos e achados ainda abertos.
 
 ## Próximo passo
 
-Revisar o **ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada**.
+Abrir e validar o Pull Request de integração de `work/field-testing-and-hardening` para `main`, preservando este arquivo de progresso.
 
-A revisão deve confirmar, sem modificar código de imediato, quais loaders de `MovementsPage.tsx` e `AssetsPage.tsx` podem realmente aceitar resposta obsoleta ou produzir rejeição sem estado de erro útil; comparar com o padrão de sequência/cancelamento já usado em páginas mais robustas; e só então definir a menor correção coerente e um teste determinístico quando viável.
+Não iniciar implementação do **ACH-006** antes de a integração do bloco ACH-001..ACH-005 ser concluída. Depois do merge, retomar pelo ACH-006 a partir da `main` atualizada, preferencialmente em uma nova branch de trabalho dedicada ao próximo bloco.
 
-O checkpoint `validation/field-testing-ach-005` permanece congelado no SHA `db99ec6`; o commit documental desta validação manual fica somente na `work/field-testing-and-hardening` e não precisa disparar novo checkpoint pesado.
+Os checkpoints `validation/field-testing-ach-003`, `validation/field-testing-ach-004` e `validation/field-testing-ach-005` permanecem apenas como evidência histórica dos gates completos e não devem ser integrados separadamente.
 
 ## Handoff para a próxima conversa
 
 Se uma nova conversa precisar continuar este trabalho:
 
-1. abrir `docs/WORK-PLAN.md` na branch `work/field-testing-and-hardening`;
+1. abrir `docs/WORK-PLAN.md` na branch ativa de trabalho ou na `main` após a integração;
 2. ler **Estado atual**, **Ordem inicial de correção**, **Achados**, **Decisões de trabalho** e **Próximo passo**;
 3. conferir os commits mais recentes da branch;
 4. continuar pelo próximo passo registrado, sem refazer a auditoria do zero;
-5. atualizar este arquivo ao fechar cada achado ou ao tomar decisão de domínio importante.
+5. preservar este arquivo durante a integração e atualizá-lo ao fechar cada achado ou ao tomar decisão de domínio importante.
