@@ -1,8 +1,6 @@
 # Plano de trabalho contínuo
 
-Este arquivo é o ponto de continuidade do trabalho prático no MeliponarioManager.
-
-Ele existe para que o desenvolvimento possa continuar entre conversas diferentes sem depender do histórico do chat. Toda sessão relevante deve atualizar este documento antes de encerrar uma etapa importante.
+Este arquivo é o ponto de continuidade do trabalho prático no MeliponarioManager. Ele deve permitir retomar o projeto sem depender do histórico do chat e registrar decisões, validações, riscos resolvidos e trabalho ainda pendente.
 
 ## Branch de trabalho
 
@@ -10,508 +8,322 @@ Ele existe para que o desenvolvimento possa continuar entre conversas diferentes
 
 Base histórica inicial: `main` após o merge do PR #46 (`7640c69`).
 
-Base atual deste novo bloco: `main` após o squash merge do PR #49 (`4761b14`).
+Base atual deste bloco: `main` após o squash merge do PR #49 (`4761b14644bcbccd56a7a7e00f65f1c197178624`).
 
-## Objetivo desta fase
-
-Sair do ciclo em que a aplicação foi majoritariamente construída e validada por automação e entrar em uma fase orientada por revisão humana e uso real:
-
-- auditar o projeto inteiro antes de ampliar funcionalidades;
-- localizar código frágil, improvisado, desnecessariamente complexo ou pouco profissional;
-- testar a aplicação manualmente com dados e fluxos reais;
-- registrar qualquer comportamento estranho, regressão ou atrito observado;
-- corrigir os problemas encontrados sem perder contratos já estabilizados;
-- fortalecer testes automatizados sempre que um problema real revelar uma lacuna;
-- manter integridade, rastreabilidade e recuperação de dados como prioridades máximas.
+A partir do ACH-006, os achados foram agrupados em rodadas compactas na mesma branch para reduzir ciclos administrativos sem reduzir revisão, regressões ou gates técnicos.
 
 ## Regras de trabalho
 
 - Não alterar migrations existentes.
 - Mudanças de schema novas exigem migration nova e justificativa explícita.
 - Não realizar restauração destrutiva contra a base real do usuário durante testes.
-- Antes de corrigir um bug reproduzível, registrar o comportamento e, quando viável, adicionar teste de regressão.
-- Preservar contratos IPC e formatos persistidos salvo decisão explícita registrada neste arquivo.
+- Antes de corrigir bug reproduzível, registrar o comportamento e, quando viável, adicionar regressão.
+- Preservar contratos IPC e formatos persistidos salvo decisão explícita registrada aqui.
 - Não refatorar apenas por estética ou contagem de linhas.
-- Não introduzir frameworks, abstrações ou dependências sem problema concreto que justifique isso.
-- Atualizar este plano ao concluir blocos relevantes de trabalho.
-- Manter uma seção de continuidade suficientemente clara para outra conversa retomar o trabalho sem depender do chat anterior.
+- Não introduzir frameworks, abstrações ou dependências sem problema concreto.
+- Código tocado por correção real deve ficar legível para revisão humana.
+- Atualizar este plano ao concluir blocos relevantes.
+- Se o CI falhar e o log não puder ser obtido diretamente, parar e solicitar o trecho do erro em vez de tentar rotas repetidas de extração.
 
 ## Estado atual
 
 - [x] PR #46 integrado na `main`.
-- [x] Dívida técnica principal de backend/frontend reduzida.
-- [x] Smoke desktop real via WebDriver adicionado ao pipeline da `main`.
-- [x] Branch de trabalho prático criada.
-- [x] Plano persistente de trabalho criado.
-- [x] CI da branch de trabalho colocado em perfil leve durante a fase longa.
-- [x] Auditoria estática geral inicial concluída e registrada.
-- [x] ACH-001 corrigido e validado por CI completo no checkpoint temporário PR #47.
-- [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
-- [x] ACH-003 corrigido e validado por CI completo na branch `validation/field-testing-ach-003`.
-- [x] ACH-004 corrigido e validado por CI completo na branch `validation/field-testing-ach-004`.
-- [x] ACH-005 corrigido e validado por CI completo na branch `validation/field-testing-ach-005`.
-- [x] Corrigir primeiro bloco de achados de integridade/consistência.
-- [x] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
-- [x] Validação manual local dos fluxos cobertos por ACH-001..ACH-005 concluída sem regressões observadas.
-- [x] Fotos, backup e impressão validados manualmente e aprovados.
-- [x] Exceção temporária de CI leve removida antes da integração final.
+- [x] Auditoria estática geral inicial concluída.
+- [x] ACH-001 corrigido e validado.
+- [x] ACH-002 corrigido e validado.
+- [x] ACH-003 corrigido e validado.
+- [x] ACH-004 corrigido e validado.
+- [x] ACH-005 corrigido e validado.
+- [x] Fluxos ACH-001..ACH-005 validados manualmente sem regressões observadas.
+- [x] Fotos, criação/validação de backup e impressão testadas manualmente e aprovadas.
+- [x] Exceção temporária de CI leve removida antes da integração do primeiro bloco.
 - [x] PR #49 integrado na `main` por squash merge no commit `4761b14`.
-- [x] `main` pós-merge validada pelo full-check #29 (`33523844254`) e auditoria de dependências #21 (`33523844158`).
-- [x] Novo bloco iniciado a partir da `main` integrada na branch `work/field-testing-ach-006`.
+- [x] `main` pós-PR #49 validada pelo full-check #29 (`33523844254`) e auditoria de dependências #21 (`33523844158`).
+- [x] Rodada 1 compacta, ACH-006..ACH-008, concluída e validada pelo CI #586 (`33527575099`) no SHA `316e7aa`.
+- [x] Rodada 2 compacta, ACH-009..ACH-011, concluída e validada pelo CI #589 (`33529103020`) no SHA `6c0404b`.
+- [ ] Rodada 3 de hardening e validações manuais restantes.
 
-## Política de CI após a fase longa
+## Política de CI
 
-Durante a fase extensa de field testing, pushes diretos para `work/field-testing-and-hardening` usaram deliberadamente um perfil leve para feedback rápido de metadata, documentação, frontend build e testes de UI/contratos, mantendo os gates Rust completos nas branches de validação e nos Pull Requests para `main`.
+Durante a fase longa anterior ao PR #49, pushes em `work/field-testing-and-hardening` usaram perfil leve para feedback rápido, mantendo os gates Rust completos nas branches de validação e PRs. Essa exceção foi removida antes da integração.
 
-Essa exceção cumpriu seu papel e foi removida antes da integração final. A partir do commit `efb6c4f`, mudanças de código executam novamente o perfil completo também nos pushes da branch de trabalho:
+Desde o commit `efb6c4f`, mudanças de código na branch de trabalho executam novamente o perfil completo:
 
-- build e testes frontend;
-- `cargo fmt`;
+- build frontend;
+- testes frontend;
+- `cargo fmt --check`;
 - geração e validação dos ícones de bundle;
 - `cargo check --locked`;
-- Clippy com `-D warnings`;
+- Clippy com warnings tratados como erro;
 - `cargo test --locked`.
 
-A documentação mantém este histórico para explicar por que runs anteriores da branch longa aparecem com perfil reduzido. O PR #49 foi integrado sem levar exceção específica de branch para a `main`.
+A documentação preserva essa informação para explicar por que runs antigos da branch longa aparecem com perfil reduzido.
 
-## Fase 0 — Auditoria geral do projeto
+## Resultado da auditoria inicial
 
-Objetivo: descobrir o estado real do repositório antes do teste funcional sistemático. Não corrigir tudo por reflexo; primeiro classificar o que é defeito, risco, dívida aceitável ou apenas preferência estética.
+A auditoria não encontrou motivo para reescrever o projeto, trocar stack ou criar outra decomposição geral. A arquitetura backend/frontend está efetivamente separada, TypeScript usa `strict`, migrations `0001..0017` permanecem contínuas, o SQLite possui defesas importantes de integridade, backup/restore e arquivos gerenciados têm proteções relevantes, capabilities Tauri são restritas, existe CSP e o CI/release usa lockfiles, caches e Actions fixadas.
 
-A auditoria desta fase é uma revisão estática ampla. Ela não substitui teste manual nem prova ausência de outros bugs. O objetivo foi encontrar riscos evidentes no estado atual e construir uma fila de trabalho racional.
+O padrão dos defeitos encontrados foi de regras que evoluíram em momentos diferentes e deixaram inconsistências entre persistência, estado operacional, Agenda, interface e projeções. Os achados ACH-001..ACH-011 foram tratados sem ampliação artificial de arquitetura.
 
-### Estrutura e arquitetura
+## Ordem executada
 
-- [x] Mapear estrutura atual do frontend, backend, migrations, testes, scripts, assets e workflows.
-- [x] Conferir se as responsabilidades descritas em `docs/ARCHITECTURE.md` correspondem ao código real.
-- [x] Procurar módulos novamente grandes ou com responsabilidades misturadas após o PR #46.
-- [x] Procurar fachadas vazias, divisões artificiais e abstrações sem ganho real.
+1. **ACH-001** — atomicidade entre fatos e reconciliação da Agenda. Concluído em 2026-09-01.
+2. **ACH-002** — reconciliação da Agenda após mudanças de estado/contexto. Concluído em 2026-09-01.
+3. **ACH-003** — separar sucesso da mutação de falha posterior de refresh. Concluído em 2026-09-01.
+4. **ACH-004** — reversão segura de transferência externa sem lifecycle anterior quando `active` é historicamente derivável. Concluído em 2026-09-01.
+5. **ACH-005** — identidade/duplicidade coerente entre criação, edição e importação. Concluído em 2026-09-01.
+6. Validação manual do primeiro bloco e integração pelo PR #49. Concluído em 2026-09-01.
+7. **Rodada 1: ACH-006..ACH-008.** Concluída em 2026-09-01, CI #586 verde.
+8. **Rodada 2: ACH-009..ACH-011.** Concluída em 2026-09-01, CI #589 verde.
+9. **Rodada 3:** hardening e validações manuais restantes. Próximo bloco.
 
-Conclusão: a decomposição do PR #46 é real e coerente. O projeto não apresenta arquitetura de arquivo-monstro ou camadas artificiais generalizadas. Permanecem alguns hotspots densos, registrados como dívida de manutenção, não como motivo para nova refatoração ampla.
+## Fase 1 — Validação manual orientada por uso real
 
-### Backend Rust
+### Confirmado manualmente
 
-- [x] Revisar tratamento de erros e fronteira IPC.
-- [x] Procurar caminhos de panic explícito, placeholders e código incompleto em produção.
-- [x] Revisar transações e operações multi-etapa que precisam ser atômicas.
-- [x] Revisar SQL, validação de entrada e invariantes de domínio nos fluxos críticos.
-- [x] Procurar duplicação importante de regras e helpers quase idênticos.
-- [x] Revisar manipulação de arquivos, backup/restore e caminhos externos.
-- [x] Verificar hotspots de legibilidade e manutenção.
+- [x] Fluxos diretamente afetados por ACH-001..ACH-005.
+- [x] Fluxo de fotos.
+- [x] Criação de backup completo.
+- [x] Caminho físico e diagnóstico/validação do backup.
+- [x] Impressão.
 
-Conclusão: backup/restore, arquivos gerenciados, validação temporal e várias invariantes estão bem protegidos. Os principais problemas encontrados estão na coordenação entre fatos persistidos, Agenda e estado retornado para a interface.
+### Ainda não considerar concluído por inferência
 
-### Frontend React/TypeScript
+#### Inicialização e navegação
 
-- [x] Revisar páginas, hooks, componentes e clientes IPC principais.
-- [x] Procurar estado duplicado, efeitos frágeis, race conditions e chamadas IPC sem tratamento coerente.
-- [x] Procurar casts perigosos e `any` explícito.
-- [x] Revisar padrão de mutações e recarga após escrita.
-- [x] Procurar componentes com responsabilidades excessivas após a decomposição recente.
-- [x] Revisar mensagens de erro e carregamento nos fluxos de maior risco.
-
-Conclusão: TypeScript está em modo `strict` e não foi encontrado uso explícito de `as any` na busca inicial. O risco relevante está em semântica assíncrona: algumas mutações confundem falha de recarga com falha de gravação e algumas páginas possuem loaders sem proteção contra resposta fora de ordem.
-
-### Banco e migrations
-
-- [x] Conferir ordem e continuidade das migrations existentes (`0001` a `0017`).
-- [x] Revisar constraints, índices, triggers e relacionamentos críticos nas migrations recentes.
-- [x] Procurar regras importantes mantidas apenas na aplicação quando deveriam ter segunda defesa no SQLite.
-- [x] Conferir testes de migrations e compatibilidade histórica existentes.
-
-Conclusão: há boa segunda defesa de SQLite em ocupação/estado de caixa, Agenda, transporte e anexos. As migrations recentes possuem testes específicos de upgrade/backfill. A identidade cadastral foi harmonizada no ACH-005 na aplicação sem migration nova, porque uma constraint normalizada imediata poderia tornar bancos já existentes com colisões incompatíveis e o `lower()` nativo do SQLite não reproduz a mesma normalização Unicode usada pelo Rust.
-
-### Testes
-
-- [x] Mapear o que é realmente testado e o que é teste estrutural/textual.
-- [x] Procurar testes que passam sem exercitar comportamento de interface real.
-- [x] Identificar fluxos críticos sem regressão automatizada suficiente.
-- [x] Evitar transformar porcentagem de cobertura em objetivo do produto.
-
-Conclusão: o backend possui testes comportamentais úteis. A suíte frontend protege muitos contratos por leitura/regex dos fontes, o que é útil, mas não equivale a renderizar e operar a interface. O smoke WebDriver atual cobre uma navegação real, porém curta. Novos testes comportamentais devem nascer de bugs concretos, não de meta de cobertura.
-
-### CI, supply chain e release
-
-- [x] Revisar gatilhos e responsabilidades de cada workflow.
-- [x] Confirmar Actions fixadas por SHA e permissões adequadas nos fluxos principais.
-- [x] Revisar caches, lockfiles, auditorias e separação entre CI rápido e validação completa.
-- [x] Procurar passos caros sem benefício proporcional durante a fase longa de trabalho.
-
-Conclusão: a base de CI/release está bem endurecida. O perfil leve específico da branch de trabalho foi útil durante a fase longa e foi removido antes da integração final; o workflow voltou ao perfil completo para mudanças de código.
-
-### Segurança e dados locais
-
-- [x] Procurar sinais de segredos, caminhos pessoais e resíduos comuns de debug versionados.
-- [x] Revisar capabilities Tauri e acesso a filesystem/dialogs.
-- [x] Revisar exposição de erros internos para a UI nos pontos críticos.
-- [x] Revisar operações destrutivas, restauração, substituição e exclusão de arquivos.
-
-Conclusão: não surgiu achado crítico de segurança na revisão inicial. Capabilities são restritas, existe CSP, erros de banco são sanitizados na fronteira comum e os fluxos de backup/restore e arquivos gerenciados possuem proteções relevantes de caminho, integridade e rollback.
-
-### Documentação e coerência
-
-- [x] Conferir documentos centrais contra o comportamento atual.
-- [x] Procurar contratos documentados divergentes da implementação.
-- [x] Conferir scripts/comandos documentados contra `package.json` e workflows nos pontos afetados.
-
-Conclusão: a documentação está geralmente alinhada. A divergência importante encontrada em `docs/AGENDA.md` foi resolvida no ACH-001, que passou a manter fato, conclusão e reconciliação derivada na mesma fronteira transacional.
-
-### Saída da auditoria
-
-- [x] Registrar achados concretos nesta página com severidade e evidência.
-- [x] Separar correções necessárias de sugestões opcionais.
-- [x] Definir ordem inicial de correção antes de mudanças amplas.
-
-## Resultado geral da auditoria inicial
-
-O projeto não apresenta sinais de base descartável ou arquitetura improvisada generalizada. As áreas de backup/restore, arquivos gerenciados, migrations recentes, segurança Tauri, CI/release e boa parte das invariantes de domínio estão em estado sólido para uma aplicação `0.x`.
-
-Os problemas encontrados têm um padrão claro: funcionalidades foram adicionadas em várias etapas e algumas regras passaram a existir em uma camada sem serem propagadas para todas as outras. Os principais riscos iniciais de estado parcialmente atualizado, Agenda incoerente, mensagem falsa de falha após gravação bem-sucedida e identidade cadastral divergente foram tratados em ACH-001..ACH-005.
-
-Não há justificativa para reescrever o projeto, trocar stack, adicionar framework ou fazer outra decomposição geral neste momento.
-
-## Ordem inicial de correção
-
-1. **ACH-001** — fechar a fronteira transacional entre fato/tarefa e reconciliação da Agenda. **Concluído em 2026-09-01.**
-2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas. **Concluído em 2026-09-01.**
-3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Concluído em 2026-09-01.**
-4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo. **Concluído em 2026-09-01.**
-5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint. **Concluído em 2026-09-01.**
-6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos. **Concluído em 2026-09-01, sem regressões observadas.**
-7. Integrar o bloco estabilizado na `main` antes de iniciar o ACH-006. **Concluído em 2026-09-01 pelo PR #49.**
-
-Os achados marcados como **investigando** não devem ser corrigidos até a semântica desejada ser confirmada pelo domínio ou pelo teste manual.
-
-## Fase 1 — Teste manual orientado por uso real
-
-A rodada local cobriu os fluxos diretamente afetados por ACH-001..ACH-005 e não revelou regressões. Também foram testados manualmente e aprovados o fluxo de fotos, a criação/validação de backup e a impressão. Os itens abaixo que não foram explicitamente confirmados continuam registrados para validação futura; não são considerados concluídos por inferência.
-
-### Inicialização e navegação
-
-- [ ] Iniciar a aplicação com a base de dados real existente.
+- [ ] Iniciar a aplicação com a base real existente em uma rodada final controlada.
 - [ ] Confirmar carregamento normal da Visão geral.
-- [ ] Percorrer todas as páginas principais sem mutações destrutivas.
+- [ ] Percorrer todas as páginas principais.
 - [ ] Registrar erros visuais, falhas de carregamento, travamentos ou mensagens inadequadas.
-- [ ] Verificar comportamento em resolução compatível com o ambiente real de uso.
+- [ ] Verificar resolução compatível com o ambiente real de uso.
 
-### Cadastros e estados principais
+#### Cadastros e manejo
 
-- [ ] Revisar meliponários.
-- [ ] Revisar espécies.
-- [ ] Revisar caixas.
-- [ ] Revisar colônias.
-- [ ] Verificar buscas, filtros, estados vazios e navegação entre registros.
+- [ ] Revisar meliponários, espécies, caixas e colônias em conjunto.
+- [ ] Verificar buscas, filtros, estados vazios e navegação contextual.
+- [ ] Revisar inspeções, alimentação, produção, eventos e manutenção numa passada final.
 
-### Manejo
+#### Agenda, movimentações e transporte
 
-- [ ] Testar inspeções.
-- [ ] Testar alimentação.
-- [ ] Testar produção.
-- [ ] Testar eventos.
-- [ ] Testar manutenção.
-- [ ] Observar especialmente validações, mensagens de erro e dados exibidos após salvar.
-
-### Agenda
-
-- [ ] Revisar Agenda e alertas com dados existentes.
-- [ ] Criar item manual descartável quando houver contexto seguro.
-- [ ] Verificar conclusão/cancelamento conforme os fluxos atuais.
-- [ ] Confirmar projeções derivadas e reconciliação sem duplicações aparentes.
-
-### Movimentações e transporte
-
+- [ ] Revisar Agenda e alertas com dados existentes após ACH-007.
 - [ ] Revisar histórico de movimentações.
 - [ ] Revisar ciclo de transporte quando houver dados adequados.
 - [ ] Verificar documentos e estados derivados.
-- [ ] Confirmar que nenhuma ação permitida viola o estado atual da colônia/caixa.
 
-### Fotos, anexos e arquivos gerenciados
+#### Arquivos gerenciados
 
-- [x] Abrir e validar o fluxo de fotos existente.
+- [x] Fotos validadas manualmente.
 - [ ] Abrir ou revelar pelo menos um arquivo gerenciado não-foto.
-- [ ] Verificar estados de arquivo ausente ou inconsistente quando houver exemplo seguro.
-- [ ] Confirmar que erros de sistema de arquivos chegam à UI de forma útil e sem vazamento técnico indevido.
+- [ ] Verificar estado de arquivo ausente/inconsistente com exemplo seguro.
+- [ ] Confirmar que erros de filesystem chegam à UI de forma útil e sem vazamento técnico indevido.
 
-### Relatórios e CSV
+#### Relatórios e CSV
 
-- [ ] Abrir cada relatório com dados reais.
+- [ ] Abrir relatórios com dados reais.
 - [ ] Verificar filtros e estados vazios.
 - [ ] Exportar CSV pelo seletor nativo.
-- [ ] Confirmar nome e destino escolhidos.
+- [ ] Confirmar nome e destino.
 - [ ] Abrir o CSV resultante e conferir estrutura básica.
-- [x] Testar impressão quando houver ambiente adequado.
+- [x] Impressão validada manualmente.
 
-### Backup e recuperação
+#### Backup e recuperação
 
 - [x] Criar backup completo.
-- [x] Confirmar que o caminho criado é informado corretamente.
-- [x] Verificar existência física do backup.
-- [x] Inspecionar diagnóstico/validação de backup quando disponível.
-- [ ] Preparar posteriormente uma cópia descartável para teste de restauração.
-- [x] Não restaurar sobre a base real durante esta fase inicial.
-
-## Fase 2 — Correções guiadas pelos testes e pela auditoria
-
-Para cada problema real encontrado:
-
-1. registrar ou atualizar a entrada em **Achados**;
-2. confirmar severidade e impacto;
-3. localizar a causa;
-4. criar ou ampliar teste de regressão quando viável;
-5. corrigir com a menor mudança coerente possível;
-6. rodar validações afetadas;
-7. marcar o achado como corrigido;
-8. validar manualmente quando o fluxo exigir interação real;
-9. registrar commit/PR correspondente.
-
-## Fase 3 — Hardening após os testes
-
-- [ ] Ampliar cenários de migrations a partir dos casos reais encontrados.
-- [ ] Ampliar testes de backup/restore com bases descartáveis.
-- [ ] Revisar integridade histórica e invariantes reveladas pelo uso real.
-- [ ] Revisar UX de operações repetitivas com base em atritos observados.
-- [ ] Revisar acessibilidade por teclado nos fluxos realmente utilizados.
-- [ ] Ampliar smoke/E2E desktop apenas para cenários que tragam cobertura útil e estável.
+- [x] Confirmar caminho e existência física.
+- [x] Inspecionar diagnóstico/validação disponível.
+- [ ] Testar restauração somente contra cópia/base descartável.
+- [x] Não restaurar sobre a base real nesta fase.
 
 ## Achados
 
-### ACH-001 — Fato pode ser persistido antes de a reconciliação da Agenda falhar
+### ACH-001 — Fato podia persistir antes de a reconciliação da Agenda falhar
 
-- **Status:** corrigido e validado
-- **Severidade:** alta
-- **Área:** backend / Agenda / transações
-- **Evidência:** `src-tauri/src/commands.rs`, `src-tauri/src/agenda_execution.rs`, `src-tauri/src/admin_commands.rs`, `src-tauri/src/agenda/derived.rs`.
-- **Comportamento observado:** criação/correção/anulação de fatos podia concluir a gravação principal e somente depois chamar `agenda::reconcile_*`. Na execução especializada da Agenda, fato e conclusão da tarefa eram commitados antes da reconciliação que cria/ajusta o próximo compromisso.
-- **Risco:** uma falha de reconciliação podia retornar erro ao usuário mesmo com parte da operação já persistida. Em criação direta, uma tentativa repetida poderia gerar outro fato. Na execução de tarefa, a tarefa poderia já estar concluída quando a interface recebesse falha.
-- **Comportamento esperado:** a unidade de consistência prometida pelo fluxo deve ser atômica.
-- **Contrato:** o comportamento agora atende `docs/AGENDA.md`: fato, próximo compromisso derivado e conclusão da tarefa permanecem na mesma unidade transacional nos fluxos corrigidos.
-- **Correção:** criação direta, execução especializada, correção e anulação passaram a usar helpers `*_tx` e reconciliação derivada dentro da transação chamadora; a transação só é confirmada depois da Agenda ficar coerente.
-- **Teste de regressão:** adicionado cenário que força falha na inserção da próxima tarefa derivada e confirma rollback da conclusão da tarefa e do fato.
-- **Validação:** CI completo #507 (`33506010767`) no commit `f8a954c`: frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados.
-- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint de validação PR #47, destinado somente a CI e sem integração na `main`.
+- **Status:** corrigido e validado.
+- **Severidade:** alta.
+- **Área:** backend / Agenda / transações.
+- **Correção:** criação, execução especializada, correção e anulação de fatos usam helpers transacionais e reconciliação derivada antes do commit.
+- **Regressão:** falha induzida na criação do próximo compromisso prova rollback do fato e da conclusão da tarefa.
+- **Validação:** CI completo #507 (`33506010767`) no commit `f8a954c`.
+- **Checkpoint:** PR #47, usado somente para validação e fechado sem merge.
 
-### ACH-002 — Mudanças de estado podem deixar Agenda derivada obsoleta até nova reconciliação
+### ACH-002 — Mudanças de estado podiam deixar Agenda derivada obsoleta
 
-- **Status:** corrigido e validado
-- **Severidade:** alta
-- **Área:** backend / Agenda / ciclo de vida / movimentações / cadastros
-- **Evidência:** `src-tauri/src/agenda/derived.rs`, `src-tauri/src/lifecycle.rs`, `src-tauri/src/movements/creation.rs`, `src-tauri/src/repository/occupancy.rs`, `src-tauri/src/box_states.rs`, `src-tauri/src/master_data/meliponaries.rs` e `src-tauri/src/reversals/`.
-- **Comportamento observado:** ciclo de vida, transferência interna/externa, troca de caixa, arquivamento, mudança de estado da caixa e reversões podiam mudar a validade ou o contexto de uma tarefa derivada sem atualizá-la imediatamente. Além disso, inspeção/alimentação derivadas carregavam a caixa histórica do último fato em vez da ocupação ativa usada pelo planejamento futuro.
-- **Risco:** tarefa pendente e alerta podiam mostrar meliponário/caixa/contexto antigo ou continuar existindo quando já deveriam desaparecer, exigindo reinicialização para `reconcile_all()` curar parte dos casos.
-- **Comportamento esperado:** uma operação que invalida ou muda o contexto de planejamento derivado deve deixar a Agenda coerente ao retornar sucesso.
-- **Correção:** inspeção e alimentação derivadas passaram a projetar a ocupação ativa atual; lifecycle, transferências, troca de caixa, estado da caixa, arquivamento/reativação de meliponário e reversões executam a reconciliação necessária dentro da mesma transação da mudança de domínio. Planejamento manual/genérico não é removido pelo arquivamento. Transporte temporário permanece fora por não alterar o contexto persistido.
-- **Teste de regressão:** adicionados cenários para troca de caixa, transferência interna/externa, lifecycle, aposentadoria de caixa, archive/reactivate, reversões e falha induzida na Agenda exigindo rollback da própria mudança de estado/contexto.
-- **Validação:** CI completo #534 (`33509790464`) no commit `8173b93`: frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados.
-- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint de validação PR #48, destinado somente a CI e sem integração na `main`.
+- **Status:** corrigido e validado.
+- **Severidade:** alta.
+- **Área:** backend / Agenda / lifecycle / movimentações / cadastros.
+- **Correção:** Agenda derivada usa ocupação ativa atual e é reconciliada transacionalmente nos fluxos que alteram contexto ou disponibilidade.
+- **Regressões:** troca de caixa, transferências, lifecycle, estado de caixa, archive/reactivate e reversões, incluindo rollback em falha da Agenda.
+- **Validação:** CI completo #534 (`33509790464`) no commit `8173b93`.
+- **Checkpoint:** PR #48, usado somente para validação e fechado sem merge.
 
-### ACH-003 — Frontend confunde falha de refresh com falha da mutação já concluída
+### ACH-003 — Frontend confundia falha de refresh com falha da mutação concluída
 
-- **Status:** corrigido e validado
-- **Severidade:** alta
-- **Área:** frontend / estado assíncrono / UX de erro
-- **Evidência:** `src/hooks/useAppData.ts`, `src/lib/mutation-flow.ts`, `tests/mutation-flow.test.ts` e importação de espécies no mesmo hook. `src/pages/AgendaPage.tsx` foi revisada e não reproduz o defeito: seu `reload()` já captura a própria falha e a mutação não é reclassificada como falha por esse motivo.
-- **Comportamento observado:** o helper global `runMutation` envolvia `await action()` e `await refresh()` no mesmo `try/catch`. Se o backend gravasse com sucesso e somente a recarga falhasse, a função retornava `false` e a interface podia manter dialog/estado de erro como se nada tivesse sido salvo. A importação CSV repetia o mesmo problema ao retornar `null` depois de uma importação já persistida.
-- **Risco:** repetição manual da operação, fatos duplicados e mensagens enganosas.
-- **Comportamento esperado:** sucesso da escrita deve ser distinguido de falha ao sincronizar a visão. Falha de refresh deve solicitar nova tentativa de carregar os dados, não repetir a gravação.
-- **Correção:** criado `runMutationFlow`, helper puro que distingue `success`, `mutation-failed` e `refresh-failed`. O hook global retorna sucesso quando a escrita concluiu, mesmo que a recarga posterior falhe, e mostra mensagem explícita informando que os dados foram salvos e que a tela deve ser atualizada antes de repetir. A importação de espécies preserva o resultado importado e aplica a mesma mensagem de sincronização.
-- **Teste de regressão:** `tests/mutation-flow.test.ts` executa Promises reais e prova três contratos: sucesso completo, falha da mutação sem tentar refresh e mutação bem-sucedida seguida por refresh rejeitado classificada como `refresh-failed`.
-- **Validação:** CI leve #540 (`33511753482`) aprovou build e testes frontend no commit `f407ce2`. Em seguida, a criação da branch `validation/field-testing-ach-003` disparou o perfil completo no commit congelado `0570b7c`; o CI #542 (`33512022812`) terminou com sucesso em frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy com `-D warnings` e testes Rust.
-- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint congelado em `validation/field-testing-ach-003` no SHA `0570b7c`. O usuário pode abrir manualmente um PR contra `main` para revisão/histórico, sempre sem merge.
+- **Status:** corrigido e validado.
+- **Severidade:** alta.
+- **Área:** frontend / estado assíncrono / UX.
+- **Correção:** `runMutationFlow` distingue `success`, `mutation-failed` e `refresh-failed`; importação de espécies segue a mesma semântica.
+- **Regressão:** `tests/mutation-flow.test.ts` executa Promises reais para os três resultados.
+- **Nota:** Agenda foi revisada e não reproduzia o bug porque seu `reload()` já captura a própria falha.
+- **Validação:** CI completo #542 (`33512022812`) no SHA `0570b7c`.
 
-### ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior
+### ACH-004 — Transferência externa podia não ser reversível sem lifecycle anterior
 
-- **Status:** corrigido e validado
-- **Severidade:** alta
-- **Área:** backend / reversões / movimentações
-- **Evidência:** `src-tauri/src/reversals/movements.rs`, `src-tauri/src/reversals/tests.rs`, `src-tauri/src/operational.rs` e `migrations/0002_core_domain.sql`.
-- **Comportamento observado:** uma colônia recém-criada já nasce `active`, mas esse estado inicial não gera obrigatoriamente uma linha em `colony_lifecycle_records`. Nesse caso, uma transferência externa válida era posteriormente bloqueada na reversão porque o código exigia um lifecycle anterior para descobrir o estado a restaurar.
-- **Risco:** um erro operacional comum de transferência externa podia não ser corrigível pelo mecanismo de reversão existente.
-- **Comportamento esperado:** quando o estado anterior é inequivocamente derivável do histórico válido, a reversão segura deve conseguir restaurá-lo; quando não for derivável, deve continuar bloqueando.
-- **Correção:** a reversão continua preferindo o último `new_status` de lifecycle anterior. Quando não existe lifecycle anterior, ela confirma que a transferência não antecede a entrada da colônia no plantel e restaura `active`, que é o estado inicial definido pelo schema e a mesma inferência histórica usada por `operational::ensure_colony_available_at`. Nenhuma linha retroativa de lifecycle é criada. As demais barreiras de segurança da reversão permanecem intactas: somente a transferência efetiva mais recente, sem fatos posteriores, com status atual `transferred` e caixa anterior ativa/livre pode ser restaurada automaticamente.
-- **Teste de regressão:** adicionado cenário com colônia criada `active`, sem qualquer lifecycle, inspeção/Agenda pendente, transferência externa e reversão imediata. O teste exige restauração de `active`, meliponário, caixa e tarefa derivada, confirma `reversed_at` na movimentação e prova que a quantidade de registros de lifecycle permanece zero.
-- **Validação:** CI completo #548 (`33517247992`) no commit `01c8473`: frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados. O run anterior #546 parou apenas no `rustfmt`; a única diferença mecânica pedida pelo formatter foi aplicada antes do run verde.
-- **Commit/PR:** implementação funcional em `b3a614e`, regressão em `fbc5b00` e formatação mecânica em `01c8473`; checkpoint congelado em `validation/field-testing-ach-004` no SHA `01c8473`. Um PR manual contra `main` pode ser aberto apenas para revisão/histórico e deve ser fechado sem merge.
+- **Status:** corrigido e validado.
+- **Severidade:** alta.
+- **Área:** backend / reversões / movimentações.
+- **Correção:** se não houver lifecycle anterior, a reversão restaura `active` somente quando a cronologia comprova que esse estado inicial é derivável; nenhum lifecycle retroativo é fabricado.
+- **Regressão:** transferência externa de colônia criada ativa sem lifecycle restaura status, meliponário, caixa e Agenda e mantém zero registros artificiais de lifecycle.
+- **Validação:** CI completo #548 (`33517247992`) no SHA `01c8473`.
 
-### ACH-005 — Cadastro, edição e importação discordam sobre identidade/duplicidade
+### ACH-005 — Cadastro, edição e importação divergiam sobre identidade
 
-- **Status:** corrigido e validado
-- **Severidade:** média
-- **Área:** backend / dados mestres / SQLite / importação
-- **Evidência:** `src-tauri/src/identity.rs`, `src-tauri/src/repository/entities.rs`, `src-tauri/src/master_data/{boxes,colonies,meliponaries,species}.rs`, `src-tauri/src/master_data/identity_tests.rs`, `src-tauri/src/species_import.rs` e `migrations/0002_core_domain.sql`.
-- **Comportamento observado:** criação de caixa/colônia dependia do `UNIQUE` padrão do SQLite, enquanto edição comparava códigos com `lower(trim(...))`. Meliponário/espécie também possuíam validação de edição mais estrita que criação. A importação de espécies usava outra chave própria.
-- **Risco:** catálogo com duplicidades semanticamente equivalentes e comportamento diferente conforme a porta de entrada usada.
-- **Comportamento esperado:** cada entidade deve possuir uma definição explícita e única de identidade operacional, aplicada de forma coerente em criar, editar e importar, sem tornar bancos antigos com colisões inutilizáveis.
-- **Correção:** criado módulo interno de identidade compartilhada. Meliponário usa nome normalizado globalmente; caixa e colônia usam código normalizado dentro do meliponário; espécie usa nome científico normalizado quando presente e, na ausência dele, nome popular + gênero. A normalização é `trim` + lowercase Unicode, sem remoção de acentos ou alteração do conteúdo interno. Criação, edição e importação CSV passaram a consumir a mesma regra. Edição só executa a barreira de duplicidade quando a identidade normalizada muda, permitindo manutenção não identitária de registros em bancos antigos que já possuam colisões.
-- **Decisão de schema:** nenhuma migration nova foi adicionada. Uma constraint normalizada imediata poderia falhar em bancos existentes que já contenham colisões e o `lower()` do SQLite não equivale à normalização Unicode do Rust. As constraints atuais permanecem como segunda defesa para colisões exatas; eventual defesa normalizada no banco exige primeiro estratégia explícita de diagnóstico/resolução de legado.
-- **Teste de regressão:** criação rejeita variações por espaços/caixa de meliponário, caixa e colônia e preserva o escopo de caixa/colônia por meliponário; espécie cobre identidade científica e fallback nome popular + gênero; importação CSV usa a mesma chave; edições rejeitam novas colisões; e uma colisão legada inserida diretamente no SQLite continua permitindo edição que não altere a identidade.
-- **Validação:** CI completo #565 (`33519618773`) no commit `db99ec6`: frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados. O run anterior #561 parou apenas no `rustfmt`; as três diferenças mecânicas apontadas foram aplicadas antes do run verde.
-- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint congelado em `validation/field-testing-ach-005` no SHA `db99ec6`. Um PR manual contra `main` pode ser aberto apenas para revisão/histórico e deve ser fechado sem merge.
+- **Status:** corrigido e validado.
+- **Severidade:** média.
+- **Área:** backend / dados mestres / importação.
+- **Correção:** identidade compartilhada usa `trim` + lowercase Unicode: meliponário por nome global, caixa/colônia por código no meliponário e espécie por nome científico ou fallback nome popular + gênero.
+- **Compatibilidade:** edição que não altera identidade continua possível em bases antigas com colisões preexistentes.
+- **Schema:** nenhuma migration nova; uma constraint normalizada imediata poderia quebrar legado e o `lower()` do SQLite não reproduz a normalização Unicode do Rust.
+- **Validação:** CI completo #565 (`33519618773`) no SHA `db99ec6`.
 
-### ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada
+### ACH-006 — Loaders podiam aceitar resposta fora de ordem ou rejeição sem tratamento útil
 
-- **Status:** aberto; próximo bloco em `work/field-testing-ach-006`
-- **Severidade:** média
-- **Área:** frontend / concorrência assíncrona
-- **Evidência:** `src/pages/MovementsPage.tsx` e `src/pages/AssetsPage.tsx`; `AgendaPage.tsx` já possui padrão melhor de sequência/cancelamento que pode servir de referência.
-- **Comportamento observado:** certas recargas disparadas por `useEffect` não possuem token de sequência/cancelamento e algumas são lançadas com `void` sem captura local de erro.
-- **Risco:** ao trocar rapidamente a seleção, resposta antiga pode sobrescrever dados da nova seleção; rejeições podem não produzir estado de erro útil.
-- **Comportamento esperado:** páginas contextuais devem ignorar respostas obsoletas e apresentar falha de carregamento de forma controlada.
-- **Correção:** padronizar o padrão simples já existente em páginas mais robustas.
-- **Teste de regressão:** priorizar somente se o comportamento puder ser reproduzido de forma determinística.
-- **Commit/PR:** pendente.
+- **Status:** corrigido e validado.
+- **Severidade:** média.
+- **Área:** frontend / concorrência assíncrona.
+- **Evidência final:** `src/lib/latest-request.ts`, `tests/latest-request.test.ts`, `src/pages/MovementsPage.tsx`, `src/pages/AssetsPage.tsx` e `src/pages/assets/AssetsMaintenancePanel.tsx`.
+- **Correção:** controlador simples de “última requisição vence” protege carregamentos de movimentações, retornos, documentos e manutenção; resposta obsoleta não aplica estado nem encerra loading da requisição atual; falhas atuais geram feedback controlado. Reabrir documentos do mesmo movimento dispara nova tentativa, mesmo após erro anterior.
+- **Escopo:** o fluxo de fotos que já possuía proteção adequada não foi refeito por reflexo; apenas pontos realmente frágeis foram endurecidos.
+- **Regressões:** Promises reais provam resolução fora de ordem, erro obsoleto versus erro atual, invalidação e ownership do `onSettled`.
+- **Validação:** CI #586 (`33527575099`) no SHA `316e7aabc91837c53db6ea946140ef3c46b897c4`, com frontend, `cargo fmt`, bundle, `cargo check`, Clippy e testes Rust verdes.
 
-### ACH-007 — Alerta de colônia fraca não considera arquivamento do meliponário
+### ACH-007 — Alertas operacionais não respeitavam arquivamento do meliponário
 
-- **Status:** investigando
-- **Severidade:** média
-- **Área:** backend / alertas / arquivamento
-- **Evidência:** `src-tauri/src/alerts.rs` filtra condição e status da colônia em `weak_alerts`, mas não junta/filtra `meliponaries.archived_at`. A própria Agenda derivada exclui meliponários arquivados.
-- **Comportamento observado:** em consulta global, uma colônia fraca pertencente a meliponário arquivado aparenta continuar gerando alerta operacional mesmo após reconciliação/reinício.
-- **Ponto a confirmar:** o domínio afirma que arquivamento administrativo não equivale a ciclo de vida da colônia. Precisamos decidir se o modo global deve deliberadamente continuar alertando sobre unidades arquivadas ou se arquivamento significa retirá-las da operação diária.
-- **Correção:** nenhuma até confirmar a semântica durante teste manual/uso esperado.
-- **Teste de regressão:** se confirmado como bug, adicionar caso de meliponário arquivado com última inspeção `weak`.
-- **Commit/PR:** pendente.
+- **Status:** corrigido e validado.
+- **Severidade:** média.
+- **Área:** backend / alertas / arquivamento.
+- **Decisão de domínio:** meliponário arquivado fica fora da operação diária, coerente com a Agenda, mas seu histórico não é apagado.
+- **Correção:** alertas globais e filtrados excluem meliponários arquivados, incluindo colônia fraca e tarefa vencida.
+- **Regressão:** `archived_meliponary_is_excluded_from_operational_alerts_without_losing_history` prova que inspeção e tarefa permanecem persistidas, que a tarefa continua `pending` e que os alertas retornam ao reativar o meliponário.
+- **Validação:** CI #586 (`33527575099`) no SHA `316e7aa`.
 
-### ACH-008 — Semântica temporal da ocupação restaurada por reversão precisa ser confirmada
+### ACH-008 — Semântica temporal da ocupação restaurada por reversão
 
-- **Status:** investigando
-- **Severidade:** média
-- **Área:** backend / histórico / reversões
-- **Evidência:** helpers de reversão restauram a caixa criando nova ocupação com início no horário da reversão, não no horário do fato original revertido.
-- **Comportamento observado:** reverter hoje uma transferência antiga encerra a ocupação de destino hoje e reabre a origem hoje. O intervalo entre o fato original e a reversão continua representado como período real no destino.
-- **Ponto a confirmar:** isso é correto se “reversão” significa desfazer a consequência a partir de agora; é incorreto se significa corrigir um fato histórico lançado por engano como se nunca tivesse produzido aquela ocupação válida.
-- **Correção:** nenhuma até fixar a semântica de produto. Não reescrever história por suposição.
-- **Teste de regressão:** após decisão, testar intervalos `started_at/ended_at`, não apenas a caixa atual.
-- **Commit/PR:** pendente.
+- **Status:** semântica confirmada e validada; não exigiu mudança de regra de produção.
+- **Severidade:** média.
+- **Área:** backend / histórico / reversões.
+- **Decisão de domínio:** reversão desfaz a consequência a partir do momento da reversão; não reescreve o passado como se a movimentação/lifecycle nunca tivesse ocorrido.
+- **Regressões:** testes temporais exigem que o intervalo original seja preservado, o destino permaneça registrado durante seu período real e a ocupação restaurada na origem comece em `reversed_at`.
+- **Validação:** CI #586 (`33527575099`) no SHA `316e7aa`.
 
-### ACH-009 — Timeline aplica decoração administrativa em padrão N+1
+### ACH-009 — Timeline aplicava decoração administrativa em padrão N+1
 
-- **Status:** aberto
-- **Severidade:** baixa
-- **Área:** backend / desempenho
-- **Evidência:** `src-tauri/src/timeline.rs` carrega as entradas e consulta estado administrativo adicional por item durante a decoração.
-- **Comportamento observado:** quantidade de queries cresce com o tamanho da timeline.
-- **Risco:** bases com histórico grande podem apresentar lentidão progressiva.
-- **Comportamento esperado:** projeção deve conseguir carregar metadados administrativos em lote ou na query principal quando desempenho real justificar.
-- **Correção:** adiar até medição/manual test indicar impacto. Não otimizar por esporte.
-- **Teste de regressão:** se corrigido, preservar estados e ordenação; benchmark opcional somente se necessário.
-- **Commit/PR:** pendente.
+- **Status:** corrigido e validado.
+- **Severidade:** baixa.
+- **Área:** backend / desempenho / manutenção.
+- **Correção:** `timeline.rs` carrega estados administrativos da colônia em uma única query `UNION ALL`, organiza por `source_type/source_id` e aplica as decorações em memória. A quantidade de queries de decoração não cresce mais por item da timeline.
+- **Semântica preservada:** anulação continua prevalecendo sobre correção; reversão de movimentação prevalece sobre anulação/correção; lifecycle revertido e ocupação corrigida mantêm títulos/severidade esperados.
+- **Regressões:** testes puros cobrem precedência e preservação de detalhes; testes integrados existentes continuam exercitando `timeline::by_colony` contra SQLite real de teste.
+- **Commits:** `bc62af0` (mudança funcional) e `6c0404b` (somente rustfmt).
+- **Validação:** CI #589 (`33529103020`) no SHA `6c0404bca23e0d6547cbb4f2083410716dbc8bcc`, totalmente verde.
 
-### ACH-010 — Hotspots de legibilidade ainda têm estilo excessivamente comprimido
+### ACH-010 — Hotspots de legibilidade excessivamente comprimidos
 
-- **Status:** aberto
-- **Severidade:** baixa
-- **Área:** manutenção / qualidade de código
-- **Evidência:** `src-tauri/src/production.rs`, `src-tauri/src/dashboard.rs`, `src-tauri/src/reversals.rs` e submódulos possuem trechos com nomes de uma letra, SQL/queries extensas em linha única e cadeias de chamadas muito comprimidas.
-- **Comportamento observado:** código passa nas ferramentas, mas exige esforço desnecessário de revisão e aumenta risco de erro em manutenção futura.
-- **Comportamento esperado:** código tocado por correções funcionais deve ficar claro o suficiente para revisão humana sem depender de decodificação mental.
-- **Correção:** oportunística. Melhorar somente os trechos modificados por trabalho real; não abrir refatoração cosmética de dezenas de arquivos.
-- **Teste de regressão:** os testes funcionais existentes devem permanecer iguais.
-- **Commit/PR:** pendente.
+- **Status:** concluído para o escopo desta fase e validado.
+- **Severidade:** baixa.
+- **Área:** manutenção / qualidade de código.
+- **Decisão:** não executar varredura cosmética em arquivos sem motivo funcional. O contrato do achado era melhorar código realmente tocado pelo trabalho.
+- **Aplicação:** a refatoração do ACH-009 transformou o trecho tocado da timeline em SQL multilinha, estruturas nomeadas e helpers explícitos, removendo a decoração comprimida e a lógica N+1. Trechos antigos em módulos não tocados continuam como dívida oportunística e devem ser melhorados quando houver trabalho funcional neles.
+- **Validação:** `cargo fmt`, `cargo check`, Clippy e testes Rust aprovados no CI #589.
 
-### ACH-011 — Cobertura frontend é majoritariamente estrutural, não comportamental
+### ACH-011 — Cobertura frontend era majoritariamente estrutural
 
-- **Status:** aberto
-- **Severidade:** baixa
-- **Área:** testes / frontend
-- **Evidência:** `npm run test:ui` usa o runner do Node e vários testes leem arquivos-fonte para validar padrões por regex. O smoke WebDriver cobre inicialização e uma navegação curta.
-- **Comportamento observado:** contratos de estrutura são bem protegidos, porém há pouca execução real de dialogs, formulários, estados de erro e sequências de mutação.
-- **Risco:** regressões de comportamento podem passar mesmo quando os testes textuais permanecem verdes.
-- **Comportamento esperado:** bugs reais corrigidos nesta fase devem ganhar o menor teste comportamental estável capaz de impedir sua volta.
-- **Correção:** não instalar stack de testes nova apenas por cobertura. Expandir WebDriver ou introduzir teste focal somente quando houver ganho concreto.
-- **Teste de regressão:** nasce junto com os achados de alta/média severidade quando viável.
-- **Commit/PR:** pendente.
+- **Status:** concluído para esta fase e validado.
+- **Severidade:** baixa.
+- **Área:** testes / frontend.
+- **Decisão:** não instalar framework novo nem perseguir percentual de cobertura. Bugs reais devem gerar o menor teste comportamental estável possível.
+- **Cobertura adicionada:** `tests/mutation-flow.test.ts` e `tests/latest-request.test.ts` executam Promises reais. Os testes de latest-request cobrem resolução fora de ordem, rejeição obsoleta versus atual, invalidação e garantia de que requisição obsoleta não encerra o loading pertencente à requisição atual.
+- **Validação:** 54 testes frontend passaram no CI #589, além de toda a cadeia Rust.
 
-## Pontos fortes confirmados na auditoria
+## Validação das rodadas compactas
 
-- arquitetura backend/frontend realmente decomposta após o PR #46;
+### Rodada 1 — ACH-006..ACH-008
+
+- Branch: `work/field-testing-ach-006`.
+- Checkpoint técnico: `316e7aabc91837c53db6ea946140ef3c46b897c4`.
+- CI #586 / run `33527575099`: **success**.
+- Gates verdes: build e testes frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy e `cargo test --locked`.
+- Não foi criada branch de validação separada, conforme a decisão de reduzir rodadas administrativas.
+
+### Rodada 2 — ACH-009..ACH-011
+
+- Mesma branch: `work/field-testing-ach-006`.
+- Checkpoint técnico: `6c0404bca23e0d6547cbb4f2083410716dbc8bcc`.
+- CI #589 / run `33529103020`: **success**.
+- Gates verdes: build frontend, 54 testes frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy e `cargo test --locked`.
+- O run #588 (`33528908316`) havia parado apenas no `rustfmt`; o log foi obtido diretamente e pediu uma única dobra mecânica da assinatura de `by_colony`, aplicada em `6c0404b` sem alteração semântica.
+
+## Pontos fortes confirmados
+
+- arquitetura backend/frontend decomposta de forma real;
 - TypeScript em modo `strict`;
-- nenhuma ocorrência inicial de `TODO`, `unsafe` ou `as any` encontrada nas buscas de auditoria;
-- fronteira IPC normaliza timestamps e aplica disponibilidade histórica nos manejos públicos relevantes;
-- banco habilita `foreign_keys`;
-- migrations `0001..0017` contínuas e preservadas;
-- testes de upgrade/backfill cobrem migrations recentes importantes;
-- constraints/triggers protegem ocupação/estado de caixa e transporte;
-- Agenda possui índice único para fonte derivada pendente;
-- backup/restore valida integridade, schema, manifesto e hashes e possui estratégia de staging/rollback;
-- arquivos gerenciados rejeitam caminhos fora da área permitida e preservam metadados quando o arquivo físico desaparece;
-- capabilities Tauri são restritas e a aplicação possui CSP;
-- erros de banco são sanitizados na fronteira pública comum;
-- workflows usam Actions fixadas por SHA, lockfiles e caches;
-- auditoria de dependências npm/RustSec está separada e versionada;
-- build/release mantém validação própria;
-- perfil leve temporário da branch foi removido antes da integração final.
+- migrations `0001..0017` preservadas;
+- SQLite com `foreign_keys` e defesas importantes de ocupação/estado/transporte;
+- Agenda com proteção de fonte derivada pendente e reconciliação transacional nos fluxos corrigidos;
+- backup/restore com validação de integridade, schema, manifesto, hashes e estratégia de staging/rollback;
+- arquivos gerenciados com proteção de caminho e metadados preservados quando arquivo físico desaparece;
+- capabilities Tauri restritas e CSP presente;
+- erros de banco sanitizados na fronteira pública comum;
+- workflows com Actions fixadas por SHA, lockfiles e caches;
+- auditoria npm/RustSec separada;
+- build/release com validação própria;
+- testes comportamentais focais agora cobrem falhas assíncronas reais do frontend.
 
-## Decisões de trabalho
+## Decisões registradas
 
 ### 2026-08-31 — Início da fase prática
 
-A partir desta branch, o desenvolvimento passa a ser guiado prioritariamente por testes manuais e uso real da aplicação. Automação continua sendo uma barreira de segurança e regressão, mas não substitui validação humana dos fluxos.
-
-O trabalho será mantido neste arquivo para permitir continuidade entre conversas e reduzir dependência do hardware local do usuário.
+O desenvolvimento passou a ser guiado por revisão humana e uso real. Automação permanece como barreira de segurança, mas não substitui validação humana.
 
 ### 2026-08-31 — Auditoria antes do teste funcional sistemático
 
-Antes da rodada manual completa, será feita uma auditoria ampla do repositório. A finalidade não é reescrever código que já funciona, mas detectar falhas ocultas, atalhos frágeis, inconsistências de arquitetura e pontos de manutenção que tenham escapado durante o desenvolvimento acelerado por IA.
+A auditoria ampla foi usada para identificar riscos concretos sem abrir reescrita geral, troca de stack ou refatoração estética ampla.
 
-### 2026-08-31 — CI leve durante a fase longa de trabalho
+### 2026-09-01 — ACH-001..ACH-005 estabilizados
 
-Pushes para a branch de trabalho usaram feedback frontend/documental rápido durante a fase longa. As validações Rust caras permaneceram no mesmo workflow e foram executadas nas branches de validação e Pull Requests para `main`.
+Os cinco primeiros achados foram corrigidos e validados em checkpoints completos. O bloco foi exercitado manualmente, junto com fotos, backup e impressão, e depois integrado pelo PR #49.
 
-### 2026-08-31 — Auditoria inicial encerrada sem reescrita ampla
+### 2026-09-01 — PR #49 integrado
 
-A revisão estática encontrou problemas reais, mas não justificou reescrita, troca de stack ou nova refatoração geral. O trabalho deve atacar primeiro consistência transacional e de estado. Legibilidade, desempenho e expansão de testes serão tratados somente onde o uso real ou uma correção concreta justificar.
+O PR #49 (`fix: integrate field-testing hardening ACH-001 through ACH-005`) foi integrado na `main` por squash no commit `4761b14644bcbccd56a7a7e00f65f1c197178624`. O PR havia passado no CI #571 (`33521970903`) e na auditoria de dependências #20 (`33521970798`); a `main` pós-merge passou novamente no full-check #29 (`33523844254`) e auditoria #21 (`33523844158`).
 
-### 2026-09-01 — ACH-001 fechado com validação completa
+### 2026-09-01 — Rodada 1 ACH-006..ACH-008 concluída
 
-A fronteira transacional entre fatos e Agenda foi corrigida nos fluxos cobertos pelo ACH-001. O checkpoint temporário PR #47 executou o perfil completo de CI e o run #507 (`33506010767`) terminou com sucesso, incluindo Clippy com `-D warnings` e testes Rust. O PR de validação não deve ser integrado na `main`.
+A branch única `work/field-testing-ach-006` corrigiu concorrência assíncrona dos loaders, definiu que meliponário arquivado fica fora dos alertas operacionais sem perder histórico e congelou por testes a semântica temporal não retroativa das reversões. O CI #586 (`33527575099`) passou integralmente no SHA `316e7aa`.
 
-### 2026-09-01 — ACH-002 fechado com validação completa
+### 2026-09-01 — Rodada 2 ACH-009..ACH-011 concluída
 
-Mudanças de contexto operacional agora reconciliam a Agenda derivada antes do commit. O checkpoint temporário PR #48 executou o perfil completo de CI e o run #534 (`33509790464`) terminou com sucesso, incluindo `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. O PR de validação não deve ser integrado na `main`.
+A mesma branch removeu o N+1 de decoração da timeline, aplicou a política de legibilidade apenas no código realmente tocado e ampliou testes comportamentais de frontend sem introduzir nova stack. O CI #589 (`33529103020`) passou integralmente no SHA `6c0404b`.
 
-### 2026-09-01 — ACH-003 fechado com validação completa
+## Rodada 3 — Próximo passo
 
-O fluxo global de mutações agora distingue falha da escrita de falha posterior de refresh. Uma gravação concluída não retorna mais `false` só porque a visão não conseguiu recarregar; a interface informa que os dados foram salvos e orienta usar **Atualizar** antes de repetir a operação. A importação CSV recebeu a mesma proteção. A Agenda foi reavaliada e ficou fora do patch porque seu `reload()` já captura a própria falha sem reclassificar a mutação como malsucedida. O CI leve #540 (`33511753482`) aprovou build e testes frontend. A branch congelada `validation/field-testing-ach-003` disparou também o CI completo #542 (`33512022812`) no SHA `0570b7c`, aprovado em todos os gates. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
+Executar uma rodada compacta de hardening e validação final, ainda na mesma branch salvo decisão explícita de integração antes disso:
 
-### 2026-09-01 — ACH-004 fechado com validação completa
+1. testar arquivo gerenciado não-foto e estados seguro de ausente/inconsistente;
+2. revisar relatórios com dados reais e exportar/abrir CSV;
+3. testar restauração somente contra cópia/base descartável;
+4. revisar acessibilidade por teclado nos fluxos realmente usados;
+5. ampliar migration/backup hardening apenas se casos concretos revelarem lacuna;
+6. ampliar smoke/E2E somente para cenário concreto, estável e de valor real;
+7. fazer varredura final deste plano e separar pendência real de melhoria opcional;
+8. se houver código na Rodada 3, executar CI completo antes de preparar integração; se não houver código, encerrar documentalmente sem PR artificial.
 
-A reversão de transferência externa agora consegue restaurar uma colônia originalmente criada como `active` mesmo quando não existe lifecycle anterior, desde que a própria cronologia da entrada no plantel torne essa inferência segura. O mecanismo não cria lifecycle retroativo e preserva todas as barreiras existentes contra reversão insegura. O CI completo #548 (`33517247992`) passou no checkpoint congelado `validation/field-testing-ach-004` / `01c8473`, incluindo frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
+## Handoff
 
-### 2026-09-01 — ACH-005 fechado com validação completa
+Para retomar em outra conversa:
 
-As quatro famílias de dados mestres agora possuem identidade operacional explícita e compartilhada entre criação, edição e, no caso de espécie, importação CSV. A regra usa `trim` + lowercase Unicode; meliponário é identificado pelo nome global, caixa e colônia pelo código dentro do meliponário e espécie pelo nome científico quando presente ou por nome popular + gênero no fallback. Colisões antigas não são reescritas nem impedem manutenção que preserve a identidade existente. Nenhuma migration nova foi criada porque uma constraint normalizada agora poderia quebrar bancos com colisões preexistentes e não reproduziria com segurança a normalização Unicode via SQLite. O CI completo #565 (`33519618773`) passou no checkpoint congelado `validation/field-testing-ach-005` / `db99ec6`, incluindo frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
-
-### 2026-09-01 — Bloco ACH-001..ACH-005 validado manualmente
-
-Os fluxos diretamente afetados pelas correções ACH-001..ACH-005 foram exercitados localmente durante o desenvolvimento e, segundo a validação manual informada, estão funcionando corretamente sem regressões observadas.
-
-### 2026-09-01 — Fotos, backup e impressão aprovados manualmente
-
-Além do bloco ACH-001..ACH-005, o fluxo de fotos, a criação/validação de backup e a impressão foram testados localmente e aprovados. O teste de backup não autoriza nem registra restauração destrutiva sobre a base real; essa operação continua fora do gate executado.
-
-### 2026-09-01 — Preparação da integração do bloco estabilizado
-
-A fase longa de correções será integrada na `main` antes de iniciar ACH-006. O perfil leve específico de `work/field-testing-and-hardening` foi removido no commit `efb6c4f`, restaurando o CI completo para mudanças de código. Este `WORK-PLAN.md` deve ser preservado na integração para manter o histórico de decisões, validações, riscos resolvidos e achados ainda abertos.
-
-### 2026-09-01 — PR #49 integrado e novo bloco iniciado
-
-O PR #49 (`fix: integrate field-testing hardening ACH-001 through ACH-005`) foi integrado na `main` por squash merge no commit `4761b14644bcbccd56a7a7e00f65f1c197178624`. O gate cumulativo do PR já havia passado no CI #571 (`33521970903`) e na auditoria de dependências #20 (`33521970798`). Após o merge, a própria `main` passou novamente no `full-check` #29 (`33523844254`) e na auditoria de dependências #21 (`33523844158`). A branch `work/field-testing-ach-006` foi criada diretamente desse commit integrado para o próximo bloco, mantendo este documento como continuidade.
-
-## Próximo passo
-
-Revisar o **ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada** na branch `work/field-testing-ach-006`, que parte diretamente da `main` integrada no PR #49.
-
-Antes de modificar código, confirmar quais loaders de `MovementsPage.tsx` e `AssetsPage.tsx` realmente aceitam resposta obsoleta ou produzem rejeição sem estado de erro útil; comparar com o padrão de sequência/cancelamento já usado em páginas mais robustas; e somente então definir a menor correção coerente e um teste determinístico quando viável.
-
-Os checkpoints `validation/field-testing-ach-003`, `validation/field-testing-ach-004` e `validation/field-testing-ach-005` permanecem apenas como evidência histórica dos gates completos e não devem ser integrados separadamente.
-
-## Handoff para a próxima conversa
-
-Se uma nova conversa precisar continuar este trabalho:
-
-1. abrir `docs/WORK-PLAN.md` na branch ativa `work/field-testing-ach-006` ou na `main` após a próxima integração;
-2. ler **Estado atual**, **Ordem inicial de correção**, **Achados**, **Decisões de trabalho** e **Próximo passo**;
-3. conferir os commits mais recentes da branch;
-4. continuar pelo próximo passo registrado, sem refazer a auditoria do zero;
-5. preservar este arquivo durante as integrações e atualizá-lo ao fechar cada achado ou ao tomar decisão de domínio importante.
+1. usar `work/field-testing-ach-006` como branch ativa enquanto este bloco não for integrado;
+2. ler **Estado atual**, **Achados**, **Validação das rodadas compactas** e **Rodada 3**;
+3. conferir o head mais recente e seu CI;
+4. não refazer ACH-001..ACH-011 sem evidência nova;
+5. manter `main` intocada até a próxima integração deliberada;
+6. preservar e atualizar este arquivo ao concluir a Rodada 3 ou integrar o bloco.
