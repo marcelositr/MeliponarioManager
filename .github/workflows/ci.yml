@@ -106,6 +106,26 @@ jobs:
         if: steps.change_scope.outputs.code_changed == 'true'
         run: npm run test:ui
 
+      - name: Setup Rust
+        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+        with:
+          toolchain: 1.94.1
+          components: clippy,rustfmt
+
+      - name: Check Rust formatting
+        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
+        working-directory: src-tauri
+        run: cargo fmt --all -- --check
+
+      - name: Generate desktop icons
+        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
+        run: npm run icons
+
+      - name: Validate bundle icon configuration
+        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
+        run: npm run bundle:check
+
       - name: Install system dependencies
         if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
         run: |
@@ -122,31 +142,11 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev
 
-      - name: Setup Rust
-        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
-        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
-        with:
-          toolchain: 1.94.1
-          components: clippy,rustfmt
-
       - name: Cache Rust build
         if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
         uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
-
-      - name: Generate desktop icons
-        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
-        run: npm run icons
-
-      - name: Validate bundle icon configuration
-        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
-        run: npm run bundle:check
-
-      - name: Check Rust formatting
-        if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
-        working-directory: src-tauri
-        run: cargo fmt --all -- --check
 
       - name: Check Rust backend
         if: steps.change_scope.outputs.code_changed == 'true' && steps.validation_profile.outputs.relaxed != 'true'
