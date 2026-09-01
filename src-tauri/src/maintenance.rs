@@ -78,22 +78,6 @@ async fn box_exists(pool: &SqlitePool, box_id: &str) -> Result<bool, AppError> {
     )
 }
 
-async fn get(pool: &SqlitePool, id: &str) -> Result<BoxMaintenance, AppError> {
-    Ok(sqlx::query_as::<_, BoxMaintenance>(
-        "SELECT m.id, m.box_id, b.code AS box_code,
-                m.colony_id, c.code AS colony_code,
-                m.maintained_at, m.maintenance_type, m.description,
-                m.performed_by, m.cost, m.next_maintenance_at, m.created_at
-         FROM box_maintenance_records m
-         JOIN boxes b ON b.id = m.box_id
-         LEFT JOIN colonies c ON c.id = m.colony_id
-         WHERE m.id = ?",
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await?)
-}
-
 async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<BoxMaintenance, AppError> {
     Ok(sqlx::query_as::<_, BoxMaintenance>(
         "SELECT m.id, m.box_id, b.code AS box_code,
@@ -189,6 +173,7 @@ pub(crate) async fn create_tx(
     get_tx(tx, &id).await
 }
 
+#[cfg(test)]
 pub async fn create(
     pool: &SqlitePool,
     input: CreateBoxMaintenance,
