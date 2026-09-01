@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import signal
@@ -46,6 +47,31 @@ def request(
     timeout: float = 5,
 ) -> dict[str, Any]:
     return request_at(DRIVER_URL, method, path, payload, timeout=timeout)
+
+
+def is_transient_driver_transport_error(error: Exception) -> bool:
+    if isinstance(
+        error,
+        (
+            http.client.RemoteDisconnected,
+            ConnectionResetError,
+            BrokenPipeError,
+            TimeoutError,
+        ),
+    ):
+        return True
+    if isinstance(error, urllib.error.URLError):
+        return isinstance(
+            error.reason,
+            (
+                http.client.RemoteDisconnected,
+                ConnectionResetError,
+                ConnectionRefusedError,
+                BrokenPipeError,
+                TimeoutError,
+            ),
+        )
+    return False
 
 
 def wait_for_endpoint(
@@ -134,8 +160,8 @@ def click_element(session_id: str, element_id: str) -> None:
     )
 
 
-def wait_for_heading(session_id: str, expected: str) -> None:
-    deadline = time.monotonic() + 15
+def wait_for_heading(session_id: str, expected: str, timeout: float = 15) -> None:
+    deadline = time.monotonic() + timeout
     last_text = ""
     while time.monotonic() < deadline:
         try:
@@ -144,10 +170,48 @@ def wait_for_heading(session_id: str, expected: str) -> None:
             if last_text == expected:
                 print(f"Desktop heading reached: {expected}", flush=True)
                 return
-        except (urllib.error.HTTPError, urllib.error.URLError, RuntimeError):
+        except (
+            urllib.error.HTTPError,
+            urllib.error.URLError,
+            http.client.RemoteDisconnected,
+            ConnectionResetError,
+            BrokenPipeError,
+            TimeoutError,
+            RuntimeError,
+        ):
             pass
         time.sleep(0.25)
     raise AssertionError(f"expected desktop heading {expected!r}, got {last_text!r}")
+
+
+def navigate_by_click(
+    session_id: str,
+    using: str,
+    value: str,
+    expected_heading: str,
+) -> None:
+    element_id = find_element(session_id, using, value)
+    try:
+        click_element(session_id, element_id)
+    except Exception as error:
+        if not is_transient_driver_transport_error(error):
+            raise
+        print(
+            "WebDriver transport disconnected during click; checking the resulting view before retrying.",
+            flush=True,
+        )
+        try:
+            wait_for_heading(session_id, expected_heading, timeout=3)
+            return
+        except AssertionError:
+            print(
+                "Target view was not reached after the disconnect; retrying the click once.",
+                flush=True,
+            )
+            element_id = find_element(session_id, using, value)
+            click_element(session_id, element_id)
+
+    wait_for_heading(session_id, expected_heading)
 
 
 def stop_process_group(process: subprocess.Popen[bytes]) -> None:
@@ -204,13 +268,12 @@ def main() -> int:
             session_id = create_session(application)
 
             wait_for_heading(session_id, "Visão geral")
-            agenda_button = find_element(
+            navigate_by_click(
                 session_id,
                 "xpath",
                 "//button[normalize-space(.)='Abrir Agenda']",
+                "Agenda",
             )
-            click_element(session_id, agenda_button)
-            wait_for_heading(session_id, "Agenda")
 
             print("Desktop WebDriver smoke passed: Visão geral -> Agenda", flush=True)
             return 0

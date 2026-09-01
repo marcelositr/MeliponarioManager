@@ -48,7 +48,10 @@ test("branch and PR CI retain full validation while main adds desktop validation
   ]);
 
   assert.match(branchCi, /jobs:\n\s+check:/);
-  assert.match(branchCi, /group: ci-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/);
+  assert.match(
+    branchCi,
+    /group: ci-\$\{\{ github\.event_name \}\}-\$\{\{ github\.head_ref \|\| github\.ref_name \}\}/,
+  );
   assert.match(branchCi, /cancel-in-progress: true/);
   assert.match(branchCi, /fetch-depth:\s*0/);
   assert.match(branchCi, /Detect documentation-only change/);
@@ -78,7 +81,12 @@ test("branch and PR CI retain full validation while main adds desktop validation
   assert.match(desktopSmoke, /browserName.*wry/s);
   assert.match(desktopSmoke, /Visão geral/);
   assert.match(desktopSmoke, /Abrir Agenda/);
-  assert.match(desktopSmoke, /wait_for_heading\(session_id, "Agenda"\)/);
+  assert.match(desktopSmoke, /def navigate_by_click\(/);
+  assert.match(desktopSmoke, /is_transient_driver_transport_error\(error\)/);
+  assert.match(desktopSmoke, /http\.client\.RemoteDisconnected/);
+  assert.match(desktopSmoke, /wait_for_heading\(session_id, expected_heading, timeout=3\)/);
+  assert.match(desktopSmoke, /retrying the click once/);
+  assert.match(desktopSmoke, /navigate_by_click\([\s\S]*?Abrir Agenda[\s\S]*?"Agenda",/);
 });
 
 test("Rust build cache is enabled where compilation is expensive", async () => {
