@@ -42,7 +42,8 @@ A partir do ACH-006, os achados foram agrupados em rodadas compactas na mesma br
 - [x] Rodada 1 compacta, ACH-006..ACH-008, concluída e validada pelo CI #586 (`33527575099`) no SHA `316e7aa`.
 - [x] Rodada 2 compacta, ACH-009..ACH-011, concluída e validada pelo CI #589 (`33529103020`) no SHA `6c0404b`.
 - [x] Rodada 3 de hardening concluída e validada pelo CI #598 (`33530871272`) no SHA `cca6df1`.
-- [ ] Integrar o bloco ACH-006..ACH-011 + hardening final na `main` por PR deliberado.
+- [x] PR #50 aberto como draft para integrar ACH-006..ACH-011 + hardening final na `main`.
+- [ ] Revisar o diff e os checks do PR #50 antes de qualquer merge.
 
 ## Política de CI
 
@@ -77,7 +78,8 @@ O padrão dos defeitos encontrados foi de regras que evoluíram em momentos dife
 7. **Rodada 1: ACH-006..ACH-008.** Concluída em 2026-09-01, CI #586 verde.
 8. **Rodada 2: ACH-009..ACH-011.** Concluída em 2026-09-01, CI #589 verde.
 9. **Rodada 3: hardening e validação final automatizável.** Concluída em 2026-09-01, CI #598 verde.
-10. **Próximo:** preparar e revisar um único PR de integração para `main`.
+10. **PR #50:** aberto em draft para revisão cumulativa contra `main`.
+11. **Próximo:** revisar o diff e aguardar os gates do próprio PR antes de decidir o squash merge.
 
 ## Fase 1 — Validação manual orientada por uso real
 
@@ -346,15 +348,20 @@ A mesma branch removeu o N+1 de decoração da timeline, aplicou a política de 
 
 A revisão final não encontrou motivo para migration nova nem expansão artificial do smoke. Ela endureceu o painel de arquivos gerenciados, adicionou exportação CSV física em teste, completou navegação por teclado nas abas de relatório e confirmou que restore descartável/defesas de backup já estavam cobertos. O CI #598 (`33530871272`) passou integralmente no SHA `cca6df1`.
 
+### 2026-09-01 — PR #50 aberto para integração do segundo bloco
+
+O PR #50 (`fix: integrate field-testing hardening ACH-006 through ACH-011`) foi aberto como draft de `work/field-testing-ach-006` para `main`. Na abertura, a branch estava 27 commits à frente e 0 atrás da `main`, com merge-base em `4761b14644bcbccd56a7a7e00f65f1c197178624`. O PR deve permanecer sem merge até revisão humana do diff e conclusão dos checks próprios do PR.
+
 ## Próximo passo
 
-Preparar um único PR de integração de `work/field-testing-ach-006` para `main`, cobrindo ACH-006..ACH-011 e a Rodada 3 de hardening. Antes do merge:
+Revisar o PR #50 e seus gates antes de qualquer integração:
 
 1. revisar o diff cumulativo contra `4761b146...`;
-2. confirmar que o PR está sem conflito;
+2. confirmar mergeabilidade sem conflito após o GitHub calcular o estado do PR;
 3. deixar o CI completo do PR e a auditoria de dependências terminarem verdes;
-4. integrar preferencialmente por squash merge;
-5. após o merge, conferir `main` e registrar o novo SHA neste plano.
+4. somente após revisão humana, marcar o PR como pronto se fizer sentido;
+5. integrar preferencialmente por squash merge quando houver aprovação explícita;
+6. após o merge, conferir `main` e registrar o novo SHA neste plano.
 
 Os spot-checks de SO listados acima podem ser feitos pelo usuário antes ou depois da integração; não existe achado funcional aberto associado a eles neste momento.
 
@@ -362,9 +369,10 @@ Os spot-checks de SO listados acima podem ser feitos pelo usuário antes ou depo
 
 Para retomar em outra conversa:
 
-1. usar `work/field-testing-ach-006` como branch ativa enquanto este bloco não for integrado;
+1. usar `work/field-testing-ach-006` como branch ativa enquanto o PR #50 não for integrado;
 2. considerar ACH-001..ACH-011 e as três rodadas tecnicamente concluídos nos checkpoints registrados;
 3. não refazer esses achados sem evidência nova;
-4. o próximo trabalho é preparar/revisar o PR cumulativo desta branch para `main`;
-5. manter `main` intocada até a integração deliberada;
-6. preservar e atualizar este arquivo após o merge.
+4. o PR #50 é o checkpoint cumulativo aberto como draft contra `main`;
+5. revisar diff e checks do PR #50 antes de qualquer merge;
+6. manter `main` intocada até integração deliberada e explicitamente aprovada;
+7. preservar e atualizar este arquivo após o merge.
