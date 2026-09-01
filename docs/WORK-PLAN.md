@@ -45,6 +45,7 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] Auditoria estática geral inicial concluída e registrada.
 - [x] ACH-001 corrigido e validado por CI completo no checkpoint temporário PR #47.
 - [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
+- [x] ACH-003 corrigido e validado pelo CI leve da branch; validação completa fica para o checkpoint manual.
 - [ ] Corrigir primeiro bloco de achados de integridade/consistência.
 - [ ] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
 
@@ -173,7 +174,7 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 
 1. **ACH-001** — fechar a fronteira transacional entre fato/tarefa e reconciliação da Agenda. **Concluído em 2026-09-01.**
 2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas. **Concluído em 2026-09-01.**
-3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh.
+3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Corrigido em 2026-09-01; validação completa pendente no checkpoint manual.**
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo.
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint.
 6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos.
@@ -302,16 +303,17 @@ Para cada problema real encontrado:
 
 ### ACH-003 — Frontend confunde falha de refresh com falha da mutação já concluída
 
-- **Status:** aberto
+- **Status:** corrigido; validação completa pendente
 - **Severidade:** alta
 - **Área:** frontend / estado assíncrono / UX de erro
-- **Evidência:** `src/hooks/useAppData.ts` e fluxo de mutação/reload de `src/pages/AgendaPage.tsx`.
-- **Comportamento observado:** a mesma captura de erro envolve `await action()` e o `refresh/reload` posterior. Se o backend gravar com sucesso e somente a recarga falhar, a função retorna falha e a interface pode manter dialog/estado de erro como se nada tivesse sido salvo.
+- **Evidência:** `src/hooks/useAppData.ts`, `src/lib/mutation-flow.ts`, `tests/mutation-flow.test.ts` e importação de espécies no mesmo hook. `src/pages/AgendaPage.tsx` foi revisada e não reproduz o defeito: seu `reload()` já captura a própria falha e a mutação não é reclassificada como falha por esse motivo.
+- **Comportamento observado:** o helper global `runMutation` envolvia `await action()` e `await refresh()` no mesmo `try/catch`. Se o backend gravasse com sucesso e somente a recarga falhasse, a função retornava `false` e a interface podia manter dialog/estado de erro como se nada tivesse sido salvo. A importação CSV repetia o mesmo problema ao retornar `null` depois de uma importação já persistida.
 - **Risco:** repetição manual da operação, fatos duplicados e mensagens enganosas.
 - **Comportamento esperado:** sucesso da escrita deve ser distinguido de falha ao sincronizar a visão. Falha de refresh deve solicitar nova tentativa de carregar os dados, não repetir a gravação.
-- **Correção:** separar as duas fases e padronizar sem introduzir framework de estado novo.
-- **Teste de regressão:** teste focal simulando ação bem-sucedida seguida por refresh rejeitado; complementar com fluxo desktop se trouxer valor estável.
-- **Commit/PR:** pendente.
+- **Correção:** criado `runMutationFlow`, helper puro que distingue `success`, `mutation-failed` e `refresh-failed`. O hook global retorna sucesso quando a escrita concluiu, mesmo que a recarga posterior falhe, e mostra mensagem explícita informando que os dados foram salvos e que a tela deve ser atualizada antes de repetir. A importação de espécies preserva o resultado importado e aplica a mesma mensagem de sincronização.
+- **Teste de regressão:** `tests/mutation-flow.test.ts` executa Promises reais e prova três contratos: sucesso completo, falha da mutação sem tentar refresh e mutação bem-sucedida seguida por refresh rejeitado classificada como `refresh-failed`.
+- **Validação:** CI leve #540 (`33511753482`) no commit `f407ce2`: build TypeScript/Vite e suíte frontend aprovados, incluindo a nova regressão. O perfil completo fica para o checkpoint manual antes de considerar a validação encerrada.
+- **Commit/PR:** implementado na `work/field-testing-and-hardening`; preparar `validation/field-testing-ach-003` para checkpoint manual sem integração na `main`.
 
 ### ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior
 
@@ -462,19 +464,15 @@ A fronteira transacional entre fatos e Agenda foi corrigida nos fluxos cobertos 
 
 Mudanças de contexto operacional agora reconciliam a Agenda derivada antes do commit. O checkpoint temporário PR #48 executou o perfil completo de CI e o run #534 (`33509790464`) terminou com sucesso, incluindo `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. O PR de validação não deve ser integrado na `main`.
 
+### 2026-09-01 — ACH-003 corrigido e preparado para checkpoint manual
+
+O fluxo global de mutações agora distingue falha da escrita de falha posterior de refresh. Uma gravação concluída não retorna mais `false` só porque a visão não conseguiu recarregar; a interface informa que os dados foram salvos e orienta usar **Atualizar** antes de repetir a operação. A importação CSV recebeu a mesma proteção. A Agenda foi reavaliada e ficou fora do patch porque seu `reload()` já captura a própria falha sem reclassificar a mutação como malsucedida. O CI leve #540 (`33511753482`) aprovou build e testes frontend. A validação completa ficará a cargo do checkpoint manual em `validation/field-testing-ach-003`.
+
 ## Próximo passo
 
-Revisar **ACH-003 — Frontend confunde falha de refresh com falha da mutação já concluída** antes de qualquer implementação.
+Abrir manualmente um checkpoint de validação usando `validation/field-testing-ach-003` contra `main`, apenas para executar o perfil completo de CI. Esse PR não deve ser integrado na `main`.
 
-A revisão deve mapear, sem modificar código:
-
-1. o helper de mutação/refresh em `src/hooks/useAppData.ts`;
-2. o fluxo equivalente em `src/pages/AgendaPage.tsx`;
-3. quais telas dependem do mesmo padrão;
-4. como distinguir sucesso da escrita de falha posterior ao recarregar a visão sem mudar contratos IPC;
-5. qual é o menor teste estável que prova ação bem-sucedida seguida por refresh rejeitado sem sugerir repetição da gravação.
-
-Depois da revisão, propor o menor conjunto de mudanças e testes de regressão para aprovação antes de aplicar qualquer patch.
+Depois do checkpoint verde, atualizar o status do ACH-003 para **corrigido e validado** e então revisar, sem modificar código, **ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior** antes de qualquer implementação.
 
 ## Handoff para a próxima conversa
 
