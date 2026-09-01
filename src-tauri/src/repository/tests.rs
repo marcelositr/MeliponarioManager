@@ -410,3 +410,182 @@ async fn archived_master_data_cannot_receive_new_operational_children() {
     .await
     .is_err());
 }
+
+#[tokio::test]
+async fn creation_rejects_normalized_master_data_duplicates_but_keeps_scoped_codes() {
+    let pool = test_pool().await;
+    let mel = create_meliponary(
+        &pool,
+        CreateMeliponary {
+            name: "Meliponário Norte".into(),
+            responsible_name: None,
+            location: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        create_meliponary(
+            &pool,
+            CreateMeliponary {
+                name: "  MELIPONÁRIO NORTE  ".into(),
+                responsible_name: None,
+                location: None,
+                notes: None,
+            },
+        )
+        .await,
+        Err(AppError::Validation(_))
+    ));
+
+    let species = create_species(
+        &pool,
+        CreateSpecies {
+            common_name: "Jataí".into(),
+            scientific_name: Some("Tetragonisca angustula".into()),
+            genus: Some("Tetragonisca".into()),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        create_species(
+            &pool,
+            CreateSpecies {
+                common_name: "Outro nome".into(),
+                scientific_name: Some("  TETRAGONISCA ANGUSTULA ".into()),
+                genus: Some("Outro".into()),
+                notes: None,
+            },
+        )
+        .await,
+        Err(AppError::Validation(_))
+    ));
+    create_species(
+        &pool,
+        CreateSpecies {
+            common_name: "Mandaçaia".into(),
+            scientific_name: None,
+            genus: Some("Melipona".into()),
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        create_species(
+            &pool,
+            CreateSpecies {
+                common_name: " mandaçaia ".into(),
+                scientific_name: None,
+                genus: Some(" MELIPONA ".into()),
+                notes: None,
+            },
+        )
+        .await,
+        Err(AppError::Validation(_))
+    ));
+
+    create_box(
+        &pool,
+        CreateHiveBox {
+            meliponary_id: mel.id.clone(),
+            code: "CX-01".into(),
+            model: None,
+            material: None,
+            location_note: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        create_box(
+            &pool,
+            CreateHiveBox {
+                meliponary_id: mel.id.clone(),
+                code: "  cx-01  ".into(),
+                model: None,
+                material: None,
+                location_note: None,
+                notes: None,
+            },
+        )
+        .await,
+        Err(AppError::Validation(_))
+    ));
+    create_colony(
+        &pool,
+        CreateColony {
+            meliponary_id: mel.id.clone(),
+            species_id: species.id.clone(),
+            code: "JAT-01".into(),
+            origin_type: None,
+            origin_notes: None,
+            installed_at: None,
+            mother_colony_id: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    assert!(matches!(
+        create_colony(
+            &pool,
+            CreateColony {
+                meliponary_id: mel.id.clone(),
+                species_id: species.id.clone(),
+                code: " jat-01 ".into(),
+                origin_type: None,
+                origin_notes: None,
+                installed_at: None,
+                mother_colony_id: None,
+                notes: None,
+            },
+        )
+        .await,
+        Err(AppError::Validation(_))
+    ));
+
+    let other_mel = create_meliponary(
+        &pool,
+        CreateMeliponary {
+            name: "Meliponário Sul".into(),
+            responsible_name: None,
+            location: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    create_box(
+        &pool,
+        CreateHiveBox {
+            meliponary_id: other_mel.id.clone(),
+            code: "cx-01".into(),
+            model: None,
+            material: None,
+            location_note: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+    create_colony(
+        &pool,
+        CreateColony {
+            meliponary_id: other_mel.id,
+            species_id: species.id,
+            code: "jat-01".into(),
+            origin_type: None,
+            origin_notes: None,
+            installed_at: None,
+            mother_colony_id: None,
+            notes: None,
+        },
+    )
+    .await
+    .unwrap();
+}
