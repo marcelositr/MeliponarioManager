@@ -1,5 +1,5 @@
 import { open } from "@tauri-apps/plugin-dialog";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   importMeliponaryAttachment,
   listMeliponaryAttachments,
@@ -9,6 +9,7 @@ import {
   updateMeliponaryAttachment,
   type ManagedAttachment,
 } from "../lib/files-api";
+import { createLatestRequestController, runLatestRequest } from "../lib/latest-request";
 import { formatDateTimeBr, publicError } from "../lib/presentation";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Dialog } from "./Dialog";
@@ -25,20 +26,27 @@ export function MeliponaryFilesPanel({ meliponaryId }: { meliponaryId: string })
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [removing, setRemoving] = useState<ManagedAttachment | null>(null);
+  const fileRequests = useRef(createLatestRequestController());
 
   const reload = useCallback(async () => {
     setLoading(true);
-    try {
-      setItems(await listMeliponaryAttachments(meliponaryId));
-    } catch (error) {
-      setFeedback({ kind: "error", text: publicError(error, "Não foi possível carregar os arquivos deste meliponário.") });
-    } finally {
-      setLoading(false);
-    }
+    setFeedback(null);
+    return runLatestRequest(
+      fileRequests.current,
+      () => listMeliponaryAttachments(meliponaryId),
+      {
+        onSuccess: setItems,
+        onError: (error) => {
+          setFeedback({ kind: "error", text: publicError(error, "Não foi possível carregar os arquivos deste meliponário.") });
+        },
+        onSettled: () => setLoading(false),
+      },
+    );
   }, [meliponaryId]);
 
   useEffect(() => {
     void reload();
+    return () => fileRequests.current.invalidate();
   }, [reload]);
 
   async function attachFile() {
@@ -49,8 +57,12 @@ export function MeliponaryFilesPanel({ meliponaryId }: { meliponaryId: string })
     setFeedback(null);
     try {
       await importMeliponaryAttachment({ meliponaryId, sourcePath: selected });
-      await reload();
-      setFeedback({ kind: "success", text: "Arquivo anexado e copiado para a área gerenciada." });
+      const refresh = await reload();
+      if (refresh === "success") {
+        setFeedback({ kind: "success", text: "Arquivo anexado e copiado para a área gerenciada." });
+      } else if (refresh === "error") {
+        setFeedback({ kind: "error", text: "O arquivo foi anexado, mas a lista não pôde ser atualizada. Reabra esta ficha antes de repetir a operação." });
+      }
     } catch (error) {
       setFeedback({ kind: "error", text: publicError(error, "Não foi possível anexar o arquivo.") });
     } finally {
@@ -83,8 +95,12 @@ export function MeliponaryFilesPanel({ meliponaryId }: { meliponaryId: string })
     try {
       await updateMeliponaryAttachment({ id: editing.id, description, notes });
       setEditing(null);
-      await reload();
-      setFeedback({ kind: "success", text: "Descrição do arquivo atualizada." });
+      const refresh = await reload();
+      if (refresh === "success") {
+        setFeedback({ kind: "success", text: "Descrição do arquivo atualizada." });
+      } else if (refresh === "error") {
+        setFeedback({ kind: "error", text: "A descrição foi salva, mas a lista não pôde ser atualizada. Reabra esta ficha antes de editar novamente." });
+      }
     } catch (error) {
       setFeedback({ kind: "error", text: publicError(error, "Não foi possível atualizar o arquivo.") });
     } finally {
@@ -99,8 +115,12 @@ export function MeliponaryFilesPanel({ meliponaryId }: { meliponaryId: string })
     try {
       await removeMeliponaryAttachment(removing.id);
       setRemoving(null);
-      await reload();
-      setFeedback({ kind: "success", text: "Anexo gerenciado removido. O arquivo original não foi alterado." });
+      const refresh = await reload();
+      if (refresh === "success") {
+        setFeedback({ kind: "success", text: "Anexo gerenciado removido. O arquivo original não foi alterado." });
+      } else if (refresh === "error") {
+        setFeedback({ kind: "error", text: "O anexo foi removido, mas a lista não pôde ser atualizada. Reabra esta ficha antes de repetir a operação." });
+      }
     } catch (error) {
       setFeedback({ kind: "error", text: publicError(error, "Não foi possível remover o anexo.") });
     } finally {
