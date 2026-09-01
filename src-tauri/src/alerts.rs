@@ -377,7 +377,9 @@ mod tests {
 
         let before = list(&pool).await.unwrap();
         assert!(before.iter().any(|item| item.alert_type == "weak_colony"));
-        assert!(before.iter().any(|item| item.task_id.as_deref() == Some("manual-overdue")));
+        assert!(before
+            .iter()
+            .any(|item| item.task_id.as_deref() == Some("manual-overdue")));
 
         master_data::archive_meliponary(
             &pool,
@@ -390,17 +392,22 @@ mod tests {
         .unwrap();
 
         assert!(list(&pool).await.unwrap().is_empty());
-        assert!(list_for(&pool, Some(&meliponary_id)).await.unwrap().is_empty());
-        let kept_inspections: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM inspections WHERE colony_id=?")
-            .bind(&colony_id)
-            .fetch_one(&pool)
+        assert!(list_for(&pool, Some(&meliponary_id))
             .await
-            .unwrap();
+            .unwrap()
+            .is_empty());
+        let kept_inspections: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM inspections WHERE colony_id=?")
+                .bind(&colony_id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(kept_inspections, 1);
-        let kept_task_status: String = sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id='manual-overdue'")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+        let kept_task_status: String =
+            sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id='manual-overdue'")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
         assert_eq!(kept_task_status, "pending");
 
         master_data::reactivate_meliponary(
@@ -414,7 +421,9 @@ mod tests {
         .unwrap();
         let after = list_for(&pool, Some(&meliponary_id)).await.unwrap();
         assert!(after.iter().any(|item| item.alert_type == "weak_colony"));
-        assert!(after.iter().any(|item| item.task_id.as_deref() == Some("manual-overdue")));
+        assert!(after
+            .iter()
+            .any(|item| item.task_id.as_deref() == Some("manual-overdue")));
     }
 
     #[tokio::test]
