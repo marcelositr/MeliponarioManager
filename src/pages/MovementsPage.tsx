@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Dialog } from "../components/Dialog";
 import { PageToolbar } from "../components/PageToolbar";
 import { ReasonDialog } from "../components/ReasonDialog";
 import type { RecordStateMap } from "../hooks/useAppData";
 import { listColonyMovements, listMovementDocuments } from "../lib/api";
+import { createLatestRequestController, runLatestRequest } from "../lib/latest-request";
 import { formatDateTimeBr, publicError } from "../lib/presentation";
 import { completeTransport, listTransportReturns, reopenTransport, type TransportReturn } from "../lib/transport-api";
 import type { Colony, ColonyMovement, CorrectMovementDetailsInput, CreateMovementDocumentInput, CreateMovementInput, HiveBox, Meliponary, MovementDocument, ReverseRecordInput, UpdateMovementDocumentInput, VoidRecordInput } from "../types";
@@ -54,6 +55,8 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
   const [documentDetail, setDocumentDetail] = useState<MovementDocument | null>(null);
   const [documentEdit, setDocumentEdit] = useState<UpdateMovementDocumentInput | null>(null);
   const [documentVoid, setDocumentVoid] = useState<MovementDocument | null>(null);
+  const movementRequests = useRef(createLatestRequestController());
+  const documentRequests = useRef(createLatestRequestController());
 
   const selectedMovementColony = colonies.find((colony) => colony.id === movementForm.colonyId);
   const movable = selectedMovementColony ? !["lost", "inactive", "transferred"].includes(selectedMovementColony.status) : false;
@@ -69,22 +72,47 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
   useEffect(() => { void reloadDocuments(documentForm.movementId); }, [documentForm.movementId]);
 
   async function reloadMovements(colonyId = selectedColonyId) {
-    if (!colonyId) { setMovements([]); setTransportReturns([]); return; }
-    setLoading(true);
-    try {
-      const [nextMovements, nextReturns] = await Promise.all([listColonyMovements(colonyId), listTransportReturns(colonyId)]);
-      setMovements(nextMovements);
-      setTransportReturns(nextReturns);
-    } catch (error) {
-      setTransportFeedback({ kind: "error", text: publicError(error, "Não foi possível carregar as movimentações.") });
-    } finally {
+    if (!colonyId) {
+      movementRequests.current.invalidate();
+      setMovements([]);
+      setTransportReturns([]);
       setLoading(false);
+      return;
     }
+    setLoading(true);
+    await runLatestRequest(
+      movementRequests.current,
+      () => Promise.all([listColonyMovements(colonyId), listTransportReturns(colonyId)]),
+      {
+        onSuccess: ([nextMovements, nextReturns]) => {
+          setMovements(nextMovements);
+          setTransportReturns(nextReturns);
+        },
+        onError: (error) => {
+          setTransportFeedback({ kind: "error", text: publicError(error, "Não foi possível carregar as movimentações.") });
+        },
+        onSettled: () => setLoading(false),
+      },
+    );
   }
 
   async function reloadDocuments(movementId = documentForm.movementId) {
-    if (!movementId) { setDocuments([]); return; }
-    setDocuments(await listMovementDocuments(movementId));
+    if (!movementId) {
+      documentRequests.current.invalidate();
+      setDocuments([]);
+      return;
+    }
+    await runLatestRequest(
+      documentRequests.current,
+      () => listMovementDocuments(movementId),
+      {
+        onSuccess: setDocuments,
+        onError: (error) => {
+          setDocumentsOpen(false);
+          setTransportFeedback({ kind: "error", text: publicError(error, "Não foi possível carregar os documentos da movimentação.") });
+        },
+      },
+    );
   }
 
   function openMovement() {
@@ -94,6 +122,7 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
   }
 
   function openDocuments(movementId: string) {
+    setTransportFeedback(null);
     setDocumentForm({ ...documentInitial, movementId });
     setDocumentsOpen(true);
   }
