@@ -49,7 +49,8 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] ACH-004 corrigido e validado por CI completo na branch `validation/field-testing-ach-004`.
 - [x] ACH-005 corrigido e validado por CI completo na branch `validation/field-testing-ach-005`.
 - [x] Corrigir primeiro bloco de achados de integridade/consistência.
-- [ ] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
+- [x] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
+- [x] Validação manual local dos fluxos cobertos por ACH-001..ACH-005 concluída sem regressões observadas.
 
 ## Política temporária de CI da branch
 
@@ -179,11 +180,13 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Concluído em 2026-09-01.**
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo. **Concluído em 2026-09-01.**
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint. **Concluído em 2026-09-01.**
-6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos.
+6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos. **Concluído em 2026-09-01, sem regressões observadas.**
 
 Os achados marcados como **investigando** não devem ser corrigidos até a semântica desejada ser confirmada pelo domínio ou pelo teste manual.
 
 ## Fase 1 — Teste manual orientado por uso real
+
+A rodada local já cobriu os fluxos diretamente afetados por ACH-001..ACH-005 e não revelou regressões. Os itens abaixo que extrapolam esse bloco continuam registrados para validação manual futura conforme o uso real exigir; não são considerados automaticamente concluídos apenas por essa rodada.
 
 ### Inicialização e navegação
 
@@ -480,13 +483,17 @@ A reversão de transferência externa agora consegue restaurar uma colônia orig
 
 As quatro famílias de dados mestres agora possuem identidade operacional explícita e compartilhada entre criação, edição e, no caso de espécie, importação CSV. A regra usa `trim` + lowercase Unicode; meliponário é identificado pelo nome global, caixa e colônia pelo código dentro do meliponário e espécie pelo nome científico quando presente ou por nome popular + gênero no fallback. Colisões antigas não são reescritas nem impedem manutenção que preserve a identidade existente. Nenhuma migration nova foi criada porque uma constraint normalizada agora poderia quebrar bancos com colisões preexistentes e não reproduziria com segurança a normalização Unicode via SQLite. O CI completo #565 (`33519618773`) passou no checkpoint congelado `validation/field-testing-ach-005` / `db99ec6`, incluindo frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
 
+### 2026-09-01 — Bloco ACH-001..ACH-005 validado manualmente
+
+Os fluxos diretamente afetados pelas correções ACH-001..ACH-005 foram exercitados localmente durante o desenvolvimento e, segundo a validação manual informada, estão funcionando corretamente sem regressões observadas. Com essa etapa concluída, o próximo achado aberto de severidade média pode ser analisado sem manter o bloco inicial pendente por falta de teste humano.
+
 ## Próximo passo
 
-O bloco inicial ACH-001..ACH-005 está corrigido e validado. O próximo passo previsto pelo plano é iniciar a rodada sistemática de **testes manuais orientados por uso real**, começando pelos cadastros e fluxos diretamente afetados por essas correções antes de escolher automaticamente o próximo achado médio/baixo.
+Revisar o **ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada**.
 
-Se for desejado manter o mesmo histórico visual dos checkpoints anteriores, `validation/field-testing-ach-005` está congelada no SHA `db99ec6` para um PR manual contra `main`, sempre sem merge.
+A revisão deve confirmar, sem modificar código de imediato, quais loaders de `MovementsPage.tsx` e `AssetsPage.tsx` podem realmente aceitar resposta obsoleta ou produzir rejeição sem estado de erro útil; comparar com o padrão de sequência/cancelamento já usado em páginas mais robustas; e só então definir a menor correção coerente e um teste determinístico quando viável.
 
-O próximo achado aberto por ordem numérica é o **ACH-006**, mas ele não deve ser implementado automaticamente antes de usar os resultados da rodada manual para confirmar prioridade e reprodução determinística.
+O checkpoint `validation/field-testing-ach-005` permanece congelado no SHA `db99ec6`; o commit documental desta validação manual fica somente na `work/field-testing-and-hardening` e não precisa disparar novo checkpoint pesado.
 
 ## Handoff para a próxima conversa
 
