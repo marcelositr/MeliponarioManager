@@ -47,6 +47,7 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
 - [x] ACH-003 corrigido e validado por CI completo na branch `validation/field-testing-ach-003`.
 - [x] ACH-004 corrigido e validado por CI completo na branch `validation/field-testing-ach-004`.
+- [x] ACH-005 corrigido e validado por CI completo na branch `validation/field-testing-ach-005`.
 - [x] Corrigir primeiro bloco de achados de integridade/consistência.
 - [ ] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
 
@@ -120,7 +121,7 @@ Conclusão: TypeScript está em modo `strict` e não foi encontrado uso explíci
 - [x] Procurar regras importantes mantidas apenas na aplicação quando deveriam ter segunda defesa no SQLite.
 - [x] Conferir testes de migrations e compatibilidade histórica existentes.
 
-Conclusão: há boa segunda defesa de SQLite em ocupação/estado de caixa, Agenda, transporte e anexos. As migrations recentes possuem testes específicos de upgrade/backfill. O problema de identidade cadastral exige decisão cuidadosa porque uma eventual defesa nova no banco precisará considerar dados já existentes.
+Conclusão: há boa segunda defesa de SQLite em ocupação/estado de caixa, Agenda, transporte e anexos. As migrations recentes possuem testes específicos de upgrade/backfill. A identidade cadastral foi harmonizada no ACH-005 na aplicação sem migration nova, porque uma constraint normalizada imediata poderia tornar bancos já existentes com colisões incompatíveis e o `lower()` nativo do SQLite não reproduz a mesma normalização Unicode usada pelo Rust.
 
 ### Testes
 
@@ -177,7 +178,7 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas. **Concluído em 2026-09-01.**
 3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Concluído em 2026-09-01.**
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo. **Concluído em 2026-09-01.**
-5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint.
+5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint. **Concluído em 2026-09-01.**
 6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos.
 
 Os achados marcados como **investigando** não devem ser corrigidos até a semântica desejada ser confirmada pelo domínio ou pelo teste manual.
@@ -332,17 +333,18 @@ Para cada problema real encontrado:
 
 ### ACH-005 — Cadastro, edição e importação discordam sobre identidade/duplicidade
 
-- **Status:** aberto
+- **Status:** corrigido e validado
 - **Severidade:** média
 - **Área:** backend / dados mestres / SQLite / importação
-- **Evidência:** `src-tauri/src/repository/entities.rs`, `src-tauri/src/master_data/{boxes,colonies,meliponaries,species}.rs`, `src-tauri/src/species_import.rs`, `migrations/0002_core_domain.sql`.
-- **Comportamento observado:** criação de caixa/colônia depende do `UNIQUE` padrão do SQLite, enquanto edição compara códigos com `lower(trim(...))`. Meliponário/espécie também possuem validação de edição mais estrita que criação. A importação de espécies usa outra chave: nome científico quando presente; caso contrário, nome popular + gênero.
-- **Exemplo:** pode ser possível criar códigos `CX-01` e `cx-01` no mesmo meliponário e depois encontrar conflito ao editar um deles.
+- **Evidência:** `src-tauri/src/identity.rs`, `src-tauri/src/repository/entities.rs`, `src-tauri/src/master_data/{boxes,colonies,meliponaries,species}.rs`, `src-tauri/src/master_data/identity_tests.rs`, `src-tauri/src/species_import.rs` e `migrations/0002_core_domain.sql`.
+- **Comportamento observado:** criação de caixa/colônia dependia do `UNIQUE` padrão do SQLite, enquanto edição comparava códigos com `lower(trim(...))`. Meliponário/espécie também possuíam validação de edição mais estrita que criação. A importação de espécies usava outra chave própria.
 - **Risco:** catálogo com duplicidades semanticamente equivalentes e comportamento diferente conforme a porta de entrada usada.
-- **Comportamento esperado:** cada entidade precisa de uma definição explícita e única de identidade operacional, aplicada de forma coerente em criar, editar e importar.
-- **Correção:** primeiro definir a regra por entidade; depois corrigir aplicação e somente então avaliar uma migration nova para segunda defesa, incluindo estratégia para bancos que já possam conter colisões.
-- **Teste de regressão:** criação/edição/importação com espaços e variação de caixa; banco preexistente com colisão deve ser tratado de forma não destrutiva.
-- **Commit/PR:** pendente.
+- **Comportamento esperado:** cada entidade deve possuir uma definição explícita e única de identidade operacional, aplicada de forma coerente em criar, editar e importar, sem tornar bancos antigos com colisões inutilizáveis.
+- **Correção:** criado módulo interno de identidade compartilhada. Meliponário usa nome normalizado globalmente; caixa e colônia usam código normalizado dentro do meliponário; espécie usa nome científico normalizado quando presente e, na ausência dele, nome popular + gênero. A normalização é `trim` + lowercase Unicode, sem remoção de acentos ou alteração do conteúdo interno. Criação, edição e importação CSV passaram a consumir a mesma regra. Edição só executa a barreira de duplicidade quando a identidade normalizada muda, permitindo manutenção não identitária de registros em bancos antigos que já possuam colisões.
+- **Decisão de schema:** nenhuma migration nova foi adicionada. Uma constraint normalizada imediata poderia falhar em bancos existentes que já contenham colisões e o `lower()` do SQLite não equivale à normalização Unicode do Rust. As constraints atuais permanecem como segunda defesa para colisões exatas; eventual defesa normalizada no banco exige primeiro estratégia explícita de diagnóstico/resolução de legado.
+- **Teste de regressão:** criação rejeita variações por espaços/caixa de meliponário, caixa e colônia e preserva o escopo de caixa/colônia por meliponário; espécie cobre identidade científica e fallback nome popular + gênero; importação CSV usa a mesma chave; edições rejeitam novas colisões; e uma colisão legada inserida diretamente no SQLite continua permitindo edição que não altere a identidade.
+- **Validação:** CI completo #565 (`33519618773`) no commit `db99ec6`: frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados. O run anterior #561 parou apenas no `rustfmt`; as três diferenças mecânicas apontadas foram aplicadas antes do run verde.
+- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint congelado em `validation/field-testing-ach-005` no SHA `db99ec6`. Um PR manual contra `main` pode ser aberto apenas para revisão/histórico e deve ser fechado sem merge.
 
 ### ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada
 
@@ -474,13 +476,17 @@ O fluxo global de mutações agora distingue falha da escrita de falha posterior
 
 A reversão de transferência externa agora consegue restaurar uma colônia originalmente criada como `active` mesmo quando não existe lifecycle anterior, desde que a própria cronologia da entrada no plantel torne essa inferência segura. O mecanismo não cria lifecycle retroativo e preserva todas as barreiras existentes contra reversão insegura. O CI completo #548 (`33517247992`) passou no checkpoint congelado `validation/field-testing-ach-004` / `01c8473`, incluindo frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
 
+### 2026-09-01 — ACH-005 fechado com validação completa
+
+As quatro famílias de dados mestres agora possuem identidade operacional explícita e compartilhada entre criação, edição e, no caso de espécie, importação CSV. A regra usa `trim` + lowercase Unicode; meliponário é identificado pelo nome global, caixa e colônia pelo código dentro do meliponário e espécie pelo nome científico quando presente ou por nome popular + gênero no fallback. Colisões antigas não são reescritas nem impedem manutenção que preserve a identidade existente. Nenhuma migration nova foi criada porque uma constraint normalizada agora poderia quebrar bancos com colisões preexistentes e não reproduziria com segurança a normalização Unicode via SQLite. O CI completo #565 (`33519618773`) passou no checkpoint congelado `validation/field-testing-ach-005` / `db99ec6`, incluindo frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
+
 ## Próximo passo
 
-Revisar, sem modificar código, **ACH-005 — Cadastro, edição e importação discordam sobre identidade/duplicidade**.
+O bloco inicial ACH-001..ACH-005 está corrigido e validado. O próximo passo previsto pelo plano é iniciar a rodada sistemática de **testes manuais orientados por uso real**, começando pelos cadastros e fluxos diretamente afetados por essas correções antes de escolher automaticamente o próximo achado médio/baixo.
 
-A revisão deve definir explicitamente a identidade operacional de meliponários, espécies, caixas e colônias; comparar criação, edição e importação; verificar possíveis colisões já presentes em bancos existentes; e somente depois propor se basta harmonizar validações na aplicação ou se será necessária uma migration nova de segunda defesa. Nenhuma constraint nova deve ser criada antes dessa decisão.
+Se for desejado manter o mesmo histórico visual dos checkpoints anteriores, `validation/field-testing-ach-005` está congelada no SHA `db99ec6` para um PR manual contra `main`, sempre sem merge.
 
-Se for desejado manter o mesmo histórico visual dos checkpoints anteriores, `validation/field-testing-ach-004` está congelada no SHA `01c8473` para um PR manual contra `main`, sempre sem merge.
+O próximo achado aberto por ordem numérica é o **ACH-006**, mas ele não deve ser implementado automaticamente antes de usar os resultados da rodada manual para confirmar prioridade e reprodução determinística.
 
 ## Handoff para a próxima conversa
 
