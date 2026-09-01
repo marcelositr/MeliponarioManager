@@ -150,10 +150,11 @@ pub(crate) async fn reconcile_inspection_tx(
         String,
     );
     let latest: Option<Latest> = sqlx::query_as(
-        "SELECT i.id,i.next_inspection_at,i.box_id,c.meliponary_id,c.code,m.archived_at,c.status
+        "SELECT i.id,i.next_inspection_at,o.box_id,c.meliponary_id,c.code,m.archived_at,c.status
          FROM inspections i
          JOIN colonies c ON c.id=i.colony_id
          JOIN meliponaries m ON m.id=c.meliponary_id
+         LEFT JOIN colony_box_occupancies o ON o.colony_id=c.id AND o.ended_at IS NULL
          WHERE i.colony_id=? AND i.voided_at IS NULL
          ORDER BY i.inspected_at DESC,i.created_at DESC,i.id DESC LIMIT 1",
     )
@@ -204,10 +205,11 @@ pub(crate) async fn reconcile_feeding_tx(
         String,
     );
     let latest: Option<Latest> = sqlx::query_as(
-        "SELECT f.id,f.next_feeding_at,f.box_id,c.meliponary_id,c.code,m.archived_at,c.status
+        "SELECT f.id,f.next_feeding_at,o.box_id,c.meliponary_id,c.code,m.archived_at,c.status
          FROM feedings f
          JOIN colonies c ON c.id=f.colony_id
          JOIN meliponaries m ON m.id=c.meliponary_id
+         LEFT JOIN colony_box_occupancies o ON o.colony_id=c.id AND o.ended_at IS NULL
          WHERE f.colony_id=? AND f.voided_at IS NULL
          ORDER BY f.fed_at DESC,f.created_at DESC,f.id DESC LIMIT 1",
     )
@@ -291,6 +293,43 @@ pub async fn reconcile_maintenance(pool: &SqlitePool, box_id: &str) -> Result<()
     let mut tx = pool.begin().await?;
     reconcile_maintenance_tx(&mut tx, box_id).await?;
     tx.commit().await?;
+    Ok(())
+}
+
+pub(crate) async fn reconcile_meliponary_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    meliponary_id: &str,
+) -> Result<(), AppError> {
+    let meliponary_id = required(meliponary_id, "Meliponário")?;
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id=?)")
+            .bind(&meliponary_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    if !exists {
+        return Err(AppError::NotFound(
+            "Meliponário não encontrado.".to_owned(),
+        ));
+    }
+
+    let colonies: Vec<String> =
+        sqlx::query_scalar("SELECT id FROM colonies WHERE meliponary_id=? ORDER BY id")
+            .bind(&meliponary_id)
+            .fetch_all(&mut **tx)
+            .await?;
+    for colony_id in colonies {
+        reconcile_inspection_tx(tx, &colony_id).await?;
+        reconcile_feeding_tx(tx, &colony_id).await?;
+    }
+
+    let boxes: Vec<String> =
+        sqlx::query_scalar("SELECT id FROM boxes WHERE meliponary_id=? ORDER BY id")
+            .bind(&meliponary_id)
+            .fetch_all(&mut **tx)
+            .await?;
+    for box_id in boxes {
+        reconcile_maintenance_tx(tx, &box_id).await?;
+    }
     Ok(())
 }
 
