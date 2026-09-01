@@ -6,9 +6,11 @@ Ele existe para que o desenvolvimento possa continuar entre conversas diferentes
 
 ## Branch de trabalho
 
-`work/field-testing-and-hardening`
+`work/field-testing-ach-006`
 
-Base inicial: `main` após o merge do PR #46 (`7640c69`).
+Base histórica inicial: `main` após o merge do PR #46 (`7640c69`).
+
+Base atual deste novo bloco: `main` após o squash merge do PR #49 (`4761b14`).
 
 ## Objetivo desta fase
 
@@ -53,7 +55,9 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] Validação manual local dos fluxos cobertos por ACH-001..ACH-005 concluída sem regressões observadas.
 - [x] Fotos, backup e impressão validados manualmente e aprovados.
 - [x] Exceção temporária de CI leve removida antes da integração final.
-- [ ] Integrar `work/field-testing-and-hardening` na `main` por Pull Request antes de iniciar ACH-006.
+- [x] PR #49 integrado na `main` por squash merge no commit `4761b14`.
+- [x] `main` pós-merge validada pelo full-check #29 (`33523844254`) e auditoria de dependências #21 (`33523844158`).
+- [x] Novo bloco iniciado a partir da `main` integrada na branch `work/field-testing-ach-006`.
 
 ## Política de CI após a fase longa
 
@@ -68,7 +72,7 @@ Essa exceção cumpriu seu papel e foi removida antes da integração final. A p
 - Clippy com `-D warnings`;
 - `cargo test --locked`.
 
-A documentação mantém este histórico para explicar por que runs anteriores da branch longa aparecem com perfil reduzido. A integração final não deve levar uma exceção específica de branch para a `main`.
+A documentação mantém este histórico para explicar por que runs anteriores da branch longa aparecem com perfil reduzido. O PR #49 foi integrado sem levar exceção específica de branch para a `main`.
 
 ## Fase 0 — Auditoria geral do projeto
 
@@ -174,7 +178,7 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo. **Concluído em 2026-09-01.**
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint. **Concluído em 2026-09-01.**
 6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos. **Concluído em 2026-09-01, sem regressões observadas.**
-7. Integrar o bloco estabilizado na `main` antes de iniciar o ACH-006. **Em preparação.**
+7. Integrar o bloco estabilizado na `main` antes de iniciar o ACH-006. **Concluído em 2026-09-01 pelo PR #49.**
 
 Os achados marcados como **investigando** não devem ser corrigidos até a semântica desejada ser confirmada pelo domínio ou pelo teste manual.
 
@@ -345,7 +349,7 @@ Para cada problema real encontrado:
 
 ### ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada
 
-- **Status:** aberto; aguardando integração do bloco ACH-001..ACH-005 na `main`
+- **Status:** aberto; próximo bloco em `work/field-testing-ach-006`
 - **Severidade:** média
 - **Área:** frontend / concorrência assíncrona
 - **Evidência:** `src/pages/MovementsPage.tsx` e `src/pages/AssetsPage.tsx`; `AgendaPage.tsx` já possui padrão melhor de sequência/cancelamento que pode servir de referência.
@@ -490,11 +494,15 @@ Além do bloco ACH-001..ACH-005, o fluxo de fotos, a criação/validação de ba
 
 A fase longa de correções será integrada na `main` antes de iniciar ACH-006. O perfil leve específico de `work/field-testing-and-hardening` foi removido no commit `efb6c4f`, restaurando o CI completo para mudanças de código. Este `WORK-PLAN.md` deve ser preservado na integração para manter o histórico de decisões, validações, riscos resolvidos e achados ainda abertos.
 
+### 2026-09-01 — PR #49 integrado e novo bloco iniciado
+
+O PR #49 (`fix: integrate field-testing hardening ACH-001 through ACH-005`) foi integrado na `main` por squash merge no commit `4761b14644bcbccd56a7a7e00f65f1c197178624`. O gate cumulativo do PR já havia passado no CI #571 (`33521970903`) e na auditoria de dependências #20 (`33521970798`). Após o merge, a própria `main` passou novamente no `full-check` #29 (`33523844254`) e na auditoria de dependências #21 (`33523844158`). A branch `work/field-testing-ach-006` foi criada diretamente desse commit integrado para o próximo bloco, mantendo este documento como continuidade.
+
 ## Próximo passo
 
-Abrir e validar o Pull Request de integração de `work/field-testing-and-hardening` para `main`, preservando este arquivo de progresso.
+Revisar o **ACH-006 — Alguns loaders de página permitem resposta fora de ordem ou rejeição não tratada** na branch `work/field-testing-ach-006`, que parte diretamente da `main` integrada no PR #49.
 
-Não iniciar implementação do **ACH-006** antes de a integração do bloco ACH-001..ACH-005 ser concluída. Depois do merge, retomar pelo ACH-006 a partir da `main` atualizada, preferencialmente em uma nova branch de trabalho dedicada ao próximo bloco.
+Antes de modificar código, confirmar quais loaders de `MovementsPage.tsx` e `AssetsPage.tsx` realmente aceitam resposta obsoleta ou produzem rejeição sem estado de erro útil; comparar com o padrão de sequência/cancelamento já usado em páginas mais robustas; e somente então definir a menor correção coerente e um teste determinístico quando viável.
 
 Os checkpoints `validation/field-testing-ach-003`, `validation/field-testing-ach-004` e `validation/field-testing-ach-005` permanecem apenas como evidência histórica dos gates completos e não devem ser integrados separadamente.
 
@@ -502,8 +510,8 @@ Os checkpoints `validation/field-testing-ach-003`, `validation/field-testing-ach
 
 Se uma nova conversa precisar continuar este trabalho:
 
-1. abrir `docs/WORK-PLAN.md` na branch ativa de trabalho ou na `main` após a integração;
+1. abrir `docs/WORK-PLAN.md` na branch ativa `work/field-testing-ach-006` ou na `main` após a próxima integração;
 2. ler **Estado atual**, **Ordem inicial de correção**, **Achados**, **Decisões de trabalho** e **Próximo passo**;
 3. conferir os commits mais recentes da branch;
 4. continuar pelo próximo passo registrado, sem refazer a auditoria do zero;
-5. preservar este arquivo durante a integração e atualizá-lo ao fechar cada achado ou ao tomar decisão de domínio importante.
+5. preservar este arquivo durante as integrações e atualizá-lo ao fechar cada achado ou ao tomar decisão de domínio importante.
