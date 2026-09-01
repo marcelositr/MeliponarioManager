@@ -30,7 +30,6 @@ export function MeliponaryFilesPanel({ meliponaryId }: { meliponaryId: string })
 
   const reload = useCallback(async () => {
     setLoading(true);
-    setFeedback(null);
     return runLatestRequest(
       fileRequests.current,
       () => listMeliponaryAttachments(meliponaryId),
@@ -45,6 +44,7 @@ export function MeliponaryFilesPanel({ meliponaryId }: { meliponaryId: string })
   }, [meliponaryId]);
 
   useEffect(() => {
+    setFeedback(null);
     void reload();
     return () => fileRequests.current.invalidate();
   }, [reload]);
