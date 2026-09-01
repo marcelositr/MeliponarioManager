@@ -150,6 +150,8 @@ pub async fn place_colony(
     )
     .await?;
 
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
 
     Ok(sqlx::query_as::<_, ColonyBoxOccupancy>(
