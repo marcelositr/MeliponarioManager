@@ -19,10 +19,7 @@ struct DecorationRow {
 
 type Decorations = HashMap<String, HashMap<String, DecorationRow>>;
 
-pub async fn by_colony(
-    pool: &SqlitePool,
-    colony_id: &str,
-) -> Result<Vec<TimelineEntry>, AppError> {
+pub async fn by_colony(pool: &SqlitePool, colony_id: &str) -> Result<Vec<TimelineEntry>, AppError> {
     let mut entries = history::timeline_by_colony(pool, colony_id).await?;
     entries.extend(maintenance::timeline_entries_by_colony(pool, colony_id).await?);
     entries.extend(lifecycle::timeline_entries(pool, colony_id).await?);
