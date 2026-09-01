@@ -80,42 +80,6 @@ async fn colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<bool, AppEr
     )
 }
 
-async fn box_at(
-    pool: &SqlitePool,
-    colony_id: &str,
-    fed_at: &str,
-) -> Result<Option<String>, AppError> {
-    Ok(sqlx::query_scalar::<_, String>(
-        "SELECT box_id
-         FROM colony_box_occupancies
-         WHERE colony_id = ?
-           AND started_at <= ?
-           AND (ended_at IS NULL OR ended_at >= ?)
-         ORDER BY started_at DESC
-         LIMIT 1",
-    )
-    .bind(colony_id)
-    .bind(fed_at)
-    .bind(fed_at)
-    .fetch_optional(pool)
-    .await?)
-}
-
-async fn get(pool: &SqlitePool, id: &str) -> Result<Feeding, AppError> {
-    Ok(sqlx::query_as::<_, Feeding>(
-        "SELECT f.id, f.colony_id, c.code AS colony_code, f.box_id, b.code AS box_code,
-                f.fed_at, f.food_type, f.quantity, f.unit, f.response_notes, f.notes,
-                f.next_feeding_at, f.created_at
-         FROM feedings f
-         JOIN colonies c ON c.id = f.colony_id
-         LEFT JOIN boxes b ON b.id = f.box_id
-         WHERE f.id = ?",
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await?)
-}
-
 async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Feeding, AppError> {
     Ok(sqlx::query_as::<_, Feeding>(
         "SELECT f.id, f.colony_id, c.code AS colony_code, f.box_id, b.code AS box_code,
@@ -195,6 +159,7 @@ pub(crate) async fn create_tx(
     get_tx(tx, &id).await
 }
 
+#[cfg(test)]
 pub async fn create(pool: &SqlitePool, input: CreateFeeding) -> Result<Feeding, AppError> {
     let mut tx = pool.begin().await?;
     let record = create_tx(&mut tx, input).await?;
