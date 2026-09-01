@@ -68,3 +68,27 @@ test("invalidation prevents a pending request from applying", async () => {
   assert.equal(await run, "stale");
   assert.deepEqual(applied, []);
 });
+
+test("stale request does not settle loading owned by the current request", async () => {
+  const controller = createLatestRequestController();
+  const first = deferred<string>();
+  const second = deferred<string>();
+  const settled: string[] = [];
+
+  const firstRun = runLatestRequest(controller, () => first.promise, {
+    onSuccess: () => undefined,
+    onSettled: () => settled.push("first"),
+  });
+  const secondRun = runLatestRequest(controller, () => second.promise, {
+    onSuccess: () => undefined,
+    onSettled: () => settled.push("second"),
+  });
+
+  first.resolve("old");
+  assert.equal(await firstRun, "stale");
+  assert.deepEqual(settled, []);
+
+  second.resolve("new");
+  assert.equal(await secondRun, "success");
+  assert.deepEqual(settled, ["second"]);
+});
