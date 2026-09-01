@@ -5,18 +5,6 @@ pub fn is_manageable_status(status: &str) -> bool {
     matches!(status, "active" | "weak" | "recovering")
 }
 
-pub async fn ensure_colony_exists(pool: &SqlitePool, colony_id: &str) -> Result<(), AppError> {
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
-        .bind(colony_id)
-        .fetch_one(pool)
-        .await?;
-    if exists {
-        Ok(())
-    } else {
-        Err(AppError::NotFound("Colônia não encontrada.".to_owned()))
-    }
-}
-
 pub async fn ensure_colony_available_at(
     pool: &SqlitePool,
     colony_id: &str,
