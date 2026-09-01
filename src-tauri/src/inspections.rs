@@ -66,22 +66,6 @@ fn strength(value: &Option<String>) -> Result<String, AppError> {
     }
 }
 
-async fn get(pool: &SqlitePool, id: &str) -> Result<Inspection, AppError> {
-    Ok(sqlx::query_as::<_, Inspection>(
-        "SELECT i.id, i.colony_id, c.code AS colony_code, i.box_id, b.code AS box_code,
-                i.inspected_at, i.strength, i.queen_present, i.laying_status,
-                i.food_reserves, i.brood_status, i.pests_notes, i.observations,
-                i.actions_taken, i.next_inspection_at, i.created_at
-         FROM inspections i
-         JOIN colonies c ON c.id = i.colony_id
-         LEFT JOIN boxes b ON b.id = i.box_id
-         WHERE i.id = ?",
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await?)
-}
-
 async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Inspection, AppError> {
     Ok(sqlx::query_as::<_, Inspection>(
         "SELECT i.id, i.colony_id, c.code AS colony_code, i.box_id, b.code AS box_code,
@@ -166,6 +150,7 @@ pub(crate) async fn create_tx(
     get_tx(tx, &id).await
 }
 
+#[cfg(test)]
 pub async fn create(pool: &SqlitePool, input: CreateInspection) -> Result<Inspection, AppError> {
     let mut tx = pool.begin().await?;
     let record = create_tx(&mut tx, input).await?;
