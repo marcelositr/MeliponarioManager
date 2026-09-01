@@ -182,13 +182,11 @@ async fn edits_reject_new_normalized_collisions_but_preserve_legacy_identity() {
         Err(AppError::Validation(_))
     ));
 
-    sqlx::query(
-        "INSERT INTO boxes (id, meliponary_id, code) VALUES ('legacy-box', ?, 'cx-01')",
-    )
-    .bind(&primary.id)
-    .execute(&pool)
-    .await
-    .unwrap();
+    sqlx::query("INSERT INTO boxes (id, meliponary_id, code) VALUES ('legacy-box', ?, 'cx-01')")
+        .bind(&primary.id)
+        .execute(&pool)
+        .await
+        .unwrap();
     let edited = edit_box(
         &pool,
         EditBox {
@@ -204,6 +202,9 @@ async fn edits_reject_new_normalized_collisions_but_preserve_legacy_identity() {
     .await
     .unwrap();
     assert_eq!(edited.code, "CX-01");
-    assert_eq!(edited.notes.as_deref(), Some("Edição não identitária permitida"));
+    assert_eq!(
+        edited.notes.as_deref(),
+        Some("Edição não identitária permitida")
+    );
     assert_eq!(colony_one.code, "JAT-01");
 }
