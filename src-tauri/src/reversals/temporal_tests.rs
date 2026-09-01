@@ -161,17 +161,30 @@ async fn movement_reversal_preserves_past_occupancy_and_restores_origin_from_rev
     .await
     .unwrap();
 
-    let reversed_at: String = sqlx::query_scalar(
-        "SELECT reversed_at FROM colony_movements WHERE id=?",
-    )
-    .bind(movement.id)
-    .fetch_one(&seed.pool)
-    .await
-    .unwrap();
+    let reversed_at: String =
+        sqlx::query_scalar("SELECT reversed_at FROM colony_movements WHERE id=?")
+            .bind(movement.id)
+            .fetch_one(&seed.pool)
+            .await
+            .unwrap();
     let rows = occupancies(&seed).await;
     assert_eq!(rows.len(), 3);
-    assert_eq!(rows[0], (seed.source_box_id.clone(), "2026-01-01 09:00:00".into(), Some("2026-02-01 10:00:00".into())));
-    assert_eq!(rows[1], (seed.target_box_id, "2026-02-01 10:00:00".into(), Some(reversed_at.clone())));
+    assert_eq!(
+        rows[0],
+        (
+            seed.source_box_id.clone(),
+            "2026-01-01 09:00:00".into(),
+            Some("2026-02-01 10:00:00".into())
+        )
+    );
+    assert_eq!(
+        rows[1],
+        (
+            seed.target_box_id,
+            "2026-02-01 10:00:00".into(),
+            Some(reversed_at.clone())
+        )
+    );
     assert_eq!(rows[2], (seed.source_box_id, reversed_at, None));
 }
 
@@ -201,15 +214,21 @@ async fn lifecycle_reversal_restores_box_from_reversal_time_without_rewriting_hi
     .await
     .unwrap();
 
-    let reversed_at: String = sqlx::query_scalar(
-        "SELECT reversed_at FROM colony_lifecycle_records WHERE id=?",
-    )
-    .bind(lifecycle.id)
-    .fetch_one(&seed.pool)
-    .await
-    .unwrap();
+    let reversed_at: String =
+        sqlx::query_scalar("SELECT reversed_at FROM colony_lifecycle_records WHERE id=?")
+            .bind(lifecycle.id)
+            .fetch_one(&seed.pool)
+            .await
+            .unwrap();
     let rows = occupancies(&seed).await;
     assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0], (seed.source_box_id.clone(), "2026-01-01 09:00:00".into(), Some("2026-02-01 10:00:00".into())));
+    assert_eq!(
+        rows[0],
+        (
+            seed.source_box_id.clone(),
+            "2026-01-01 09:00:00".into(),
+            Some("2026-02-01 10:00:00".into())
+        )
+    );
     assert_eq!(rows[1], (seed.source_box_id, reversed_at, None));
 }
