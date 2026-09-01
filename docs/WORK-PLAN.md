@@ -12,13 +12,14 @@ Base inicial: `main` após o merge do PR #46 (`7640c69`).
 
 ## Objetivo desta fase
 
-Sair do ciclo em que a aplicação foi majoritariamente construída e validada por automação e entrar em uma fase orientada por uso real:
+Sair do ciclo em que a aplicação foi majoritariamente construída e validada por automação e entrar em uma fase orientada por revisão humana e uso real:
 
+- auditar o projeto inteiro antes de ampliar funcionalidades;
+- localizar código frágil, improvisado, desnecessariamente complexo ou pouco profissional;
 - testar a aplicação manualmente com dados e fluxos reais;
 - registrar qualquer comportamento estranho, regressão ou atrito observado;
 - corrigir os problemas encontrados sem perder contratos já estabilizados;
-- fortalecer testes automatizados sempre que um bug real revelar uma lacuna;
-- melhorar a experiência de uso somente a partir de problemas observados;
+- fortalecer testes automatizados sempre que um problema real revelar uma lacuna;
 - manter integridade, rastreabilidade e recuperação de dados como prioridades máximas.
 
 ## Regras de trabalho
@@ -28,6 +29,8 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - Não realizar restauração destrutiva contra a base real do usuário durante testes.
 - Antes de corrigir um bug reproduzível, registrar o comportamento e, quando viável, adicionar teste de regressão.
 - Preservar contratos IPC e formatos persistidos salvo decisão explícita registrada neste arquivo.
+- Não refatorar apenas por estética ou contagem de linhas.
+- Não introduzir frameworks, abstrações ou dependências sem problema concreto que justifique isso.
 - Atualizar este plano ao concluir blocos relevantes de trabalho.
 - Manter uma seção de continuidade suficientemente clara para outra conversa retomar o trabalho sem depender do chat anterior.
 
@@ -38,7 +41,102 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] Smoke desktop real via WebDriver adicionado ao pipeline da `main`.
 - [x] Branch de trabalho prático criada.
 - [x] Plano persistente de trabalho criado.
-- [ ] Iniciar rodada sistemática de testes manuais.
+- [x] CI da branch de trabalho colocado em perfil leve para pushes.
+- [ ] Auditoria geral do projeto em andamento.
+- [ ] Iniciar rodada sistemática de testes manuais após a auditoria inicial.
+
+## Política temporária de CI da branch
+
+Pushes para `work/field-testing-and-hardening` usam um perfil deliberadamente leve:
+
+- validação de versão;
+- validação de links/documentação;
+- instalação das dependências frontend quando houver mudança de código;
+- build TypeScript/Vite;
+- testes de UI e contratos estruturais.
+
+Nesses pushes ficam de fora as etapas caras de sistema/Rust:
+
+- instalação das bibliotecas GTK/WebKit de build;
+- geração e validação de ícones de bundle;
+- `cargo fmt`;
+- `cargo check`;
+- Clippy;
+- `cargo test`.
+
+Essas validações continuam presentes no workflow e voltam automaticamente quando o trabalho for submetido por Pull Request para `main`. A validação completa da própria `main` permanece separada e inclui build desktop e smoke WebDriver.
+
+Antes da integração final desta branch, revisar se a exceção específica de `work/field-testing-and-hardening` deve ser removida do workflow.
+
+## Fase 0 — Auditoria geral do projeto
+
+Objetivo: descobrir o estado real do repositório antes do teste funcional sistemático. Não corrigir tudo por reflexo; primeiro classificar o que é defeito, risco, dívida aceitável ou apenas preferência estética.
+
+### Estrutura e arquitetura
+
+- [ ] Mapear estrutura atual do frontend, backend, migrations, testes, scripts, assets e workflows.
+- [ ] Conferir se as responsabilidades descritas em `docs/ARCHITECTURE.md` correspondem ao código real.
+- [ ] Procurar módulos novamente grandes ou com responsabilidades misturadas após o PR #46.
+- [ ] Procurar dependências circulares, fachadas vazias e abstrações sem ganho real.
+
+### Backend Rust
+
+- [ ] Revisar tratamento de erros e fronteira IPC.
+- [ ] Procurar `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` e caminhos que possam derrubar a aplicação.
+- [ ] Revisar transações e operações multi-etapa que precisam ser atômicas.
+- [ ] Revisar SQL dinâmico, validação de entrada e invariantes de domínio.
+- [ ] Procurar duplicação importante de regras e helpers quase idênticos.
+- [ ] Revisar manipulação de arquivos, backup/restore e caminhos externos.
+- [ ] Verificar código morto, funções públicas sem necessidade e comentários que escondem dívida.
+
+### Frontend React/TypeScript
+
+- [ ] Revisar páginas, hooks, componentes e clientes IPC.
+- [ ] Procurar estado duplicado, efeitos frágeis, race conditions e chamadas IPC sem tratamento coerente.
+- [ ] Procurar casts perigosos, `any`, non-null assertions e suposições não validadas.
+- [ ] Revisar dialogs e formulários para validação duplicada ou divergente do backend.
+- [ ] Procurar componentes com responsabilidades excessivas ou abstrações puramente cosméticas.
+- [ ] Revisar mensagens de erro e estados vazios/carregando.
+
+### Banco e migrations
+
+- [ ] Conferir ordem e imutabilidade das migrations existentes.
+- [ ] Revisar constraints, índices, triggers e relacionamentos críticos.
+- [ ] Procurar regras importantes mantidas apenas na aplicação quando deveriam ter segunda defesa no SQLite.
+- [ ] Conferir testes de migrations e compatibilidade histórica existentes.
+
+### Testes
+
+- [ ] Mapear o que é realmente testado e o que é apenas teste estrutural/textual.
+- [ ] Procurar testes frágeis que passam sem exercitar comportamento real.
+- [ ] Identificar fluxos críticos sem regressão automatizada razoável.
+- [ ] Não aumentar cobertura por porcentagem; priorizar risco de produto.
+
+### CI, supply chain e release
+
+- [ ] Revisar gatilhos e responsabilidades de cada workflow.
+- [ ] Confirmar que Actions continuam fixadas por SHA e permissões estão mínimas.
+- [ ] Revisar caches, lockfiles, auditorias e separação entre CI rápido e validação completa.
+- [ ] Procurar passos redundantes ou validações caras sem benefício proporcional.
+
+### Segurança e dados locais
+
+- [ ] Procurar segredos, caminhos pessoais e resíduos de debug versionados.
+- [ ] Revisar capabilities Tauri e acesso ao filesystem/dialogs.
+- [ ] Revisar exposição de erros internos para a UI.
+- [ ] Revisar operações destrutivas, restauração, substituição e exclusão de arquivos.
+
+### Documentação e coerência
+
+- [ ] Conferir README, Wiki e `docs/` contra comportamento atual.
+- [ ] Procurar documentação histórica apresentada como comportamento atual.
+- [ ] Conferir scripts/comandos documentados contra `package.json` e workflows.
+
+### Saída da auditoria
+
+- [ ] Registrar achados concretos nesta página com severidade e evidência.
+- [ ] Separar correções necessárias de sugestões opcionais.
+- [ ] Definir ordem de correção antes de iniciar mudanças amplas.
 
 ## Fase 1 — Teste manual orientado por uso real
 
@@ -154,9 +252,17 @@ A partir desta branch, o desenvolvimento passa a ser guiado prioritariamente por
 
 O trabalho será mantido neste arquivo para permitir continuidade entre conversas e reduzir dependência do hardware local do usuário.
 
+### 2026-08-31 — Auditoria antes do teste funcional sistemático
+
+Antes da rodada manual completa, será feita uma auditoria ampla do repositório. A finalidade não é reescrever código que já funciona, mas detectar falhas ocultas, atalhos frágeis, inconsistências de arquitetura e pontos de manutenção que tenham escapado durante o desenvolvimento acelerado por IA.
+
+### 2026-08-31 — CI leve durante a fase longa de trabalho
+
+Pushes para a branch de trabalho usam feedback frontend/documental rápido. As validações Rust caras permanecem no mesmo workflow e são reativadas automaticamente em Pull Requests para `main`. A `main` continua com sua validação desktop completa.
+
 ## Próximo passo
 
-Executar a primeira rodada de teste manual começando por **inicialização e navegação**, registrando imediatamente qualquer achado antes de iniciar correções.
+Concluir a **Fase 0 — Auditoria geral do projeto**, registrar os achados concretos e definir sua prioridade antes da primeira rodada sistemática de testes manuais.
 
 ## Handoff para a próxima conversa
 
