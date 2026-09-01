@@ -6,12 +6,11 @@ pub async fn edit_species(pool: &SqlitePool, input: EditSpecies) -> Result<Speci
     let scientific_name = optional(&input.scientific_name);
     let genus = optional(&input.genus);
     let reason = required(&input.reason, "Motivo da edição")?;
-    let current: Option<(String, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT common_name, scientific_name, genus FROM species WHERE id = ?",
-    )
-    .bind(&id)
-    .fetch_optional(pool)
-    .await?;
+    let current: Option<(String, Option<String>, Option<String>)> =
+        sqlx::query_as("SELECT common_name, scientific_name, genus FROM species WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(pool)
+            .await?;
     let (current_common_name, current_scientific_name, current_genus) =
         current.ok_or_else(|| AppError::NotFound("Espécie não encontrada.".to_owned()))?;
     let current_key = crate::identity::species_key(
@@ -19,11 +18,8 @@ pub async fn edit_species(pool: &SqlitePool, input: EditSpecies) -> Result<Speci
         current_scientific_name.as_deref(),
         current_genus.as_deref(),
     );
-    let new_key = crate::identity::species_key(
-        &common_name,
-        scientific_name.as_deref(),
-        genus.as_deref(),
-    );
+    let new_key =
+        crate::identity::species_key(&common_name, scientific_name.as_deref(), genus.as_deref());
     if current_key != new_key {
         crate::identity::ensure_species_identity_available(
             pool,
