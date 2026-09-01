@@ -68,6 +68,7 @@ pub async fn correct_inspection(
         Some(after),
     )
     .await?;
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -138,6 +139,7 @@ pub async fn correct_feeding(pool: &SqlitePool, input: CorrectFeeding) -> Result
         Some(after),
     )
     .await?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -254,6 +256,12 @@ pub async fn correct_maintenance(
     let mut tx = pool.begin().await?;
     let snapshot_sql = "SELECT json_object('id',id,'box_id',box_id,'colony_id',colony_id,'maintained_at',maintained_at,'maintenance_type',maintenance_type,'description',description,'performed_by',performed_by,'cost',cost,'next_maintenance_at',next_maintenance_at,'voided_at',voided_at) FROM box_maintenance_records WHERE id=?";
     let before = snapshot_tx(&mut tx, snapshot_sql, &id, "Manutenção não encontrada.").await?;
+    let old_box_id: String = sqlx::query_scalar(
+        "SELECT box_id FROM box_maintenance_records WHERE id=? AND voided_at IS NULL",
+    )
+    .bind(&id)
+    .fetch_one(&mut *tx)
+    .await?;
     let corrected_at = now_tx(&mut tx).await?;
     sqlx::query("UPDATE box_maintenance_records SET box_id=?, colony_id=?, maintained_at=?, maintenance_type=?, description=?, performed_by=?, cost=?, next_maintenance_at=?, corrected_at=? WHERE id=? AND voided_at IS NULL")
         .bind(&box_id).bind(colony_id).bind(&maintained_at).bind(maintenance_type)
@@ -270,6 +278,10 @@ pub async fn correct_maintenance(
         Some(after),
     )
     .await?;
+    agenda::reconcile_maintenance_tx(&mut tx, &old_box_id).await?;
+    if box_id != old_box_id {
+        agenda::reconcile_maintenance_tx(&mut tx, &box_id).await?;
+    }
     tx.commit().await?;
     Ok(())
 }
