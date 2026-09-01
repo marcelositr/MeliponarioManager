@@ -351,6 +351,8 @@ pub async fn create(pool: &SqlitePool, input: CreateMovement) -> Result<ColonyMo
         _ => unreachable!(),
     }
 
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
     get(pool, &id).await
 }
