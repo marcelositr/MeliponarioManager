@@ -69,7 +69,6 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
   }), [movements, recordStateMap, returnByMovement]);
 
   useEffect(() => { void reloadMovements(selectedColonyId); }, [selectedColonyId]);
-  useEffect(() => { void reloadDocuments(documentForm.movementId); }, [documentForm.movementId]);
 
   async function reloadMovements(colonyId = selectedColonyId) {
     if (!colonyId) {
@@ -123,8 +122,10 @@ export function MovementsPage({ colonies, meliponaries, boxes, busy, recordState
 
   function openDocuments(movementId: string) {
     setTransportFeedback(null);
+    setDocuments([]);
     setDocumentForm({ ...documentInitial, movementId });
     setDocumentsOpen(true);
+    void reloadDocuments(movementId);
   }
 
   async function submitMovement(event: FormEvent) {
