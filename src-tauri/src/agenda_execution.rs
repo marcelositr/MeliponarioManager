@@ -174,8 +174,8 @@ pub async fn complete_inspection(
     .await?;
     agenda::mark_completed_by_fact_tx(&mut tx, &task.id, "inspection", "inspection", &fact_id)
         .await?;
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
-    agenda::reconcile_inspection(pool, &colony_id).await?;
     Ok(TaskCompletion {
         task: agenda::get(pool, &task.id).await?,
         fact_type: "inspection".to_owned(),
@@ -237,8 +237,8 @@ pub async fn complete_feeding(
     .execute(&mut *tx)
     .await?;
     agenda::mark_completed_by_fact_tx(&mut tx, &task.id, "feeding", "feeding", &fact_id).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
-    agenda::reconcile_feeding(pool, &colony_id).await?;
     Ok(TaskCompletion {
         task: agenda::get(pool, &task.id).await?,
         fact_type: "feeding".to_owned(),
@@ -315,8 +315,8 @@ pub async fn complete_maintenance(
     .await?;
     agenda::mark_completed_by_fact_tx(&mut tx, &task.id, "maintenance", "maintenance", &fact_id)
         .await?;
+    agenda::reconcile_maintenance_tx(&mut tx, &box_id).await?;
     tx.commit().await?;
-    agenda::reconcile_maintenance(pool, &box_id).await?;
     Ok(TaskCompletion {
         task: agenda::get(pool, &task.id).await?,
         fact_type: "maintenance".to_owned(),
@@ -464,6 +464,70 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(pending.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn inspection_completion_rolls_back_when_next_agenda_reconciliation_fails() {
+        let (pool, meliponary_id, colony_id, _) = seeded().await;
+        let task = agenda::create_manual(
+            &pool,
+            CreateTask {
+                meliponary_id,
+                colony_id: Some(colony_id.clone()),
+                box_id: None,
+                task_type: "inspection".into(),
+                title: "Inspecionar JAT-001".into(),
+                description: None,
+                scheduled_for: time::local_now(&pool).await.unwrap(),
+                priority: None,
+            },
+        )
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "CREATE TRIGGER force_derived_inspection_failure
+             BEFORE INSERT ON scheduled_tasks
+             WHEN NEW.source_type='inspection'
+             BEGIN
+               SELECT RAISE(ABORT, 'forced derived agenda failure');
+             END",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let result = complete_inspection(
+            &pool,
+            CompleteInspectionTask {
+                task_id: task.id.clone(),
+                inspected_at: Some("2026-03-01 10:00:00".into()),
+                strength: Some("strong".into()),
+                queen_present: Some(true),
+                laying_status: None,
+                food_reserves: None,
+                brood_status: None,
+                pests_notes: None,
+                observations: None,
+                actions_taken: None,
+                next_inspection_at: Some("2026-03-08 10:00:00".into()),
+            },
+        )
+        .await;
+        assert!(result.is_err());
+
+        let task_after = agenda::get(&pool, &task.id).await.unwrap();
+        assert_eq!(task_after.status, "pending");
+        assert!(task_after.completed_by_id.is_none());
+
+        let facts: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM inspections WHERE colony_id=? AND inspected_at='2026-03-01 10:00:00'",
+        )
+        .bind(&colony_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(facts, 0);
     }
 
     #[tokio::test]
