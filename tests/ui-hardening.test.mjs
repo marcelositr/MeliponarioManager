@@ -153,7 +153,6 @@ test("responsive contract no longer depends on a 900px root floor", async () => 
   assert.match(app, /COMPACT_VIEWPORT_WIDTH = 900/);
   assert.equal(windowConfig.minWidth, 760);
   assert.equal(windowConfig.minHeight, 520);
-  assert.equal(tauri.version, "0.8.0");
 });
 
 test("theme choices use menuitemradio while ordinary commands remain menuitem", async () => {

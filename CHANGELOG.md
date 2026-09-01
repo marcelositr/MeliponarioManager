@@ -6,11 +6,17 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-01
+
 ### Added
 
 - Dependabot semanal para dependências npm, Cargo e GitHub Actions.
 - Política de segurança, canal de relato responsável e guia de operação do repositório no GitHub.
 - Índice oficial da documentação e visão consolidada da arquitetura da aplicação.
+- Regressões comportamentais com Promises reais para mutação/refresh e para concorrência de loaders assíncronos.
+- Regressões temporais que fixam a semântica histórica de reversões sem reescrever intervalos passados.
+- Teste de exportação CSV que grava e relê um arquivo físico, incluindo escaping e neutralização de fórmulas.
+- Navegação de teclado nas abas de relatórios com setas, Home e End, coberta por teste focal.
 
 ### Changed
 
@@ -23,12 +29,26 @@ O formato segue os princípios do [Keep a Changelog](https://keepachangelog.com/
 - TypeScript é atualizado de `6.0.3` para `7.0.2`.
 - `sha2` é atualizado de `0.10.9` para `0.11.0`.
 - Documentação técnica e operacional é reorganizada para separar comportamento atual, políticas, roadmap e histórico de releases.
+- Escritas de fatos e reconciliação da Agenda passam a compartilhar transação nos fluxos críticos.
+- Agenda derivada passa a acompanhar ocupação, caixa, meliponário e disponibilidade operacionais atuais após lifecycle, movimentações, arquivamento e reversões.
+- Identidade cadastral usa a mesma normalização entre criação, edição e importação, preservando colisões legadas que não sejam alteradas.
+- Loaders frágeis adotam a regra “última requisição vence”, impedindo resposta obsoleta de substituir contexto recente.
+- Meliponários arquivados deixam de participar dos alertas operacionais atuais sem perda de histórico.
+- Timeline carrega estados administrativos em lote, removendo o padrão N+1 de decoração por item.
+- Painel de arquivos gerenciados e relatórios recebem hardening de feedback, concorrência e acessibilidade.
 
 ### Fixed
 
 - Formatação do digest SHA-256 é adaptada à API do `sha2` 0.11 e recebe teste de regressão com valor conhecido.
 - Exportação CSV passa a declarar explicitamente a permissão Tauri necessária para o diálogo nativo de salvamento.
 - Erros internos de SQLite/SQLx deixam de atravessar a fronteira IPC como mensagens técnicas, preservando mensagens de validação úteis ao usuário.
+- Falha de reconciliação da Agenda não pode mais deixar fato principal persistido parcialmente.
+- Mudanças de caixa, lifecycle, transferências, arquivamento e reversões deixam de manter Agenda derivada em contexto obsoleto.
+- Frontend não trata mais falha posterior de refresh como se a mutação já persistida tivesse falhado.
+- Transferência externa de colônia criada ativa sem lifecycle anterior pode ser revertida quando o estado inicial `active` é historicamente derivável, sem fabricar lifecycle retroativo.
+- Regras de duplicidade deixam de divergir entre CRUD e importação.
+- Respostas assíncronas fora de ordem deixam de sobrescrever seleção atual ou encerrar loading pertencente a requisição mais nova.
+- Arquivos gerenciados deixam de exibir sucesso enganoso quando somente a recarga posterior falha.
 
 ## [0.8.0] - 2026-08-30
 
@@ -158,7 +178,8 @@ O pipeline chegou a gerar o `.deb` no Linux e o instalador NSIS no Windows, mas 
 - Content Security Policy configurada para restringir a aplicação ao conteúdo local e aos protocolos necessários ao IPC e aos assets do Tauri.
 - Cabeçalho `X-Content-Type-Options: nosniff` habilitado na configuração da aplicação.
 
-[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/marcelositr/MeliponarioManager/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/marcelositr/MeliponarioManager/releases/tag/v0.7.1
 [0.7.0]: https://github.com/marcelositr/MeliponarioManager/tree/v0.7.0
