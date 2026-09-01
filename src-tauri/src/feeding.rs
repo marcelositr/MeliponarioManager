@@ -1,6 +1,6 @@
 use crate::repository::AppError;
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool};
+use sqlx::{FromRow, Sqlite, SqlitePool, Transaction};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, FromRow)]
@@ -116,12 +116,35 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<Feeding, AppError> {
     .await?)
 }
 
-pub async fn create(pool: &SqlitePool, input: CreateFeeding) -> Result<Feeding, AppError> {
+async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Feeding, AppError> {
+    Ok(sqlx::query_as::<_, Feeding>(
+        "SELECT f.id, f.colony_id, c.code AS colony_code, f.box_id, b.code AS box_code,
+                f.fed_at, f.food_type, f.quantity, f.unit, f.response_notes, f.notes,
+                f.next_feeding_at, f.created_at
+         FROM feedings f
+         JOIN colonies c ON c.id = f.colony_id
+         LEFT JOIN boxes b ON b.id = f.box_id
+         WHERE f.id = ?",
+    )
+    .bind(id)
+    .fetch_one(&mut **tx)
+    .await?)
+}
+
+pub(crate) async fn create_tx(
+    tx: &mut Transaction<'_, Sqlite>,
+    input: CreateFeeding,
+) -> Result<Feeding, AppError> {
     let colony_id = required(&input.colony_id, "Colônia")?;
     let food_type = required(&input.food_type, "Tipo de alimentação")?;
     let unit = validate_quantity(input.quantity, &input.unit)?;
 
-    if !colony_exists(pool, &colony_id).await? {
+    let colony_exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM colonies WHERE id = ?)")
+            .bind(&colony_id)
+            .fetch_one(&mut **tx)
+            .await?;
+    if !colony_exists {
         return Err(AppError::NotFound("Colônia não encontrada.".to_owned()));
     }
 
@@ -129,12 +152,25 @@ pub async fn create(pool: &SqlitePool, input: CreateFeeding) -> Result<Feeding, 
         Some(value) => value,
         None => {
             sqlx::query_scalar::<_, String>("SELECT CURRENT_TIMESTAMP")
-                .fetch_one(pool)
+                .fetch_one(&mut **tx)
                 .await?
         }
     };
 
-    let box_id = box_at(pool, &colony_id, &fed_at).await?;
+    let box_id: Option<String> = sqlx::query_scalar::<_, String>(
+        "SELECT box_id
+         FROM colony_box_occupancies
+         WHERE colony_id = ?
+           AND started_at <= ?
+           AND (ended_at IS NULL OR ended_at >= ?)
+         ORDER BY started_at DESC
+         LIMIT 1",
+    )
+    .bind(&colony_id)
+    .bind(&fed_at)
+    .bind(&fed_at)
+    .fetch_optional(&mut **tx)
+    .await?;
     let id = Uuid::new_v4().to_string();
 
     sqlx::query(
@@ -153,10 +189,17 @@ pub async fn create(pool: &SqlitePool, input: CreateFeeding) -> Result<Feeding, 
     .bind(optional(&input.response_notes))
     .bind(optional(&input.notes))
     .bind(optional(&input.next_feeding_at))
-    .execute(pool)
+    .execute(&mut **tx)
     .await?;
 
-    get(pool, &id).await
+    get_tx(tx, &id).await
+}
+
+pub async fn create(pool: &SqlitePool, input: CreateFeeding) -> Result<Feeding, AppError> {
+    let mut tx = pool.begin().await?;
+    let record = create_tx(&mut tx, input).await?;
+    tx.commit().await?;
+    Ok(record)
 }
 
 pub async fn list_by_colony(pool: &SqlitePool, colony_id: &str) -> Result<Vec<Feeding>, AppError> {
