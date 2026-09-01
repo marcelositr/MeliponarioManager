@@ -1,4 +1,4 @@
-use crate::{history::TimelineEntry, repository::AppError};
+use crate::{agenda, history::TimelineEntry, repository::AppError};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
@@ -233,6 +233,8 @@ pub async fn change(
     .execute(&mut *tx)
     .await?;
 
+    agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
     tx.commit().await?;
     get(pool, &id).await
 }
