@@ -1,5 +1,5 @@
 use crate::{
-    audit,
+    agenda, audit,
     domain::{Colony, HiveBox, Meliponary, Species},
     repository::AppError,
 };
