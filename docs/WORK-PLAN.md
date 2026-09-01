@@ -44,6 +44,7 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] CI da branch de trabalho colocado em perfil leve para pushes.
 - [x] Auditoria estática geral inicial concluída e registrada.
 - [x] ACH-001 corrigido e validado por CI completo no checkpoint temporário PR #47.
+- [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
 - [ ] Corrigir primeiro bloco de achados de integridade/consistência.
 - [ ] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
 
@@ -171,7 +172,7 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 ## Ordem inicial de correção
 
 1. **ACH-001** — fechar a fronteira transacional entre fato/tarefa e reconciliação da Agenda. **Concluído em 2026-09-01.**
-2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas.
+2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas. **Concluído em 2026-09-01.**
 3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh.
 4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo.
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint.
@@ -287,16 +288,17 @@ Para cada problema real encontrado:
 
 ### ACH-002 — Mudanças de estado podem deixar Agenda derivada obsoleta até nova reconciliação
 
-- **Status:** aberto
+- **Status:** corrigido e validado
 - **Severidade:** alta
 - **Área:** backend / Agenda / ciclo de vida / movimentações / cadastros
-- **Evidência:** critérios de `agenda::reconcile_*` e `0015_operational_agenda.sql` excluem colônias não manejáveis, meliponários arquivados e caixas aposentadas, porém fluxos que alteram esses estados não executam necessariamente a reconciliação correspondente.
-- **Comportamento observado:** ciclo de vida, transferência interna/externa, arquivamento, mudança de estado da caixa e algumas reversões podem mudar a validade ou o contexto de uma tarefa derivada sem atualizá-la imediatamente.
-- **Risco:** tarefa pendente e alerta podem mostrar meliponário/caixa/contexto antigo ou continuar existindo quando já deveriam desaparecer. `reconcile_all()` na inicialização tende a curar parte desses casos somente após reiniciar a aplicação.
+- **Evidência:** `src-tauri/src/agenda/derived.rs`, `src-tauri/src/lifecycle.rs`, `src-tauri/src/movements/creation.rs`, `src-tauri/src/repository/occupancy.rs`, `src-tauri/src/box_states.rs`, `src-tauri/src/master_data/meliponaries.rs` e `src-tauri/src/reversals/`.
+- **Comportamento observado:** ciclo de vida, transferência interna/externa, troca de caixa, arquivamento, mudança de estado da caixa e reversões podiam mudar a validade ou o contexto de uma tarefa derivada sem atualizá-la imediatamente. Além disso, inspeção/alimentação derivadas carregavam a caixa histórica do último fato em vez da ocupação ativa usada pelo planejamento futuro.
+- **Risco:** tarefa pendente e alerta podiam mostrar meliponário/caixa/contexto antigo ou continuar existindo quando já deveriam desaparecer, exigindo reinicialização para `reconcile_all()` curar parte dos casos.
 - **Comportamento esperado:** uma operação que invalida ou muda o contexto de planejamento derivado deve deixar a Agenda coerente ao retornar sucesso.
-- **Correção:** integrar a reconciliação necessária à mesma unidade de operação definida no ACH-001.
-- **Teste de regressão:** lifecycle, transferência interna, transferência externa, aposentadoria de caixa e arquivamento com tarefa derivada existente.
-- **Commit/PR:** pendente.
+- **Correção:** inspeção e alimentação derivadas passaram a projetar a ocupação ativa atual; lifecycle, transferências, troca de caixa, estado da caixa, arquivamento/reativação de meliponário e reversões executam a reconciliação necessária dentro da mesma transação da mudança de domínio. Planejamento manual/genérico não é removido pelo arquivamento. Transporte temporário permanece fora por não alterar o contexto persistido.
+- **Teste de regressão:** adicionados cenários para troca de caixa, transferência interna/externa, lifecycle, aposentadoria de caixa, archive/reactivate, reversões e falha induzida na Agenda exigindo rollback da própria mudança de estado/contexto.
+- **Validação:** CI completo #534 (`33509790464`) no commit `8173b93`: frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados.
+- **Commit/PR:** implementado na `work/field-testing-and-hardening`; checkpoint de validação PR #48, destinado somente a CI e sem integração na `main`.
 
 ### ACH-003 — Frontend confunde falha de refresh com falha da mutação já concluída
 
@@ -456,18 +458,21 @@ A revisão estática encontrou problemas reais, mas não justificou reescrita, t
 
 A fronteira transacional entre fatos e Agenda foi corrigida nos fluxos cobertos pelo ACH-001. O checkpoint temporário PR #47 executou o perfil completo de CI e o run #507 (`33506010767`) terminou com sucesso, incluindo Clippy com `-D warnings` e testes Rust. O PR de validação não deve ser integrado na `main`.
 
+### 2026-09-01 — ACH-002 fechado com validação completa
+
+Mudanças de contexto operacional agora reconciliam a Agenda derivada antes do commit. O checkpoint temporário PR #48 executou o perfil completo de CI e o run #534 (`33509790464`) terminou com sucesso, incluindo `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. O PR de validação não deve ser integrado na `main`.
+
 ## Próximo passo
 
-Revisar **ACH-002 — Mudanças de estado podem deixar Agenda derivada obsoleta até nova reconciliação** antes de qualquer implementação.
+Revisar **ACH-003 — Frontend confunde falha de refresh com falha da mutação já concluída** antes de qualquer implementação.
 
 A revisão deve mapear, sem modificar código:
 
-1. ciclo de vida da colônia;
-2. transferências internas e externas;
-3. arquivamento/reativação de meliponários;
-4. mudança de estado e aposentadoria de caixas;
-5. reversões que alterem qualquer um desses estados ou contextos;
-6. quais reconciliações de Agenda cada operação exige e se podem usar as primitivas `*_tx` criadas no ACH-001.
+1. o helper de mutação/refresh em `src/hooks/useAppData.ts`;
+2. o fluxo equivalente em `src/pages/AgendaPage.tsx`;
+3. quais telas dependem do mesmo padrão;
+4. como distinguir sucesso da escrita de falha posterior ao recarregar a visão sem mudar contratos IPC;
+5. qual é o menor teste estável que prova ação bem-sucedida seguida por refresh rejeitado sem sugerir repetição da gravação.
 
 Depois da revisão, propor o menor conjunto de mudanças e testes de regressão para aprovação antes de aplicar qualquer patch.
 
