@@ -88,6 +88,7 @@ pub async fn archive_meliponary(
         Some(audit::value(&after)?),
     )
     .await?;
+    agenda::reconcile_meliponary_tx(&mut tx, &id).await?;
     tx.commit().await?;
     Ok(after)
 }
@@ -124,6 +125,7 @@ pub async fn reactivate_meliponary(
         Some(audit::value(&after)?),
     )
     .await?;
+    agenda::reconcile_meliponary_tx(&mut tx, &id).await?;
     tx.commit().await?;
     Ok(after)
 }
