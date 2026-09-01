@@ -332,10 +332,11 @@ async fn void_fact(
 
     match table {
         "inspections" => {
-            let colony_id: String = sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
-                .bind(&id)
-                .fetch_one(&mut *tx)
-                .await?;
+            let colony_id: String =
+                sqlx::query_scalar("SELECT colony_id FROM inspections WHERE id=?")
+                    .bind(&id)
+                    .fetch_one(&mut *tx)
+                    .await?;
             agenda::reconcile_inspection_tx(&mut tx, &colony_id).await?;
         }
         "feedings" => {
@@ -346,12 +347,11 @@ async fn void_fact(
             agenda::reconcile_feeding_tx(&mut tx, &colony_id).await?;
         }
         "box_maintenance_records" => {
-            let box_id: String = sqlx::query_scalar(
-                "SELECT box_id FROM box_maintenance_records WHERE id=?",
-            )
-            .bind(&id)
-            .fetch_one(&mut *tx)
-            .await?;
+            let box_id: String =
+                sqlx::query_scalar("SELECT box_id FROM box_maintenance_records WHERE id=?")
+                    .bind(&id)
+                    .fetch_one(&mut *tx)
+                    .await?;
             agenda::reconcile_maintenance_tx(&mut tx, &box_id).await?;
         }
         _ => {}
