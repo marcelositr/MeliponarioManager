@@ -66,4 +66,6 @@ pub use lifecycle::reverse_lifecycle;
 pub use movements::reverse_movement;
 
 #[cfg(test)]
+mod temporal_tests;
+#[cfg(test)]
 mod tests;
