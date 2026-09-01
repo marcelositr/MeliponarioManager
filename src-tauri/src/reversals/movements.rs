@@ -129,6 +129,8 @@ pub async fn reverse_movement(p: &SqlitePool, input: ReverseRecord) -> Result<()
         Some(json!({"reversed_at":reversed_at,"reversal_reason":reason})),
     )
     .await?;
+    agenda::reconcile_inspection_tx(&mut tx, &c).await?;
+    agenda::reconcile_feeding_tx(&mut tx, &c).await?;
     tx.commit().await?;
     Ok(())
 }
