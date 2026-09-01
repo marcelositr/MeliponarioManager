@@ -1,8 +1,8 @@
 import { save } from "@tauri-apps/plugin-dialog";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { NavigationIntent } from "../lib/navigation";
 import { publicError } from "../lib/presentation";
-import { defaultReportPeriod, reportFilename } from "../lib/report-presentation";
+import { defaultReportPeriod, nextReportTabIndex, reportFilename } from "../lib/report-presentation";
 import {
   exportReportCsv,
   getAgendaReport,
@@ -51,6 +51,7 @@ export function ReportsPage({ meliponaries, colonies, species, activeMeliponaryI
   const [agenda, setAgenda] = useState<AgendaReport | null>(null);
   const [colony, setColony] = useState<ColonyReport | null>(null);
   const [meliponary, setMeliponary] = useState<MeliponaryReport | null>(null);
+  const reportTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     setFilter((current) => ({ ...current, meliponaryId: activeMeliponaryId || undefined }));
@@ -91,6 +92,14 @@ export function ReportsPage({ meliponaries, colonies, species, activeMeliponaryI
 
   function changeKind(next: ReportKind) { setKind(next); setFeedback(null); clearResults(); }
 
+  function handleReportTabKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const nextIndex = nextReportTabIndex(index, event.key, reportOptions.length);
+    if (nextIndex === null) return;
+    event.preventDefault();
+    changeKind(reportOptions[nextIndex][0]);
+    reportTabRefs.current[nextIndex]?.focus();
+  }
+
   async function exportCsv() {
     if (exporting || !["production", "agenda", "colony", "costs"].includes(kind)) return;
     const colonyCode = colonies.find((item) => item.id === colonyId)?.code;
@@ -113,7 +122,7 @@ export function ReportsPage({ meliponaries, colonies, species, activeMeliponaryI
     <section className="page-heading report-no-print"><div><span className="eyebrow">Gestão</span><h1>Relatórios</h1><p>Consulte dados efetivos por período, exporte tabelas para CSV e use a impressão do sistema para papel ou PDF.</p></div></section>
 
     <section className="panel report-controls report-no-print" aria-label="Filtros dos relatórios">
-      <div className="report-tabs" role="tablist" aria-label="Tipo de relatório">{reportOptions.map(([value, label]) => <button key={value} role="tab" aria-selected={kind === value} className={kind === value ? "report-tab active" : "report-tab"} type="button" onClick={() => changeKind(value)}>{label}</button>)}</div>
+      <div className="report-tabs" role="tablist" aria-label="Tipo de relatório">{reportOptions.map(([value, label], index) => <button key={value} ref={(element) => { reportTabRefs.current[index] = element; }} role="tab" aria-selected={kind === value} tabIndex={kind === value ? 0 : -1} className={kind === value ? "report-tab active" : "report-tab"} type="button" onKeyDown={(event) => handleReportTabKey(event, index)} onClick={() => changeKind(value)}>{label}</button>)}</div>
       <div className="report-filter-grid">
         <label className="field"><span>Data inicial</span><input type="date" value={filter.startDate} onChange={(event) => setFilter({ ...filter, startDate: event.target.value })} /></label>
         <label className="field"><span>Data final</span><input type="date" value={filter.endDate} onChange={(event) => setFilter({ ...filter, endDate: event.target.value })} /></label>
