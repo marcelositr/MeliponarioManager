@@ -335,12 +335,11 @@ async fn external_transfer_reversal_restores_initial_active_status_without_lifec
     )
     .await
     .unwrap();
-    let transferred_status: String =
-        sqlx::query_scalar("SELECT status FROM colonies WHERE id=?")
-            .bind(&s.c)
-            .fetch_one(&s.p)
-            .await
-            .unwrap();
+    let transferred_status: String = sqlx::query_scalar("SELECT status FROM colonies WHERE id=?")
+        .bind(&s.c)
+        .fetch_one(&s.p)
+        .await
+        .unwrap();
     assert_eq!(transferred_status, "transferred");
     let pending_after_transfer: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM scheduled_tasks
