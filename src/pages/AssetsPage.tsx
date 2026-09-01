@@ -7,6 +7,7 @@ import { ReasonDialog } from "../components/ReasonDialog";
 import type { RecordStateMap } from "../hooks/useAppData";
 import { listBoxMaintenance, listColonyInspections, listColonyPhotos } from "../lib/api";
 import { openInspectionPhoto, revealInspectionPhoto } from "../lib/files-api";
+import { createLatestRequestController, runLatestRequest } from "../lib/latest-request";
 import { formatDateTimeBr, publicError } from "../lib/presentation";
 import type { BoxMaintenance, Colony, CorrectMaintenanceInput, CreateBoxMaintenanceInput, HiveBox, ImportInspectionPhotoInput, Inspection, InspectionPhoto, VoidRecordInput } from "../types";
 import { AssetsMaintenancePanel } from "./assets/AssetsMaintenancePanel";
@@ -41,6 +42,7 @@ export function AssetsPage({ colonies, boxes, busy, recordStateMap, autoCreate =
   const [costValue, setCostValue] = useState("");
   const [maintenance, setMaintenance] = useState<BoxMaintenance[]>([]);
   const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState("");
   const [photoDialog, setPhotoDialog] = useState(false);
   const [maintenanceDialog, setMaintenanceDialog] = useState(false);
   const [deletePhotoId, setDeletePhotoId] = useState<string | null>(null);
@@ -48,22 +50,10 @@ export function AssetsPage({ colonies, boxes, busy, recordStateMap, autoCreate =
   const [editMaintenance, setEditMaintenance] = useState<CorrectMaintenanceInput | null>(null);
   const [voidMaintenance, setVoidMaintenance] = useState<BoxMaintenance | null>(null);
   const handledAutoCreate = useRef(false);
+  const photoRequests = useRef(createLatestRequestController());
+  const maintenanceRequests = useRef(createLatestRequestController());
 
-  useEffect(() => {
-    let cancelled = false;
-    if (!selectedColonyId) { setInspections([]); setPhotos([]); return; }
-    setPhotoLoading(true);
-    setPhotoFeedback(null);
-    Promise.all([listColonyInspections(selectedColonyId), listColonyPhotos(selectedColonyId)]).then(([inspectionItems, photoItems]) => {
-      if (!cancelled) { setInspections(inspectionItems); setPhotos(photoItems); }
-    }).catch(() => {
-      if (!cancelled) setPhotoFeedback({ kind: "error", text: "Não foi possível carregar as fotos desta colônia." });
-    }).finally(() => {
-      if (!cancelled) setPhotoLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [selectedColonyId]);
-
+  useEffect(() => { void reloadPhotoContext(selectedColonyId); }, [selectedColonyId]);
   useEffect(() => { void reloadMaintenance(selectedBoxId); }, [selectedBoxId]);
   useEffect(() => {
     if (!autoCreate) { handledAutoCreate.current = false; return; }
@@ -76,14 +66,74 @@ export function AssetsPage({ colonies, boxes, busy, recordStateMap, autoCreate =
     setMaintenanceDialog(true);
   }, [autoCreate, boxes]);
 
-  async function reloadPhotos() {
-    if (selectedColonyId) setPhotos(await listColonyPhotos(selectedColonyId));
+  async function reloadPhotoContext(colonyId = selectedColonyId) {
+    if (!colonyId) {
+      photoRequests.current.invalidate();
+      setInspections([]);
+      setPhotos([]);
+      setPhotoLoading(false);
+      return "stale" as const;
+    }
+    setInspections([]);
+    setPhotos([]);
+    setPhotoLoading(true);
+    setPhotoFeedback(null);
+    return runLatestRequest(
+      photoRequests.current,
+      () => Promise.all([listColonyInspections(colonyId), listColonyPhotos(colonyId)]),
+      {
+        onSuccess: ([inspectionItems, photoItems]) => {
+          setInspections(inspectionItems);
+          setPhotos(photoItems);
+        },
+        onError: (error) => {
+          setPhotoFeedback({ kind: "error", text: publicError(error, "Não foi possível carregar as fotos desta colônia.") });
+        },
+        onSettled: () => setPhotoLoading(false),
+      },
+    );
+  }
+
+  async function reloadPhotos(colonyId = selectedColonyId) {
+    if (!colonyId) {
+      photoRequests.current.invalidate();
+      setPhotos([]);
+      setPhotoLoading(false);
+      return "stale" as const;
+    }
+    setPhotoLoading(true);
+    return runLatestRequest(
+      photoRequests.current,
+      () => listColonyPhotos(colonyId),
+      {
+        onSuccess: setPhotos,
+        onError: (error) => {
+          setPhotoFeedback({ kind: "error", text: publicError(error, "A alteração foi salva, mas não foi possível recarregar as fotos desta colônia.") });
+        },
+        onSettled: () => setPhotoLoading(false),
+      },
+    );
   }
 
   async function reloadMaintenance(boxId = selectedBoxId) {
-    if (!boxId) { setMaintenance([]); return; }
+    if (!boxId) {
+      maintenanceRequests.current.invalidate();
+      setMaintenance([]);
+      setMaintenanceLoading(false);
+      setMaintenanceError("");
+      return "stale" as const;
+    }
     setMaintenanceLoading(true);
-    try { setMaintenance(await listBoxMaintenance(boxId)); } finally { setMaintenanceLoading(false); }
+    setMaintenanceError("");
+    return runLatestRequest(
+      maintenanceRequests.current,
+      () => listBoxMaintenance(boxId),
+      {
+        onSuccess: setMaintenance,
+        onError: (error) => setMaintenanceError(publicError(error, "Não foi possível carregar as manutenções desta caixa.")),
+        onSettled: () => setMaintenanceLoading(false),
+      },
+    );
   }
 
   function openPhoto() {
@@ -124,8 +174,9 @@ export function AssetsPage({ colonies, boxes, busy, recordStateMap, autoCreate =
     if (await onImportPhoto(input)) {
       setPhotoDialog(false);
       setPhotoForm(photoInitial);
-      await reloadPhotos();
-      setPhotoFeedback({ kind: "success", text: "Foto importada para a área gerenciada." });
+      if (await reloadPhotos() === "success") {
+        setPhotoFeedback({ kind: "success", text: "Foto importada para a área gerenciada." });
+      }
     }
   }
 
@@ -133,8 +184,9 @@ export function AssetsPage({ colonies, boxes, busy, recordStateMap, autoCreate =
     if (!deletePhotoId) return;
     if (await onDeletePhoto(deletePhotoId)) {
       setDeletePhotoId(null);
-      await reloadPhotos();
-      setPhotoFeedback({ kind: "success", text: "Foto removida da área gerenciada." });
+      if (await reloadPhotos() === "success") {
+        setPhotoFeedback({ kind: "success", text: "Foto removida da área gerenciada." });
+      }
     }
   }
 
@@ -173,6 +225,7 @@ export function AssetsPage({ colonies, boxes, busy, recordStateMap, autoCreate =
         selectedBoxId={selectedBoxId}
         maintenance={maintenance}
         loading={maintenanceLoading}
+        error={maintenanceError}
         busy={busy}
         recordStateMap={recordStateMap}
         onSelectBox={setSelectedBoxId}
