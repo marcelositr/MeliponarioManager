@@ -10,7 +10,6 @@ use sqlx::sqlite::SqlitePoolOptions;
 struct Seed {
     pool: SqlitePool,
     colony_id: String,
-    source_meliponary_id: String,
     target_meliponary_id: String,
     source_box_id: String,
     target_box_id: String,
@@ -112,7 +111,6 @@ async fn seed() -> Seed {
     Seed {
         pool,
         colony_id: colony.id,
-        source_meliponary_id: source_meliponary.id,
         target_meliponary_id: target_meliponary.id,
         source_box_id: source_box.id,
         target_box_id: target_box.id,
