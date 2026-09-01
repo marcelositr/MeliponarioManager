@@ -1,0 +1,76 @@
+name: Prepare v0.8.1 lockfiles and changelog
+
+on:
+  push:
+    branches:
+      - release/v0.8.1
+    paths:
+      - .github/workflows/prepare-v0.8.1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v7
+        with:
+          ref: release/v0.8.1
+          persist-credentials: false
+
+      - name: Synchronize root lockfile versions
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          package_lock = Path('package-lock.json')
+          data = json.loads(package_lock.read_text())
+          data['version'] = '0.8.1'
+          data['packages']['']['version'] = '0.8.1'
+          package_lock.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '\n')
+
+          cargo_lock = Path('src-tauri/Cargo.lock')
+          text = cargo_lock.read_text()
+          pattern = r'(\[\[package\]\]\nname = "meliponariomanager"\nversion = ")0\.8\.0(")'
+          text, count = re.subn(pattern, r'\g<1>0.8.1\2', text, count=1)
+          if count != 1:
+              raise SystemExit('Não foi possível localizar a versão raiz do Cargo.lock')
+          cargo_lock.write_text(text)
+          PY
+
+      - name: Finalize v0.8.1 changelog
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+
+          path = Path('CHANGELOG.md')
+          text = path.read_text()
+          section = '''## [Unreleased]\n\n## [0.8.1] - 2026-09-01\n\n### Added\n\n- Dependabot semanal para dependências npm, Cargo e GitHub Actions.\n- Política de segurança, canal de relato responsável e guia de operação do repositório no GitHub.\n- Índice oficial da documentação e visão consolidada da arquitetura da aplicação.\n- Regressões comportamentais com Promises reais para mutação/refresh e para concorrência de loaders assíncronos.\n- Regressões temporais que fixam a semântica histórica de reversões sem reescrever intervalos passados.\n- Teste de exportação CSV que grava e relê um arquivo físico, incluindo escaping e neutralização de fórmulas.\n- Navegação de teclado nas abas de relatórios com setas, Home e End, coberta por teste focal.\n\n### Changed\n\n- Versiona `package-lock.json` e `src-tauri/Cargo.lock` para tornar a resolução de dependências reproduzível.\n- CI e pipeline de bundles passam a usar `npm ci`; validações Cargo passam a exigir o lockfile com `--locked`.\n- CI recebe permissões mínimas, cancelamento de execuções obsoletas e gatilho de Pull Request limitado à branch `main`.\n- Validação de branches e Pull Requests fica focada em build/testes rápidos, enquanto a `main` recebe uma validação completa separada com build Tauri desktop.\n- Checkout dos workflows deixa de persistir credenciais no workspace dos jobs.\n- GitHub Actions de checkout, Node.js e upload de artefatos são atualizadas para a série `v7`.\n- TypeScript é atualizado de `6.0.3` para `7.0.2`.\n- `sha2` é atualizado de `0.10.9` para `0.11.0`.\n- Documentação técnica e operacional é reorganizada para separar comportamento atual, políticas, roadmap e histórico de releases.\n- Escritas de fatos e reconciliação da Agenda passam a compartilhar transação nos fluxos críticos.\n- Agenda derivada passa a acompanhar ocupação, caixa, meliponário e disponibilidade operacionais atuais após lifecycle, movimentações, arquivamento e reversões.\n- Identidade cadastral usa a mesma normalização entre criação, edição e importação, preservando colisões legadas que não sejam alteradas.\n- Loaders frágeis adotam a regra “última requisição vence”, impedindo resposta obsoleta de substituir contexto recente.\n- Meliponários arquivados deixam de participar dos alertas operacionais atuais sem perda de histórico.\n- Timeline carrega estados administrativos em lote, removendo o padrão N+1 de decoração por item.\n- Painel de arquivos gerenciados e relatórios recebem hardening de feedback, concorrência e acessibilidade.\n\n### Fixed\n\n- Formatação do digest SHA-256 é adaptada à API do `sha2` 0.11 e recebe teste de regressão com valor conhecido.\n- Exportação CSV passa a declarar explicitamente a permissão Tauri necessária para o diálogo nativo de salvamento.\n- Erros internos de SQLite/SQLx deixam de atravessar a fronteira IPC como mensagens técnicas, preservando mensagens de validação úteis ao usuário.\n- Falha de reconciliação da Agenda não pode mais deixar fato principal persistido parcialmente.\n- Mudanças de caixa, lifecycle, transferências, arquivamento e reversões deixam de manter Agenda derivada em contexto obsoleto.\n- Frontend não trata mais falha posterior de refresh como se a mutação já persistida tivesse falhado.\n- Transferência externa de colônia criada ativa sem lifecycle anterior pode ser revertida quando o estado inicial `active` é historicamente derivável, sem fabricar lifecycle retroativo.\n- Regras de duplicidade deixam de divergir entre CRUD e importação.\n- Respostas assíncronas fora de ordem deixam de sobrescrever seleção atual ou encerrar loading pertencente a requisição mais nova.\n- Arquivos gerenciados deixam de exibir sucesso enganoso quando somente a recarga posterior falha.\n\n'''
+          text, count = re.subn(r'## \[Unreleased\]\n.*?(?=## \[0\.8\.0\])', section, text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Seção Unreleased não encontrada')
+          text = text.replace(
+              '[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.0...HEAD',
+              '[Unreleased]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.1...HEAD\n[0.8.1]: https://github.com/marcelositr/MeliponarioManager/compare/v0.8.0...v0.8.1',
+          )
+          path.write_text(text)
+          PY
+
+      - name: Validate synchronized version
+        run: node scripts/check-version.mjs
+
+      - name: Remove one-shot workflow and commit preparation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rm .github/workflows/prepare-v0.8.1.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json src-tauri/Cargo.lock CHANGELOG.md .github/workflows/prepare-v0.8.1.yml
+          git commit -m "chore: finalize v0.8.1 release metadata"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:release/v0.8.1
