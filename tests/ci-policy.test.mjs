@@ -40,7 +40,7 @@ test("checkout credentials are not persisted in repository workflows", async () 
   }
 });
 
-test("branch CI keeps fast feedback while PR and main retain full validation", async () => {
+test("branch and PR CI retain full validation while main adds desktop validation", async () => {
   const [branchCi, mainCi, desktopSmoke] = await Promise.all([
     workflow("ci.yml"),
     workflow("ci-main.yml"),
@@ -54,19 +54,16 @@ test("branch CI keeps fast feedback while PR and main retain full validation", a
   assert.match(branchCi, /Detect documentation-only change/);
   assert.match(branchCi, /code_changed=true/);
   assert.match(branchCi, /README\.md\|CONTRIBUTING\.md\|SECURITY\.md\|CHANGELOG\.md\|docs\/\*\.md\|wiki\/\*\.md/);
-  assert.match(branchCi, /- name: Select validation profile/);
-  assert.match(branchCi, /GITHUB_EVENT_NAME.*push/s);
-  assert.match(branchCi, /GITHUB_REF_NAME.*work\/field-testing-and-hardening/s);
-  assert.match(branchCi, /echo "relaxed=true"/);
-  assert.match(branchCi, /CI profile: field-testing light/);
+  assert.doesNotMatch(branchCi, /Select validation profile/);
+  assert.doesNotMatch(branchCi, /field-testing light/);
   assert.match(branchCi, /- name: Validate version metadata\n\s+run: npm run version:check/);
   assert.match(branchCi, /- name: Validate documentation links\n\s+run: npm run docs:check/);
   assert.match(branchCi, /- name: Build frontend\n\s+if: steps\.change_scope\.outputs\.code_changed == 'true'/);
   assert.match(branchCi, /- name: Test frontend\n\s+if: steps\.change_scope\.outputs\.code_changed == 'true'/);
-  assert.match(
-    branchCi,
-    /if: steps\.change_scope\.outputs\.code_changed == 'true' && steps\.validation_profile\.outputs\.relaxed != 'true'/,
-  );
+  assert.match(branchCi, /- name: Setup Rust\n\s+if: steps\.change_scope\.outputs\.code_changed == 'true'/);
+  assert.match(branchCi, /- name: Check Rust formatting\n\s+if: steps\.change_scope\.outputs\.code_changed == 'true'/);
+  assert.match(branchCi, /- name: Generate desktop icons\n\s+if: steps\.change_scope\.outputs\.code_changed == 'true'/);
+  assert.match(branchCi, /- name: Validate bundle icon configuration\n\s+if: steps\.change_scope\.outputs\.code_changed == 'true'/);
   assert.match(branchCi, /cargo check --locked/);
   assert.match(branchCi, /cargo clippy --locked --all-targets -- -D warnings/);
   assert.match(branchCi, /cargo test --locked/);
