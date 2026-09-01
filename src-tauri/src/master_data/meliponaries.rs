@@ -7,20 +7,14 @@ pub async fn edit_meliponary(
     let id = required(&input.id, "Meliponário")?;
     let name = required(&input.name, "Nome do meliponário")?;
     let reason = required(&input.reason, "Motivo da edição")?;
-    let duplicate: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-            SELECT 1 FROM meliponaries
-            WHERE id <> ? AND lower(trim(name)) = lower(trim(?))
-         )",
-    )
-    .bind(&id)
-    .bind(&name)
-    .fetch_one(pool)
-    .await?;
-    if duplicate {
-        return Err(AppError::Validation(
-            "Já existe outro meliponário com este nome.".to_owned(),
-        ));
+    let current_name: Option<String> = sqlx::query_scalar("SELECT name FROM meliponaries WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(pool)
+        .await?;
+    let current_name = current_name
+        .ok_or_else(|| AppError::NotFound("Meliponário não encontrado.".to_owned()))?;
+    if crate::identity::text_key(&current_name) != crate::identity::text_key(&name) {
+        crate::identity::ensure_meliponary_name_available(pool, &name, Some(&id)).await?;
     }
 
     let mut tx = pool.begin().await?;
