@@ -82,10 +82,7 @@ async fn get(pool: &SqlitePool, id: &str) -> Result<Inspection, AppError> {
     .await?)
 }
 
-async fn get_tx(
-    tx: &mut Transaction<'_, Sqlite>,
-    id: &str,
-) -> Result<Inspection, AppError> {
+async fn get_tx(tx: &mut Transaction<'_, Sqlite>, id: &str) -> Result<Inspection, AppError> {
     Ok(sqlx::query_as::<_, Inspection>(
         "SELECT i.id, i.colony_id, c.code AS colony_code, i.box_id, b.code AS box_code,
                 i.inspected_at, i.strength, i.queen_present, i.laying_status,
