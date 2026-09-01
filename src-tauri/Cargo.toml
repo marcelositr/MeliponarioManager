@@ -1,6 +1,6 @@
 [package]
 name = "meliponariomanager"
-version = "0.8.0"
+version = "0.8.1"
 description = "Desktop application for meliponary management"
 authors = ["Marcelo Trindade"]
 edition = "2021"
