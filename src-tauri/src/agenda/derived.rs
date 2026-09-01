@@ -301,15 +301,12 @@ pub(crate) async fn reconcile_meliponary_tx(
     meliponary_id: &str,
 ) -> Result<(), AppError> {
     let meliponary_id = required(meliponary_id, "Meliponário")?;
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id=?)")
-            .bind(&meliponary_id)
-            .fetch_one(&mut **tx)
-            .await?;
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM meliponaries WHERE id=?)")
+        .bind(&meliponary_id)
+        .fetch_one(&mut **tx)
+        .await?;
     if !exists {
-        return Err(AppError::NotFound(
-            "Meliponário não encontrado.".to_owned(),
-        ));
+        return Err(AppError::NotFound("Meliponário não encontrado.".to_owned()));
     }
 
     let colonies: Vec<String> =
