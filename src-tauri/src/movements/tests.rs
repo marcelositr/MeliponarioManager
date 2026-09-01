@@ -213,13 +213,12 @@ async fn internal_transfer_moves_colony_and_updates_derived_agenda_context() {
             .unwrap();
     assert_eq!(history_count, 2);
 
-    let task_context: (String, Option<String>, Option<String>) = sqlx::query_as(
-        "SELECT meliponary_id,box_id,colony_id FROM scheduled_tasks WHERE id=?",
-    )
-    .bind(task_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let task_context: (String, Option<String>, Option<String>) =
+        sqlx::query_as("SELECT meliponary_id,box_id,colony_id FROM scheduled_tasks WHERE id=?")
+            .bind(task_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(task_context.0, seed.target_meliponary_id);
     assert_eq!(task_context.1.as_deref(), Some(seed.target_box_id.as_str()));
     assert_eq!(task_context.2.as_deref(), Some(seed.colony_id.as_str()));
