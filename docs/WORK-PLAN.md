@@ -46,7 +46,8 @@ Sair do ciclo em que a aplicação foi majoritariamente construída e validada p
 - [x] ACH-001 corrigido e validado por CI completo no checkpoint temporário PR #47.
 - [x] ACH-002 corrigido e validado por CI completo no checkpoint temporário PR #48.
 - [x] ACH-003 corrigido e validado por CI completo na branch `validation/field-testing-ach-003`.
-- [ ] Corrigir primeiro bloco de achados de integridade/consistência.
+- [x] ACH-004 corrigido e validado por CI completo na branch `validation/field-testing-ach-004`.
+- [x] Corrigir primeiro bloco de achados de integridade/consistência.
 - [ ] Iniciar rodada sistemática de testes manuais após o primeiro bloco de correções de alto risco.
 
 ## Política temporária de CI da branch
@@ -175,7 +176,7 @@ Não há justificativa para reescrever o projeto, trocar stack, adicionar framew
 1. **ACH-001** — fechar a fronteira transacional entre fato/tarefa e reconciliação da Agenda. **Concluído em 2026-09-01.**
 2. **ACH-002** — garantir reconciliação da Agenda quando mudanças de estado invalidarem ou moverem tarefas derivadas. **Concluído em 2026-09-01.**
 3. **ACH-003** — separar no frontend sucesso da mutação e falha de refresh. **Concluído em 2026-09-01.**
-4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo.
+4. **ACH-004** — corrigir/definir reversão de transferência externa comum antes do teste manual desse fluxo. **Concluído em 2026-09-01.**
 5. **ACH-005** — unificar regras de identidade/duplicidade de cadastros e importação antes de criar nova constraint.
 6. Testar manualmente esses fluxos e usar os resultados para decidir a prioridade dos achados médios/baixos.
 
@@ -317,16 +318,17 @@ Para cada problema real encontrado:
 
 ### ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior
 
-- **Status:** aberto
+- **Status:** corrigido e validado
 - **Severidade:** alta
 - **Área:** backend / reversões / movimentações
-- **Evidência:** `src-tauri/src/reversals/movements.rs` exige um `colony_lifecycle_records.new_status` anterior à transferência externa para provar o estado a restaurar.
-- **Comportamento observado:** uma colônia recém-criada já nasce `active`, mas esse estado inicial não gera obrigatoriamente uma linha em `colony_lifecycle_records`. Nesse caso, uma transferência externa pode ser válida e posteriormente ter sua reversão automática bloqueada por falta desse registro histórico anterior.
-- **Risco:** um erro operacional comum de transferência externa pode não ser corrigível pelo mecanismo de reversão existente.
+- **Evidência:** `src-tauri/src/reversals/movements.rs`, `src-tauri/src/reversals/tests.rs`, `src-tauri/src/operational.rs` e `migrations/0002_core_domain.sql`.
+- **Comportamento observado:** uma colônia recém-criada já nasce `active`, mas esse estado inicial não gera obrigatoriamente uma linha em `colony_lifecycle_records`. Nesse caso, uma transferência externa válida era posteriormente bloqueada na reversão porque o código exigia um lifecycle anterior para descobrir o estado a restaurar.
+- **Risco:** um erro operacional comum de transferência externa podia não ser corrigível pelo mecanismo de reversão existente.
 - **Comportamento esperado:** quando o estado anterior é inequivocamente derivável do histórico válido, a reversão segura deve conseguir restaurá-lo; quando não for derivável, deve continuar bloqueando.
-- **Correção:** alinhar a inferência com a política histórica já usada por `operational::ensure_colony_available_at`, sem inventar retrospectivamente linhas falsas de lifecycle.
-- **Teste de regressão:** transferência externa de colônia criada como `active` sem lifecycle anterior e reversão imediata segura.
-- **Commit/PR:** pendente.
+- **Correção:** a reversão continua preferindo o último `new_status` de lifecycle anterior. Quando não existe lifecycle anterior, ela confirma que a transferência não antecede a entrada da colônia no plantel e restaura `active`, que é o estado inicial definido pelo schema e a mesma inferência histórica usada por `operational::ensure_colony_available_at`. Nenhuma linha retroativa de lifecycle é criada. As demais barreiras de segurança da reversão permanecem intactas: somente a transferência efetiva mais recente, sem fatos posteriores, com status atual `transferred` e caixa anterior ativa/livre pode ser restaurada automaticamente.
+- **Teste de regressão:** adicionado cenário com colônia criada `active`, sem qualquer lifecycle, inspeção/Agenda pendente, transferência externa e reversão imediata. O teste exige restauração de `active`, meliponário, caixa e tarefa derivada, confirma `reversed_at` na movimentação e prova que a quantidade de registros de lifecycle permanece zero.
+- **Validação:** CI completo #548 (`33517247992`) no commit `01c8473`: frontend, `cargo fmt`, bundle checks, `cargo check --locked`, Clippy com `-D warnings` e testes Rust aprovados. O run anterior #546 parou apenas no `rustfmt`; a única diferença mecânica pedida pelo formatter foi aplicada antes do run verde.
+- **Commit/PR:** implementação funcional em `b3a614e`, regressão em `fbc5b00` e formatação mecânica em `01c8473`; checkpoint congelado em `validation/field-testing-ach-004` no SHA `01c8473`. Um PR manual contra `main` pode ser aberto apenas para revisão/histórico e deve ser fechado sem merge.
 
 ### ACH-005 — Cadastro, edição e importação discordam sobre identidade/duplicidade
 
@@ -468,11 +470,17 @@ Mudanças de contexto operacional agora reconciliam a Agenda derivada antes do c
 
 O fluxo global de mutações agora distingue falha da escrita de falha posterior de refresh. Uma gravação concluída não retorna mais `false` só porque a visão não conseguiu recarregar; a interface informa que os dados foram salvos e orienta usar **Atualizar** antes de repetir a operação. A importação CSV recebeu a mesma proteção. A Agenda foi reavaliada e ficou fora do patch porque seu `reload()` já captura a própria falha sem reclassificar a mutação como malsucedida. O CI leve #540 (`33511753482`) aprovou build e testes frontend. A branch congelada `validation/field-testing-ach-003` disparou também o CI completo #542 (`33512022812`) no SHA `0570b7c`, aprovado em todos os gates. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
 
+### 2026-09-01 — ACH-004 fechado com validação completa
+
+A reversão de transferência externa agora consegue restaurar uma colônia originalmente criada como `active` mesmo quando não existe lifecycle anterior, desde que a própria cronologia da entrada no plantel torne essa inferência segura. O mecanismo não cria lifecycle retroativo e preserva todas as barreiras existentes contra reversão insegura. O CI completo #548 (`33517247992`) passou no checkpoint congelado `validation/field-testing-ach-004` / `01c8473`, incluindo frontend, `cargo fmt`, `cargo check --locked`, Clippy com `-D warnings` e testes Rust. Um PR manual pode ser aberto apenas como checkpoint/revisão e deve ser fechado sem merge.
+
 ## Próximo passo
 
-Se for desejado manter o mesmo histórico visual dos checkpoints anteriores, abrir manualmente um PR de `validation/field-testing-ach-003` contra `main`, marcá-lo como draft e deixar explícito que **não deve ser integrado**. O CI completo já foi executado e aprovado no próprio push dessa branch, portanto o PR é apenas um checkpoint de revisão/histórico.
+Revisar, sem modificar código, **ACH-005 — Cadastro, edição e importação discordam sobre identidade/duplicidade**.
 
-O próximo trabalho funcional é revisar, sem modificar código, **ACH-004 — Transferência externa comum pode não ser reversível por falta de lifecycle anterior**. A revisão deve confirmar quando o estado anterior pode ser inferido com segurança e propor o menor patch/teste antes de qualquer implementação.
+A revisão deve definir explicitamente a identidade operacional de meliponários, espécies, caixas e colônias; comparar criação, edição e importação; verificar possíveis colisões já presentes em bancos existentes; e somente depois propor se basta harmonizar validações na aplicação ou se será necessária uma migration nova de segunda defesa. Nenhuma constraint nova deve ser criada antes dessa decisão.
+
+Se for desejado manter o mesmo histórico visual dos checkpoints anteriores, `validation/field-testing-ach-004` está congelada no SHA `01c8473` para um PR manual contra `main`, sempre sem merge.
 
 ## Handoff para a próxima conversa
 
