@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "test:ui": "node --experimental-strip-types --test tests/ui-preferences.test.ts tests/mutation-flow.test.ts tests/latest-request.test.ts tests/ui-structure.test.mjs tests/ui-stage4.test.mjs tests/ui-hardening.test.mjs tests/ui-reports.test.mjs tests/ui-files.test.mjs tests/ci-policy.test.mjs",
+    "test:ui": "node --experimental-strip-types --test tests/ui-preferences.test.ts tests/mutation-flow.test.ts tests/latest-request.test.ts tests/report-presentation.test.ts tests/ui-structure.test.mjs tests/ui-stage4.test.mjs tests/ui-hardening.test.mjs tests/ui-reports.test.mjs tests/ui-files.test.mjs tests/ci-policy.test.mjs",
     "docs:check": "node scripts/check-doc-links.mjs",
     "icons": "tauri icon assets/app-icon.svg",
     "bundle:check": "node scripts/check-bundle-icons.mjs",
