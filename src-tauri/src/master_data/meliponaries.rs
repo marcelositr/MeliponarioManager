@@ -7,12 +7,13 @@ pub async fn edit_meliponary(
     let id = required(&input.id, "Meliponário")?;
     let name = required(&input.name, "Nome do meliponário")?;
     let reason = required(&input.reason, "Motivo da edição")?;
-    let current_name: Option<String> = sqlx::query_scalar("SELECT name FROM meliponaries WHERE id = ?")
-        .bind(&id)
-        .fetch_optional(pool)
-        .await?;
-    let current_name = current_name
-        .ok_or_else(|| AppError::NotFound("Meliponário não encontrado.".to_owned()))?;
+    let current_name: Option<String> =
+        sqlx::query_scalar("SELECT name FROM meliponaries WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(pool)
+            .await?;
+    let current_name =
+        current_name.ok_or_else(|| AppError::NotFound("Meliponário não encontrado.".to_owned()))?;
     if crate::identity::text_key(&current_name) != crate::identity::text_key(&name) {
         crate::identity::ensure_meliponary_name_available(pool, &name, Some(&id)).await?;
     }
