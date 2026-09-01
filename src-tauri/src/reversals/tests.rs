@@ -1,6 +1,8 @@
 use super::*;
 use crate::{
+    agenda,
     domain::{CreateColony, CreateHiveBox, CreateMeliponary, CreateSpecies, PlaceColony},
+    inspections::{self, CreateInspection},
     lifecycle::{self, ChangeColonyLifecycle},
     movements::{self, CreateMovement},
     repository,
@@ -116,9 +118,41 @@ async fn seed() -> S {
         tb: tb.id,
     }
 }
+
+async fn create_pending_inspection(s: &S) -> String {
+    inspections::create(
+        &s.p,
+        CreateInspection {
+            colony_id: s.c.clone(),
+            inspected_at: Some("2026-01-10 10:00:00".into()),
+            strength: Some("medium".into()),
+            queen_present: None,
+            laying_status: None,
+            food_reserves: None,
+            brood_status: None,
+            pests_notes: None,
+            observations: None,
+            actions_taken: None,
+            next_inspection_at: Some("2026-04-01 10:00:00".into()),
+        },
+    )
+    .await
+    .unwrap();
+    agenda::reconcile_inspection(&s.p, &s.c).await.unwrap();
+    sqlx::query_scalar(
+        "SELECT id FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(&s.c)
+    .fetch_one(&s.p)
+    .await
+    .unwrap()
+}
+
 #[tokio::test]
-async fn safe_lifecycle_reversal_restores_status_and_box() {
+async fn safe_lifecycle_reversal_restores_status_box_and_agenda() {
     let s = seed().await;
+    let original_task_id = create_pending_inspection(&s).await;
     let r = lifecycle::change(
         &s.p,
         ChangeColonyLifecycle {
@@ -131,6 +165,13 @@ async fn safe_lifecycle_reversal_restores_status_and_box() {
     )
     .await
     .unwrap();
+    let cancelled: String = sqlx::query_scalar("SELECT status FROM scheduled_tasks WHERE id=?")
+        .bind(&original_task_id)
+        .fetch_one(&s.p)
+        .await
+        .unwrap();
+    assert_eq!(cancelled, "cancelled");
+
     reverse_lifecycle(
         &s.p,
         ReverseRecord {
@@ -154,6 +195,16 @@ async fn safe_lifecycle_reversal_restores_status_and_box() {
     .unwrap();
     assert_eq!(st, "active");
     assert_eq!(b, s.sb);
+    let restored: (String, Option<String>) = sqlx::query_as(
+        "SELECT meliponary_id,box_id FROM scheduled_tasks
+         WHERE colony_id=? AND task_type='inspection' AND status='pending'",
+    )
+    .bind(&s.c)
+    .fetch_one(&s.p)
+    .await
+    .unwrap();
+    assert_eq!(restored.0, s.sm);
+    assert_eq!(restored.1.as_deref(), Some(s.sb.as_str()));
     assert!(sqlx::query_scalar::<_, Option<String>>(
         "SELECT reversed_at FROM colony_lifecycle_records WHERE id=?"
     )
@@ -190,16 +241,17 @@ async fn conflicting_lifecycle_reversal_is_rejected() {
     .is_err());
 }
 #[tokio::test]
-async fn internal_transfer_reversal_is_transactional_and_preserves_original() {
+async fn internal_transfer_reversal_is_transactional_and_restores_agenda_context() {
     let s = seed().await;
+    let task_id = create_pending_inspection(&s).await;
     let m = movements::create(
         &s.p,
         CreateMovement {
             colony_id: s.c.clone(),
             movement_type: "internal_transfer".into(),
             moved_at: Some("2026-02-01 10:00:00".into()),
-            to_meliponary_id: Some(s.tm),
-            to_box_id: Some(s.tb),
+            to_meliponary_id: Some(s.tm.clone()),
+            to_box_id: Some(s.tb.clone()),
             destination: None,
             document_reference: None,
             notes: None,
@@ -207,6 +259,15 @@ async fn internal_transfer_reversal_is_transactional_and_preserves_original() {
     )
     .await
     .unwrap();
+    let moved_task: (String, Option<String>) =
+        sqlx::query_as("SELECT meliponary_id,box_id FROM scheduled_tasks WHERE id=?")
+            .bind(&task_id)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert_eq!(moved_task.0, s.tm);
+    assert_eq!(moved_task.1.as_deref(), Some(s.tb.as_str()));
+
     reverse_movement(
         &s.p,
         ReverseRecord {
@@ -230,6 +291,14 @@ async fn internal_transfer_reversal_is_transactional_and_preserves_original() {
     .unwrap();
     assert_eq!(mel, s.sm);
     assert_eq!(b, s.sb);
+    let restored_task: (String, Option<String>) =
+        sqlx::query_as("SELECT meliponary_id,box_id FROM scheduled_tasks WHERE id=?")
+            .bind(&task_id)
+            .fetch_one(&s.p)
+            .await
+            .unwrap();
+    assert_eq!(restored_task.0, s.sm);
+    assert_eq!(restored_task.1.as_deref(), Some(s.sb.as_str()));
     let kept: i64 = sqlx::query_scalar(
         "SELECT COUNT(*) FROM colony_movements WHERE id=? AND reversed_at IS NOT NULL",
     )
