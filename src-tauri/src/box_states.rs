@@ -1,4 +1,4 @@
-use crate::{repository::AppError, time};
+use crate::{agenda, repository::AppError, time};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use uuid::Uuid;
@@ -152,6 +152,7 @@ pub async fn change(pool: &SqlitePool, input: ChangeBoxState) -> Result<BoxState
     .execute(&mut *tx)
     .await?;
 
+    agenda::reconcile_maintenance_tx(&mut tx, &box_id).await?;
     tx.commit().await?;
     get(pool, &id).await
 }
